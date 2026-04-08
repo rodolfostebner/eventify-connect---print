@@ -1,0 +1,5 @@
+{
+  "name": "Eventify Connect & Print",
+  "description": "Plataforma de engajamento para eventos com feed interativo, galeria de fotos e gestão de impressão de stickers.",
+  "requestFramePermissions": ["camera"]
+}
