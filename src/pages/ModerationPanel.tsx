@@ -1,15 +1,18 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { auth, handleFirestoreError, OperationType } from '../lib/firebase';
+import { toast } from 'sonner';
+
+
 import { Check, X, ArrowLeft, Loader2, MessageCircle, ShieldCheck, Trash2, Printer, Eye, Upload, Pause, Play, Trophy, LogOut } from 'lucide-react';
 import type { EventData, PhotoData, PrintOrder } from '../types';
 import { subscribeToEvent } from '../services/eventService';
-import { subscribeToPhotos, updatePhotoStatus, moderateComment, addOfficialPhoto } from '../services/photoService';
+import { fetchAllPosts, subscribeToAllPosts, updatePostStatus, commentOnPost, createPost } from '../services/posts';
 import { subscribeToPrintOrders, completePrintOrder, deletePrintOrder } from '../services/printService';
 import { createNotification } from '../services/notificationService';
 import { updateEvent } from '../services/eventService';
+import { User, logout } from '../services/authService';
 
-export default function ModerationPanel({ user }: { user: import('../lib/firebase').User | null }) {
+export default function ModerationPanel({ user }: { user: User | null }) {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [photos, setPhotos] = useState<PhotoData[]>([]);
@@ -34,17 +37,33 @@ export default function ModerationPanel({ user }: { user: import('../lib/firebas
   // Subscribe to photos once event is loaded
   useEffect(() => {
     if (!event?.id) return;
-    return subscribeToPhotos(
-      event.id,
-      (data) => {
-        setPhotos(data);
-        setLoading(false);
-      },
-      (err) => {
-        console.error(err);
-        setLoading(false);
-      },
-    );
+    
+    // Initial fetch
+    fetchAllPosts(event.id).then((data) => {
+      setPhotos(data);
+      setLoading(false);
+    }).catch((err) => {
+      console.error(err);
+      setLoading(false);
+    });
+
+    // Subscribe to all changes
+    return subscribeToAllPosts(event.id, (payload) => {
+      const { eventType, new: newRecord, old: oldRecord } = payload;
+      
+      setPhotos((prev) => {
+        if (eventType === 'INSERT') {
+          return [newRecord as PhotoData, ...prev];
+        }
+        if (eventType === 'UPDATE') {
+          return prev.map(p => p.id === newRecord.id ? { ...p, ...(newRecord as PhotoData) } : p);
+        }
+        if (eventType === 'DELETE') {
+          return prev.filter(p => p.id !== oldRecord.id);
+        }
+        return prev;
+      });
+    });
   }, [event?.id]);
 
   // Subscribe to print orders
@@ -59,7 +78,8 @@ export default function ModerationPanel({ user }: { user: import('../lib/firebas
 
   const handleApprovePhoto = async (photo: PhotoData) => {
     try {
-      await updatePhotoStatus(photo.id, 'approved');
+      await updatePostStatus(photo.id, 'approved');
+      toast.success('Foto aprovada!');
       if (photo.user_id) {
         await createNotification({
           userId: photo.user_id,
@@ -69,15 +89,18 @@ export default function ModerationPanel({ user }: { user: import('../lib/firebas
         });
       }
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, 'photos');
+      console.error(err);
+      toast.error('Erro ao aprovar foto.');
     }
   };
 
   const handleRejectPhoto = async (id: string) => {
     try {
-      await updatePhotoStatus(id, 'rejected');
+      await updatePostStatus(id, 'rejected');
+      toast.success('Foto rejeitada!');
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, 'photos');
+      console.error(err);
+      toast.error('Erro ao rejeitar foto.');
     }
   };
 
@@ -87,7 +110,14 @@ export default function ModerationPanel({ user }: { user: import('../lib/firebas
     setUploading(true);
     try {
       for (let i = 0; i < files.length; i++) {
-        await addOfficialPhoto(event.id, files[i]);
+        await createPost({
+          eventId: event.id,
+          url: 'https://images.unsplash.com/photo-1519741497674-611481863552', // Placeholder
+          user_name: 'Equipe Oficial',
+          user_id: '',
+          status: 'approved',
+          is_official: true
+        });
       }
     } catch (err) {
       console.error(err);
@@ -123,9 +153,20 @@ export default function ModerationPanel({ user }: { user: import('../lib/firebas
     action: 'approved' | 'rejected',
   ) => {
     try {
-      await moderateComment(photoId, currentComments, commentIndex, action);
+      const photo = photos.find(p => p.id === photoId);
+      if (!photo) return;
+
+      const newComments = [...(photo.comments || [])];
+      if (action === 'rejected') {
+        newComments.splice(commentIndex, 1);
+      } else {
+        newComments[commentIndex] = { ...newComments[commentIndex], status: 'approved' };
+      }
+
+      await commentOnPost(photoId, newComments);
+      toast.success(action === 'approved' ? 'Comentário aprovado!' : 'Comentário removido!');
+      
       if (action === 'approved') {
-        const photo = photos.find((p) => p.id === photoId);
         if (photo?.user_id) {
           const approved = currentComments[commentIndex];
           await createNotification({
@@ -137,7 +178,8 @@ export default function ModerationPanel({ user }: { user: import('../lib/firebas
         }
       }
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, 'photos');
+      console.error(err);
+      toast.error('Erro ao moderar comentário.');
     }
   };
 
@@ -145,7 +187,8 @@ export default function ModerationPanel({ user }: { user: import('../lib/firebas
     try {
       await completePrintOrder(orderId);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, 'print_orders');
+      console.error(err);
+      toast.error('Erro ao concluir pedido.');
     }
   };
 
@@ -154,7 +197,8 @@ export default function ModerationPanel({ user }: { user: import('../lib/firebas
     try {
       await deletePrintOrder(orderId);
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, 'print_orders');
+      console.error(err);
+      toast.error('Erro ao excluir pedido.');
     }
   };
 
@@ -205,7 +249,7 @@ export default function ModerationPanel({ user }: { user: import('../lib/firebas
 
   const handleLogout = async () => {
     try {
-      await auth.signOut();
+      await logout();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);

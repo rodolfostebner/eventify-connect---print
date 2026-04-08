@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { db, storage, auth, handleFirestoreError, OperationType, loginWithGoogle, collection, query, where, onSnapshot, addDoc, updateDoc, doc, increment, arrayUnion, arrayRemove, orderBy, Timestamp, ref, uploadBytes, getDownloadURL } from '../lib/firebase';
-import type { User } from '../lib/firebase';
+import { User } from '../services/authService';
+import { login, logout, loginWithGoogle } from '../services/authService';
 import { Loader2, Camera, Heart, MessageCircle, Clock, Users, Trophy, Send, X, Image as ImageIcon, LogOut, User as UserIcon, Flame, Star, Menu, Instagram, Globe, Phone, Trash2, Check, Briefcase, Bell, BellOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
-import { logout } from '../lib/firebase';
 import type { EventData, PhotoData, ExhibitorSponsor, PhotoComment } from '../types';
 import { subscribeToEvent } from '../services/eventService';
 import { createPrintOrder } from '../services/printService';
+import { fetchPosts, createPost, subscribeToPosts, likePost, reactToPost, commentOnPost, updatePostStatus } from '../services/posts';
+import { createNotification } from '../services/notificationService';
+import { cn } from '../lib/utils';
 
 // Types are imported from src/types/index.ts
 
@@ -18,7 +20,7 @@ import { createPrintOrder } from '../services/printService';
 interface LiveEventViewProps {
   event: EventData;
   user: User | null;
-  onLogin: () => Promise<void>;
+  onLogin: () => void;
   isSelectingForPrint: boolean;
   selectedPrintPhotos: string[];
   togglePhotoSelection: (id: string) => void;
@@ -28,7 +30,7 @@ interface PhotoCardProps {
   photo: PhotoData;
   user: User | null;
   event: EventData;
-  onLogin: () => Promise<void>;
+  onLogin: () => void;
   onDelete?: () => void;
 }
 
@@ -48,6 +50,9 @@ export default function EventPage({ user }: { user: User | null }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [linkSent, setLinkSent] = useState(false);
+  const [isLoginViewOpen, setIsLoginViewOpen] = useState(false);
 
   // Photo Selection for Printing
   const [isSelectingForPrint, setIsSelectingForPrint] = useState(false);
@@ -148,14 +153,22 @@ export default function EventPage({ user }: { user: User | null }) {
     );
   }, [slug]);
 
-  const handleLogin = async () => {
-    const toastId = toast.loading('Conectando...');
+  const handleLogin = () => {
+    setIsLoginViewOpen(true);
+    setLinkSent(false);
+  };
+
+  const handleSendMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginEmail) return;
+    const toastId = toast.loading('Enviando link...');
     try {
-      await loginWithGoogle();
-      toast.success('Bem-vindo!', { id: toastId });
+      await login(loginEmail);
+      setLinkSent(true);
+      toast.success('Link enviado! Verifique seu e-mail.', { id: toastId });
     } catch (err: any) {
       console.error('Erro no login:', err);
-      toast.error('Erro ao entrar. Verifique se as janelas pop-up estão permitidas.', { id: toastId });
+      toast.error('Erro ao enviar link. Tente novamente.', { id: toastId });
     }
   };
 
@@ -603,6 +616,77 @@ export default function EventPage({ user }: { user: User | null }) {
       />}
         {event.status === 'post' && <PostEventView event={event} user={user} onLogin={handleLogin} />}
       </main>
+
+      {/* Login Modal */}
+      <AnimatePresence>
+        {isLoginViewOpen && !user && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white w-full max-w-sm rounded-[40px] overflow-hidden shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setIsLoginViewOpen(false)}
+                className="absolute top-6 right-6 p-2 hover:bg-neutral-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-neutral-900 rounded-2xl flex items-center justify-center text-white mx-auto mb-6 shadow-xl">
+                  <span className="text-3xl">🐨</span>
+                </div>
+                <h2 className="text-2xl font-black mb-2">Bem-vindo!</h2>
+                
+                {linkSent ? (
+                  <div className="space-y-6 py-4">
+                    <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
+                      <p className="text-sm text-green-700 font-medium">
+                        Link enviado para:<br/>
+                        <strong className="text-green-900">{loginEmail}</strong>
+                      </p>
+                    </div>
+                    <p className="text-xs text-neutral-500">
+                      Clique no link que enviamos para o seu e-mail para entrar automaticamente.
+                    </p>
+                    <button 
+                      onClick={() => setLinkSent(false)}
+                      className="text-xs font-bold text-neutral-400 hover:text-neutral-900 underline"
+                    >
+                      Usar outro e-mail
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-neutral-500 text-sm mb-8">
+                      Para participar, enviar fotos e comentar, entre com sua conta Google.
+                    </p>
+                    <button 
+                      onClick={async () => {
+                        const tid = toast.loading('Redirecionando para o Google...');
+                        try {
+                          await loginWithGoogle();
+                        } catch (err) {
+                          toast.error('Erro ao conectar com Google.', { id: tid });
+                        }
+                      }}
+                      className="w-full py-4 bg-white border border-neutral-200 text-neutral-900 rounded-2xl font-bold shadow-sm hover:bg-neutral-50 active:scale-95 transition-all flex items-center justify-center gap-3"
+                    >
+                      <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+                      Entrar com Google
+                    </button>
+                    <p className="text-[10px] text-neutral-400 mt-6 uppercase tracking-widest font-bold">
+                      Identificação Nominal Automática
+                    </p>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -731,55 +815,41 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Query for approved photos
-    const qApproved = query(
-      collection(db, 'photos'),
-      where('eventId', '==', event.id),
-      where('status', '==', 'approved'),
-      orderBy('timestamp', 'desc')
-    );
-
-    // Query for user's pending photos
-    const qPending = user ? query(
-      collection(db, 'photos'),
-      where('eventId', '==', event.id),
-      where('user_id', '==', user.uid),
-      where('status', '==', 'pending'),
-      orderBy('timestamp', 'desc')
-    ) : null;
-
-    const unsubApproved = onSnapshot(qApproved, (snapshot) => {
-      const approvedList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PhotoData));
-      setPhotos(prev => {
-        const otherPhotos = prev.filter(p => p.status === 'pending');
-        const combined = [...otherPhotos, ...approvedList];
-        // Deduplicate and sort
-        const unique = Array.from(new Map(combined.map(p => [p.id, p])).values());
-        return unique.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-      });
-    }, (err) => {
-      console.error('Approved photos error:', err);
-    });
-
-    let unsubPending: (() => void) | undefined;
-    if (qPending) {
-      unsubPending = onSnapshot(qPending, (snapshot) => {
-        const pendingList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PhotoData));
-        setPhotos(prev => {
-          const approvedPhotos = prev.filter(p => p.status !== 'pending');
-          const combined = [...pendingList, ...approvedPhotos];
-          const unique = Array.from(new Map(combined.map(p => [p.id, p])).values());
-          return unique.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-        });
-      }, (err) => {
-        console.error('Pending photos error:', err);
-      });
-    }
-
-    return () => {
-      unsubApproved();
-      if (unsubPending) unsubPending();
+    // 1. Initial Fetch
+    const loadInitialPosts = async () => {
+      try {
+        const initialPhotos = await fetchPosts(event.id);
+        setPhotos(initialPhotos);
+      } catch (err) {
+        console.error('Initial fetch error:', err);
+      }
     };
+    loadInitialPosts();
+
+    // 2. Real-time Subscription
+    return subscribeToPosts(event.id, (payload) => {
+      const { eventType, new: newRecord, old: oldRecord } = payload;
+      
+      setPhotos((prev) => {
+        if (eventType === 'INSERT') {
+          // Only show approved photos or if user is owner (simplified: just matching fetch logic)
+          if (newRecord.status === 'approved') {
+            return [newRecord, ...prev];
+          }
+          return prev;
+        }
+        
+        if (eventType === 'UPDATE') {
+          return prev.map(p => p.id === newRecord.id ? { ...p, ...newRecord } : p);
+        }
+        
+        if (eventType === 'DELETE') {
+          return prev.filter(p => p.id === oldRecord.id);
+        }
+        
+        return prev;
+      });
+    });
   }, [event.id, user?.uid]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -843,18 +913,13 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
         reader.readAsDataURL(file);
       });
 
-      // 2. Salvar no Firestore
-      await addDoc(collection(db, 'photos'), {
+      // 2. Salvar no Supabase via novo serviço
+      await createPost({
         eventId: event.id,
         url: base64,
         user_name: user.displayName || 'Anônimo',
         user_id: user.uid,
-        likes: 0,
-        reactions: { '❤️': 0, '😂': 0, '✨': 0, '💬': 0, '🎸': 0, '⭐': 0 },
-        comments: [],
-        timestamp: Timestamp.now(),
-        status: 'pending',
-        is_official: false
+        status: 'pending'
       });
 
       toast.success('Foto enviada para aprovação!', { id: toastId });
@@ -1178,18 +1243,8 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
     const hasLiked = photo.reacted_users?.includes(likeKey);
 
     try {
-      const photoRef = doc(db, 'photos', photo.id);
-      if (hasLiked) {
-        await updateDoc(photoRef, {
-          likes: increment(-1),
-          reacted_users: arrayRemove(likeKey)
-        });
-      } else {
-        await updateDoc(photoRef, {
-          likes: increment(1),
-          reacted_users: arrayUnion(likeKey)
-        });
-      }
+      const isRemoving = hasLiked;
+      await likePost(photo.id, likeKey, isRemoving ? -1 : 1);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao curtir foto.');
@@ -1213,26 +1268,12 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
     const userReactions = (photo.reacted_users || []).filter(key => key.startsWith(`${user.uid}_`) && key !== `${user.uid}_like`);
 
     try {
-      const photoRef = doc(db, 'photos', photo.id);
-      const currentReactions = photo.reactions || {};
-      
-      if (hasReacted) {
-        // Remove reaction
-        await updateDoc(photoRef, {
-          [`reactions.${emoji}`]: Math.max(0, (currentReactions[emoji] || 1) - 1),
-          reacted_users: arrayRemove(reactionKey)
-        });
-      } else {
-        // Add reaction
-        if (userReactions.length >= 2) {
-          toast.error('Você só pode usar até 2 comentários sugeridos por foto.');
-          return;
-        }
-        await updateDoc(photoRef, {
-          [`reactions.${emoji}`]: (currentReactions[emoji] || 0) + 1,
-          reacted_users: arrayUnion(reactionKey)
-        });
+      const isRemoving = hasReacted;
+      if (!isRemoving && userReactions.length >= 2) {
+        toast.error('Você só pode usar até 2 comentários sugeridos por foto.');
+        return;
       }
+      await reactToPost(photo.id, emoji, user.uid, isRemoving ? -1 : 1);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao registrar reação.');
@@ -1258,17 +1299,14 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
         status: event.comment_moderation_enabled === false ? 'approved' : 'pending'
       };
 
-      await updateDoc(doc(db, 'photos', photo.id), {
-        comments: arrayUnion(comment)
-      });
+      await commentOnPost(photo.id, [...(photo.comments || []), comment]);
       
       if (event.comment_moderation_enabled === false && photo.user_id && photo.user_id !== user.uid) {
-        await addDoc(collection(db, 'notifications'), {
+        await createNotification({
           userId: photo.user_id,
           title: 'Novo Comentário!',
           body: `${user.displayName || 'Anônimo'} comentou na sua foto.`,
           read: false,
-          timestamp: Timestamp.now(),
           link: `/${event.slug}`
         });
       }
@@ -1290,9 +1328,7 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
     if (!user || (photo.user_id !== user.uid && !isAdmin)) return;
 
     try {
-      await updateDoc(doc(db, 'photos', photo.id), {
-        status: 'rejected'
-      });
+      await updatePostStatus(photo.id, 'rejected');
       toast.success('Foto excluída!');
       setShowDetails(false);
     } catch (err) {
@@ -1306,9 +1342,7 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
 
     try {
       const updatedComments = photo.comments.filter(c => c.id !== commentId);
-      await updateDoc(doc(db, 'photos', photo.id), {
-        comments: updatedComments
-      });
+      await commentOnPost(photo.id, updatedComments); 
       toast.success('Comentário excluído!');
     } catch (err) {
       console.error(err);
@@ -1539,26 +1573,18 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
   );
 }
 
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(' ');
-}
 
-function PostEventView({ event, user, onLogin }: { event: EventData, user: User | null, onLogin: () => Promise<void> }) {
+function PostEventView({ event, user, onLogin }: { event: EventData, user: User | null, onLogin: () => void }) {
   const [photos, setPhotos] = useState<PhotoData[]>([]);
 
   useEffect(() => {
     if (!event.id) return;
-    const q = query(
-      collection(db, 'photos'),
-      where('eventId', '==', event.id),
-      where('status', '==', 'approved')
-    );
-    const unsub = onSnapshot(q, (snap) => {
-      setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() } as PhotoData)));
-    }, (error) => {
-      console.error('Error fetching photos for post event:', error);
+    // Initial fetch
+    fetchPosts(event.id).then(setPhotos).catch(console.error);
+    // Real-time updates
+    return subscribeToPosts(event.id, () => {
+      fetchPosts(event.id).then(setPhotos).catch(console.error);
     });
-    return () => unsub();
   }, [event.id]);
 
   const rankingData = useMemo(() => {

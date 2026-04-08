@@ -1,95 +1,160 @@
-/**
- * eventService.ts
- *
- * All data access for the `events` collection.
- *
- * Currently backed by mockFirestore (localStorage).
- * To switch to Supabase, replace the function bodies here —
- * no changes needed in any page or component.
- */
-
-import {
-  db,
-  collection, query, where, orderBy,
-  onSnapshot, addDoc, updateDoc, doc, deleteDoc, getDocs,
-} from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import type { EventData } from '../types';
-
-// ─── Real-time subscriptions ──────────────────────────────────────────────────
 
 /**
  * Subscribe to all events ordered by date descending.
  * Used by AdminDashboard.
- * Returns an unsubscribe function.
  */
 export function subscribeToEvents(
   onUpdate: (events: EventData[]) => void,
   onError?: (err: any) => void,
 ): () => void {
-  const q = query(collection(db, 'events'), orderBy('date', 'desc'));
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      const list = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as EventData));
-      onUpdate(list);
-    },
-    onError,
-  );
+  if (!supabase) return () => {};
+
+  // Initial fetch
+  supabase
+    .from('events')
+    .select('*')
+    .order('date', { ascending: false })
+    .then(({ data, error }) => {
+      if (error) onError?.(error);
+      else onUpdate(data as EventData[]);
+    });
+
+  // Real-time subscription
+  const channel = supabase
+    .channel('public:events')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'events' },
+      () => {
+        // Re-fetch all on any change for simplicity in admin panel
+        supabase
+          .from('events')
+          .select('*')
+          .order('date', { ascending: false })
+          .then(({ data, error }) => {
+            if (error) onError?.(error);
+            else onUpdate(data as EventData[]);
+          });
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 /**
  * Subscribe to a single event by slug.
- * Used by EventPage, TVView, ModerationPanel.
- * Returns an unsubscribe function.
  */
 export function subscribeToEvent(
   slug: string,
   onUpdate: (event: EventData | null) => void,
   onError?: (err: any) => void,
 ): () => void {
-  const cleanSlug = slug.trim().toLowerCase();
-  const q = query(collection(db, 'events'), where('slug', '==', cleanSlug));
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      if (!snapshot.empty) {
-        const d = snapshot.docs[0];
-        onUpdate({ id: d.id, ...d.data() } as EventData);
-      } else {
-        onUpdate(null);
-      }
-    },
-    onError,
-  );
-}
+  if (!supabase) return () => {};
 
-// ─── Mutations ────────────────────────────────────────────────────────────────
+  const cleanSlug = slug.trim().toLowerCase();
+
+  // Initial fetch
+  supabase
+    .from('events')
+    .select('*')
+    .eq('slug', cleanSlug)
+    .maybeSingle()
+    .then(({ data, error }) => {
+      if (error) onError?.(error);
+      else onUpdate(data as EventData | null);
+    });
+
+  // Real-time subscription
+  const channel = supabase
+    .channel(`public:events:slug=eq.${cleanSlug}`)
+    .on(
+      'postgres_changes',
+      { 
+        event: '*', 
+        schema: 'public', 
+        table: 'events',
+        filter: `slug=eq.${cleanSlug}` 
+      },
+      (payload) => {
+        if (payload.eventType === 'DELETE') {
+          onUpdate(null);
+        } else {
+          onUpdate(payload.new as EventData);
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
 
 /**
- * Check if a slug is already taken, then create the event.
- * Returns the new event id, or throws if slug is taken.
+ * Create a new event.
  */
-export async function createEvent(
-  data: Omit<EventData, 'id'>,
-): Promise<string> {
-  const q = query(collection(db, 'events'), where('slug', '==', data.slug));
-  const snapshot = await getDocs(q);
-  if (!snapshot.empty) {
-    throw new Error('SLUG_TAKEN');
+export async function createEvent(data: Omit<EventData, 'id'>): Promise<string> {
+  if (!supabase) throw new Error('Supabase not initialized');
+
+  const { data: result, error } = await supabase
+    .from('events')
+    .insert([data])
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === '23505') throw new Error('SLUG_TAKEN');
+    throw error;
   }
-  const ref = await addDoc(collection(db, 'events'), data);
-  return ref.id;
+
+  return result.id;
 }
 
-/** Update fields on an existing event. */
-export async function updateEvent(
-  id: string,
-  data: Partial<EventData>,
-): Promise<void> {
-  await updateDoc(doc(db, 'events', id), data);
+/** 
+ * Update fields on an existing event. 
+ */
+export async function updateEvent(id: string, data: Partial<EventData>): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('events')
+    .update(data)
+    .eq('id', id);
+  if (error) throw error;
 }
 
-/** Hard-delete an event by id. */
+/**
+ * Delete an event document.
+ */
 export async function deleteEvent(id: string): Promise<void> {
-  await deleteDoc(doc(db, 'events', id));
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('events')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
+/**
+ * Upload an event summary file to Supabase Storage.
+ */
+export async function uploadEventSummary(eventId: string, file: File): Promise<string> {
+  if (!supabase) throw new Error('Supabase not initialized');
+
+  const filePath = `${eventId}/${file.name}`;
+  const { error } = await supabase.storage
+    .from('event-summaries')
+    .upload(filePath, file, { upsert: true });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage
+    .from('event-summaries')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
 }

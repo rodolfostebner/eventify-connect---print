@@ -5,8 +5,8 @@
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from './lib/firebase';
-import { auth } from './lib/firebase';
+import { User } from './lib/firebase';
+import { subscribeToAuth } from './services/authService';
 import { Toaster } from 'sonner';
 import EventPage from './pages/EventPage';
 import AdminDashboard from './pages/AdminDashboard';
@@ -22,11 +22,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    return subscribeToAuth((user) => {
       setUser(user);
       setLoading(false);
     });
-    return () => unsubscribe();
   }, []);
 
   if (loading) {

@@ -5,7 +5,7 @@ import { Trophy, Camera, Heart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import type { EventData, PhotoData } from '../types';
 import { subscribeToEvent } from '../services/eventService';
-import { subscribeToApprovedPhotos } from '../services/photoService';
+import { fetchPosts, subscribeToPosts } from '../services/posts';
 
 export default function TVView() {
   const { slug } = useParams<{ slug: string }>();
@@ -53,56 +53,62 @@ export default function TVView() {
   useEffect(() => {
     if (!event?.id) return;
 
-    return subscribeToApprovedPhotos(
-      event.id,
-      (allPhotos) => {
-        setPhotos(allPhotos);
+    const processPhotos = (allPhotos: PhotoData[]) => {
+      setPhotos(allPhotos);
 
-        const categories = [
-          { id: 'likes', title: 'Mais Curtida', emoji: '❤️' },
-          { id: '😂', title: 'Mais Divertida', emoji: '😂' },
-          { id: '✨', title: 'Momento Especial', emoji: '✨' },
-          { id: '💬', title: 'Mais Comentada', emoji: '💬' },
-          { id: '🎸', title: 'Rock Star', emoji: '🎸' },
-          { id: '⭐', title: 'Queridinha', emoji: '⭐' },
-        ];
+      const categories = [
+        { id: 'likes', title: 'Mais Curtida', emoji: '❤️' },
+        { id: '😂', title: 'Mais Divertida', emoji: '😂' },
+        { id: '✨', title: 'Momento Especial', emoji: '✨' },
+        { id: '💬', title: 'Mais Comentada', emoji: '💬' },
+        { id: '🎸', title: 'Rock Star', emoji: '🎸' },
+        { id: '⭐', title: 'Queridinha', emoji: '⭐' },
+      ];
 
-        const groups = categories.map((cat) => {
-          let sortedPhotos = allPhotos.filter((p) => !p.is_official);
-          if (cat.id === 'likes') {
-            sortedPhotos.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-          } else if (cat.id === '💬') {
-            sortedPhotos.sort((a, b) => (b.comments?.length || 0) - (a.comments?.length || 0));
-          } else {
-            sortedPhotos.sort((a, b) => (b.reactions?.[cat.id] || 0) - (a.reactions?.[cat.id] || 0));
-          }
-
-          const top5 = sortedPhotos
-            .filter((p) => {
-              if (cat.id === 'likes') return (p.likes || 0) > 0;
-              if (cat.id === '💬') return (p.comments?.length || 0) > 0;
-              return (p.reactions?.[cat.id] || 0) > 0;
-            })
-            .slice(0, 5);
-
-          return { title: cat.title, emoji: cat.emoji, photos: top5 };
-        }).filter((g) => g.photos.length > 0);
-
-        // Add official photos if enabled
-        if (event.has_official_photos) {
-          const officialPhotos = allPhotos
-            .filter((p) => p.is_official)
-            .sort((a, b) => (b.likes || 0) - (a.likes || 0))
-            .slice(0, 5);
-          if (officialPhotos.length > 0) {
-            groups.push({ title: 'Melhor Foto Oficial', emoji: '📸', photos: officialPhotos });
-          }
+      const groups = categories.map((cat) => {
+        let sortedPhotos = allPhotos.filter((p) => !p.is_official);
+        if (cat.id === 'likes') {
+          sortedPhotos.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        } else if (cat.id === '💬') {
+          sortedPhotos.sort((a, b) => (b.comments?.length || 0) - (a.comments?.length || 0));
+        } else {
+          sortedPhotos.sort((a, b) => (b.reactions?.[cat.id] || 0) - (a.reactions?.[cat.id] || 0));
         }
 
-        setCategoryGroups(groups);
-      },
-      (error) => console.error('Error fetching photos in TVView:', error),
-    );
+        const top5 = sortedPhotos
+          .filter((p) => {
+            if (cat.id === 'likes') return (p.likes || 0) > 0;
+            if (cat.id === '💬') return (p.comments?.length || 0) > 0;
+            return (p.reactions?.[cat.id] || 0) > 0;
+          })
+          .slice(0, 5);
+
+        return { title: cat.title, emoji: cat.emoji, photos: top5 };
+      }).filter((g) => g.photos.length > 0);
+
+      // Add official photos if enabled
+      if (event.has_official_photos) {
+        const officialPhotos = allPhotos
+          .filter((p) => p.is_official)
+          .sort((a, b) => (b.likes || 0) - (a.likes || 0))
+          .slice(0, 5);
+        if (officialPhotos.length > 0) {
+          groups.push({ title: 'Melhor Foto Oficial', emoji: '📸', photos: officialPhotos });
+        }
+      }
+
+      setCategoryGroups(groups);
+    };
+
+    // Initial Fetch
+    fetchPosts(event.id).then(processPhotos).catch(console.error);
+
+    // Subscribe
+    return subscribeToPosts(event.id, (payload) => {
+      // Re-fetch everything on any change to keep sorting and grouping correct
+      // This is simpler for TV view which 
+      fetchPosts(event.id).then(processPhotos).catch(console.error);
+    });
   }, [event?.id, event?.has_official_photos]);
 
   useEffect(() => {

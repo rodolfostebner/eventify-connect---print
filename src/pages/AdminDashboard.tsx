@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { handleFirestoreError, OperationType, storage, ref, uploadBytes, getDownloadURL } from '../lib/firebase';
+
+
 import { LayoutDashboard, Plus, LogOut, Calendar, Settings, Eye, Trash2, CheckCircle2, Play, Pause, ShieldCheck, Palette, X as CloseIcon, Share2, Copy, Check, Upload, Loader2, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -7,14 +8,19 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
 import type { EventData, ExhibitorSponsor } from '../types';
-import { subscribeToEvents, createEvent, updateEvent, deleteEvent } from '../services/eventService';
-import { login, logoutUser } from '../services/authService';
-import type { User } from '../lib/firebase';
+import { subscribeToEvents, createEvent, updateEvent, deleteEvent, uploadEventSummary } from '../services/eventService';
+import { User, logout, login, loginWithPassword, updatePassword } from '../services/authService';
 
 // Types imported from src/types/index.ts
 
 export default function AdminDashboard({ user }: { user: User | null }) {
   const [loading, setLoading] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [authMode, setAuthMode] = useState<'magic' | 'password'>('password');
+  const [linkSent, setLinkSent] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [events, setEvents] = useState<EventData[]>([]);
   const [editingEvent, setEditingEvent] = useState<EventData | null>(null);
   const [sharingEvent, setSharingEvent] = useState<EventData | null>(null);
@@ -73,7 +79,8 @@ export default function AdminDashboard({ user }: { user: User | null }) {
     try {
       await updateEvent(eventId, { status });
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, 'events');
+      console.error(err);
+      toast.error('Erro ao atualizar status do evento.');
     }
   };
 
@@ -82,7 +89,8 @@ export default function AdminDashboard({ user }: { user: User | null }) {
       await deleteEvent(eventId);
       toast.success('Evento excluído com sucesso.');
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, 'events');
+      console.error(err);
+      toast.error('Erro ao excluir evento.');
     }
   };
 
@@ -134,7 +142,8 @@ export default function AdminDashboard({ user }: { user: User | null }) {
       await updateEvent(editingEvent.id, brandingForm);
       setEditingEvent(null);
     } catch (err) {
-      handleFirestoreError(err, OperationType.UPDATE, 'events');
+      console.error(err);
+      toast.error('Erro ao salvar personalização.');
     }
     setLoading(false);
   };
@@ -180,9 +189,7 @@ export default function AdminDashboard({ user }: { user: User | null }) {
 
     setIsUploadingSummary(true);
     try {
-      const storageRef = ref(storage, `events/${editingEvent.id}/summary/${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+      const url = await uploadEventSummary(editingEvent.id, file);
       setBrandingForm({ ...brandingForm, summary_file_url: url });
       toast.success('Arquivo enviado com sucesso!');
     } catch (err) {
@@ -198,14 +205,98 @@ export default function AdminDashboard({ user }: { user: User | null }) {
       <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
         <div className="max-w-sm w-full bg-white p-8 rounded-3xl shadow-xl shadow-neutral-200 text-center">
           <LayoutDashboard className="w-12 h-12 mx-auto text-neutral-900 mb-6" />
-          <h1 className="text-2xl font-bold mb-2">Admin Panel</h1>
-          <p className="text-neutral-500 mb-8">Faça login para gerenciar seus eventos.</p>
-          <button
-            onClick={login}
-            className="w-full py-4 bg-neutral-900 text-white rounded-2xl font-bold hover:bg-neutral-800 transition-colors"
-          >
-            Entrar com Google
-          </button>
+          <h1 className="text-2xl font-bold mb-2">Painel Admin</h1>
+          
+          {linkSent ? (
+            <div className="bg-green-50 p-6 rounded-2xl border border-green-100">
+              <CheckCircle2 className="w-10 h-10 mx-auto text-green-600 mb-4" />
+              <h2 className="text-lg font-bold text-green-900 mb-2">Verifique seu e-mail</h2>
+              <p className="text-sm text-green-700">Enviamos um link de acesso para <br/><strong>{loginEmail}</strong></p>
+              <button 
+                onClick={() => setLinkSent(false)} 
+                className="mt-6 text-sm font-bold text-green-600 hover:text-green-700 underline"
+              >
+                Voltar
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex bg-neutral-100 p-1 rounded-xl mb-8">
+                <button 
+                  onClick={() => setAuthMode('password')}
+                  className={cn(
+                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                    authMode === 'password' ? "bg-white shadow-sm" : "text-neutral-500"
+                  )}
+                >
+                  Senha
+                </button>
+                <button 
+                  onClick={() => setAuthMode('magic')}
+                  className={cn(
+                    "flex-1 py-2 text-xs font-bold rounded-lg transition-all",
+                    authMode === 'magic' ? "bg-white shadow-sm" : "text-neutral-500"
+                  )}
+                >
+                  Link Mágico
+                </button>
+              </div>
+
+              <p className="text-neutral-500 mb-8 text-sm">
+                {authMode === 'password' 
+                  ? 'Entre com suas credenciais de administrador.' 
+                  : 'Receba um link de acesso no seu e-mail.'}
+              </p>
+
+              <form 
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!loginEmail) return;
+                  const tid = toast.loading(authMode === 'password' ? 'Autenticando...' : 'Enviando link...');
+                  try {
+                    if (authMode === 'password') {
+                      await loginWithPassword(loginEmail, loginPassword);
+                      toast.success('Bem-vindo!', { id: tid });
+                    } else {
+                      await login(loginEmail);
+                      setLinkSent(true);
+                      toast.success('Link enviado!', { id: tid });
+                    }
+                  } catch (err: any) {
+                    toast.error(err.message || 'Erro na autenticação.', { id: tid });
+                  }
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-4">
+                  <input 
+                    type="email"
+                    placeholder="seu@email.com"
+                    required
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    className="w-full px-5 py-4 bg-neutral-50 border border-neutral-100 rounded-2xl text-sm focus:ring-2 focus:ring-neutral-900 transition-all outline-none"
+                  />
+                  {authMode === 'password' && (
+                    <input 
+                      type="password"
+                      placeholder="Sua senha"
+                      required
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      className="w-full px-5 py-4 bg-neutral-50 border border-neutral-100 rounded-2xl text-sm focus:ring-2 focus:ring-neutral-900 transition-all outline-none"
+                    />
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-4 bg-neutral-900 text-white rounded-2xl font-bold hover:bg-neutral-800 transition-colors shadow-lg shadow-neutral-200"
+                >
+                  {authMode === 'password' ? 'Entrar' : 'Receber Link'}
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </div>
     );
@@ -227,7 +318,7 @@ export default function AdminDashboard({ user }: { user: User | null }) {
               e.currentTarget.src = `https://ui-avatars.com/api/?name=${user.displayName || 'A'}&background=random`;
             }}
           />
-          <button onClick={logoutUser} className="p-2 text-neutral-400 hover:text-red-500 transition-colors" title="Sair">
+          <button onClick={logout} className="p-2 text-neutral-400 hover:text-red-500 transition-colors" title="Sair">
             <LogOut className="w-6 h-6" />
           </button>
         </div>
@@ -363,6 +454,55 @@ export default function AdminDashboard({ user }: { user: User | null }) {
               ))
             )}
           </div>
+        </div>
+
+        {/* Security / Password section */}
+        <div className="bg-white p-8 rounded-3xl border border-neutral-200 shadow-sm md:col-span-2">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 bg-neutral-100 rounded-2xl flex items-center justify-center">
+              <ShieldCheck className="w-6 h-6 text-neutral-900" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">Segurança da Conta</h2>
+              <p className="text-neutral-500 text-sm">Defina uma senha para acessar o painel sem depender de e-mail.</p>
+            </div>
+          </div>
+          
+          <form 
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newPassword) return;
+              setIsUpdatingPassword(true);
+              const tid = toast.loading('Atualizando senha...');
+              try {
+                await updatePassword(newPassword);
+                setNewPassword('');
+                toast.success('Senha atualizada com sucesso!', { id: tid });
+              } catch (err: any) {
+                toast.error(err.message || 'Erro ao atualizar senha.', { id: tid });
+              } finally {
+                setIsUpdatingPassword(false);
+              }
+            }}
+            className="flex flex-col sm:flex-row gap-4"
+          >
+            <input 
+              type="password"
+              placeholder="Nova senha permanente"
+              required
+              minLength={6}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="flex-1 p-3 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+            <button 
+              type="submit"
+              disabled={isUpdatingPassword || !newPassword}
+              className="px-8 py-3 bg-neutral-900 text-white rounded-xl font-bold disabled:opacity-50 whitespace-nowrap"
+            >
+              {isUpdatingPassword ? 'Salvando...' : 'Salvar Senha'}
+            </button>
+          </form>
         </div>
       </main>
 

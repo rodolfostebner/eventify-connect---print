@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { auth, onAuthStateChanged, db, collection, query, where, onSnapshot, doc } from '../lib/firebase';
-import type { User } from '../lib/firebase';
-import { markNotificationRead } from '../services/notificationService';
+import { subscribeToAuth, User } from '../services/authService';
+import { subscribeToNotifications, markNotificationRead } from '../services/notificationService';
 import { toast } from 'sonner';
 
 export function NotificationsListener() {
@@ -10,12 +9,12 @@ export function NotificationsListener() {
     return localStorage.getItem('push_notifications_enabled') === 'true';
   });
 
+  // Listen to preference changes
   useEffect(() => {
     const handleStorageChange = () => {
       setPushEnabled(localStorage.getItem('push_notifications_enabled') === 'true');
     };
     window.addEventListener('storage', handleStorageChange);
-    // Also listen to a custom event for same-window updates
     window.addEventListener('push_notifications_toggled', handleStorageChange);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -23,56 +22,45 @@ export function NotificationsListener() {
     };
   }, []);
 
+  // Listen to Auth
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    return subscribeToAuth((currentUser) => {
       setUser(currentUser);
     });
-    return () => unsubscribe();
   }, []);
 
+  // Listen to Notifications
   useEffect(() => {
-    if (!user) return;
+    if (!user || !pushEnabled) return;
 
     // Request permission for browser notifications
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
 
-    const q = query(
-      collection(db, 'notifications'),
-      where('userId', '==', user.uid),
-      where('read', '==', false),
-    );
+    // Use the central service instead of direct Firestore
+    return subscribeToNotifications(user.uid, (notifications) => {
+      // Loop through unread notifications
+      notifications.forEach((notif) => {
+        // Show in-app toast
+        toast(notif.title, {
+          description: notif.body,
+          action: notif.link
+            ? { label: 'Ver', onClick: () => (window.location.href = notif.link!) }
+            : undefined,
+        });
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      snapshot.docChanges().forEach((change: any) => {
-        if (change.type === 'added') {
-          const notification = change.doc.data();
-
-          if (pushEnabled) {
-            // Show in-app toast
-            toast(notification.title, {
-              description: notification.body,
-              action: notification.link
-                ? { label: 'Ver', onClick: () => (window.location.href = notification.link) }
-                : undefined,
-            });
-
-            // Show browser notification if permitted
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification(notification.title, { body: notification.body });
-            }
-          }
-
-          // Mark as read via service so it doesn't trigger again
-          markNotificationRead(change.doc.id).catch(console.error);
+        // Show browser notification if permitted
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(notif.title, { body: notif.body });
         }
+
+        // Mark as read so it doesn't pop up again
+        markNotificationRead(notif.id).catch(console.error);
       });
-    }, (error: any) => {
+    }, (error) => {
       console.error('Error listening to notifications:', error);
     });
-
-    return () => unsubscribe();
   }, [user, pushEnabled]);
 
   return null;

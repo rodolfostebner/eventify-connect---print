@@ -1,4 +1,5 @@
-import { User, auth } from '../lib/firebase';
+import { User } from '../services/authService';
+import { logout } from '../services/authService';
 import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -7,7 +8,7 @@ export default function OperatorPanel({ user }: { user: User | null }) {
 
   const handleLogout = async () => {
     try {
-      await auth.signOut();
+      await logout();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
