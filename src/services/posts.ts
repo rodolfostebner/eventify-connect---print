@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from "../lib/supabase/client";
 import type { PhotoData } from '../types';
 
 /**
@@ -74,7 +74,7 @@ export async function createPost(post: Partial<PhotoData>): Promise<PhotoData> {
  * Subscribe to real-time changes in the photos table for a specific event.
  */
 export function subscribeToPosts(eventId: string, onUpdate: (payload: any) => void) {
-  if (!supabase) return () => {};
+  if (!supabase) return () => { };
 
   const channel = supabase
     .channel(`public:photos:event_id=eq.${eventId}`)
@@ -107,7 +107,7 @@ export function subscribeToPosts(eventId: string, onUpdate: (payload: any) => vo
  * Used by ModerationPanel.
  */
 export function subscribeToAllPosts(eventId: string, onUpdate: (payload: any) => void) {
-  if (!supabase) return () => {};
+  if (!supabase) return () => { };
 
   const channel = supabase
     .channel(`public:photos:all:event_id=eq.${eventId}`)
@@ -160,16 +160,16 @@ export async function likePost(photoId: string, userId: string, delta: 1 | -1): 
 
   const newLikes = (photo.likes || 0) + delta;
   let newReactedUsers = [...(photo.reacted_users || [])];
-  
+
   if (delta === 1) {
     newReactedUsers.push(userId);
   } else {
     newReactedUsers = newReactedUsers.filter(u => u !== userId);
   }
 
-  await supabase.from('photos').update({ 
-    likes: newLikes, 
-    reacted_users: newReactedUsers 
+  await supabase.from('photos').update({
+    likes: newLikes,
+    reacted_users: newReactedUsers
   }).eq('id', photoId);
 }
 
@@ -178,25 +178,25 @@ export async function likePost(photoId: string, userId: string, delta: 1 | -1): 
  */
 export async function reactToPost(photoId: string, emoji: string, userId: string, delta: 1 | -1): Promise<void> {
   if (!supabase) return;
-  
+
   const { data: photo } = await supabase.from('photos').select('reactions, reacted_users').eq('id', photoId).single();
   if (!photo) return;
 
   const reactions = photo.reactions || {};
   reactions[emoji] = (reactions[emoji] || 0) + delta;
-  
+
   const reactionKey = `${userId}_${emoji}`;
   let newReactedUsers = [...(photo.reacted_users || [])];
-  
+
   if (delta === 1) {
     newReactedUsers.push(reactionKey);
   } else {
     newReactedUsers = newReactedUsers.filter(u => u !== reactionKey);
   }
 
-  await supabase.from('photos').update({ 
-    reactions, 
-    reacted_users: newReactedUsers 
+  await supabase.from('photos').update({
+    reactions,
+    reacted_users: newReactedUsers
   }).eq('id', photoId);
 }
 
@@ -220,7 +220,7 @@ function mapRowToPhotoData(row: any): PhotoData {
     id: row.id,
     url: row.url,
     user_name: row.user_name,
-    user_id: row.user_id,
+    firebase_uid: row.firebase_uid,
     eventId: row.event_id, // Map event_id -> eventId
     likes: row.likes || 0,
     reactions: row.reactions || {},
@@ -240,7 +240,7 @@ function mapPhotoDataToRow(data: Partial<PhotoData>): any {
     event_id: data.eventId,
     url: data.url,
     user_name: data.user_name,
-    user_id: data.user_id,
+    firebase_uid: data.firebase_uid,
     likes: data.likes ?? 0,
     reactions: data.reactions ?? {},
     reacted_users: data.reacted_users ?? [],

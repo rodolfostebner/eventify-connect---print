@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from "../lib/supabase/client";
 
 /**
  * Interface compatível com o resto do app (originalmente do Firebase).
@@ -15,7 +15,7 @@ export interface User {
  */
 export async function login(email: string): Promise<void> {
   if (!supabase) throw new Error('Supabase not initialized');
-  
+
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
@@ -34,7 +34,7 @@ export async function login(email: string): Promise<void> {
  */
 export async function loginWithGoogle(): Promise<void> {
   if (!supabase) throw new Error('Supabase not initialized');
-  
+
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -53,7 +53,7 @@ export async function loginWithGoogle(): Promise<void> {
  */
 export async function loginWithPassword(email: string, password: string): Promise<void> {
   if (!supabase) throw new Error('Supabase not initialized');
-  
+
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -70,7 +70,7 @@ export async function loginWithPassword(email: string, password: string): Promis
  */
 export async function updatePassword(password: string): Promise<void> {
   if (!supabase) throw new Error('Supabase not initialized');
-  
+
   const { error } = await supabase.auth.updateUser({
     password,
   });
@@ -95,7 +95,7 @@ export async function logout(): Promise<void> {
  * Subscribe to auth state changes and map Supabase user to our internal User type.
  */
 export function subscribeToAuth(onUpdate: (user: User | null) => void): () => void {
-  if (!supabase) return () => {};
+  if (!supabase) return () => { };
 
   // Get current session first
   supabase.auth.getSession().then(({ data: { session } }) => {

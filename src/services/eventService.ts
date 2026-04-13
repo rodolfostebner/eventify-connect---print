@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from "../lib/supabase/client";
 import type { EventData } from '../types';
 
 /**
@@ -9,7 +9,7 @@ export function subscribeToEvents(
   onUpdate: (events: EventData[]) => void,
   onError?: (err: any) => void,
 ): () => void {
-  if (!supabase) return () => {};
+  if (!supabase) return () => { };
 
   // Initial fetch
   supabase
@@ -54,7 +54,7 @@ export function subscribeToEvent(
   onUpdate: (event: EventData | null) => void,
   onError?: (err: any) => void,
 ): () => void {
-  if (!supabase) return () => {};
+  if (!supabase) return () => { };
 
   const cleanSlug = slug.trim().toLowerCase();
 
@@ -74,11 +74,11 @@ export function subscribeToEvent(
     .channel(`public:events:slug=eq.${cleanSlug}`)
     .on(
       'postgres_changes',
-      { 
-        event: '*', 
-        schema: 'public', 
+      {
+        event: '*',
+        schema: 'public',
         table: 'events',
-        filter: `slug=eq.${cleanSlug}` 
+        filter: `slug=eq.${cleanSlug}`
       },
       (payload) => {
         if (payload.eventType === 'DELETE') {

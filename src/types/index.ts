@@ -81,7 +81,7 @@ export interface PhotoData {
   id: string;
   url: string;
   user_name: string;
-  user_id: string;
+  firebase_uid: string
   eventId: string;
   likes: number;
   reactions?: Record<string, number>;

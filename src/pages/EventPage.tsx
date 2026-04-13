@@ -13,7 +13,7 @@ import { createPrintOrder } from '../services/printService';
 import { fetchPosts, createPost, subscribeToPosts, likePost, reactToPost, commentOnPost, updatePostStatus } from '../services/posts';
 import { createNotification } from '../services/notificationService';
 import { cn } from '../lib/utils';
-
+import UploadTest from "../components/UploadTest";
 // Types are imported from src/types/index.ts
 
 // Local component prop interfaces
@@ -45,7 +45,8 @@ const REACTION_TYPES = [
 ];
 
 export default function EventPage({ user }: { user: User | null }) {
-  const { slug } = useParams<{ slug: string }>();
+  const { eventId } = useParams<{ eventId: string }>();
+  console.log("eventId:", eventId)
   const [event, setEvent] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +70,7 @@ export default function EventPage({ user }: { user: User | null }) {
     setPushEnabled(newValue);
     localStorage.setItem('push_notifications_enabled', String(newValue));
     window.dispatchEvent(new Event('push_notifications_toggled'));
-    
+
     if (newValue) {
       toast.success('Notificações ativadas!');
       if ('Notification' in window && Notification.permission !== 'granted') {
@@ -128,9 +129,9 @@ export default function EventPage({ user }: { user: User | null }) {
   }, [user]);
 
   useEffect(() => {
-    if (!slug) return;
+    if (!eventId) return;
     return subscribeToEvent(
-      slug,
+      eventId,
       (ev) => {
         if (ev) {
           setEvent((prev) => {
@@ -151,7 +152,7 @@ export default function EventPage({ user }: { user: User | null }) {
         setLoading(false);
       },
     );
-  }, [slug]);
+  }, [eventId]);
 
   const handleLogin = () => {
     setIsLoginViewOpen(true);
@@ -178,7 +179,7 @@ export default function EventPage({ user }: { user: User | null }) {
     const value = event.bg_value || '#f5f5f5';
 
     if (type === 'color') return { backgroundColor: value };
-    
+
     if (type === 'gradient') {
       if (value === 'custom') {
         const from = event.bg_gradient_from || '#f5f7fa';
@@ -191,7 +192,7 @@ export default function EventPage({ user }: { user: User | null }) {
     if (type === 'pattern') {
       const bg = event.bg_pattern_bg || '#f5f5f5';
       const fg = event.bg_pattern_fg || '#0000001a';
-      
+
       let patternStyle = '';
       switch (value) {
         case 'dots':
@@ -241,7 +242,7 @@ export default function EventPage({ user }: { user: User | null }) {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-neutral-200 px-4 py-3 flex items-start justify-between">
         <div className="flex items-start gap-3">
-          <button 
+          <button
             onClick={() => setIsSidebarOpen(true)}
             className="p-2 hover:bg-neutral-100 rounded-full transition-colors mt-1"
           >
@@ -261,8 +262,8 @@ export default function EventPage({ user }: { user: User | null }) {
                 <p className="text-[10px] font-bold uppercase text-neutral-400 leading-none">Logado como</p>
                 <p className="text-xs font-bold text-neutral-900">{user.displayName || 'Participante'}</p>
               </div>
-              <button 
-                onClick={togglePushNotifications} 
+              <button
+                onClick={togglePushNotifications}
                 className={cn(
                   "p-1.5 rounded-full transition-colors",
                   pushEnabled ? "bg-neutral-900 text-white" : "bg-neutral-100 text-neutral-400 hover:text-neutral-600"
@@ -271,8 +272,8 @@ export default function EventPage({ user }: { user: User | null }) {
               >
                 {pushEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
               </button>
-              <img 
-                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'P'}&background=random`} 
+              <img
+                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'P'}&background=random`}
                 className="w-8 h-8 rounded-full border border-neutral-200"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
@@ -286,7 +287,7 @@ export default function EventPage({ user }: { user: User | null }) {
           ) : (
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase text-neutral-400 hidden sm:block">Visitante</span>
-              <button 
+              <button
                 onClick={handleLogin}
                 className="text-[10px] font-bold uppercase px-3 py-1 bg-neutral-900 text-white rounded-full"
               >
@@ -301,14 +302,14 @@ export default function EventPage({ user }: { user: User | null }) {
       <AnimatePresence>
         {isSidebarOpen && (
           <>
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSidebarOpen(false)}
               className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
             />
-            <motion.div 
+            <motion.div
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
@@ -361,176 +362,176 @@ export default function EventPage({ user }: { user: User | null }) {
                 {/* Album Selection Info Section */}
                 {event.status === 'live' && (
                   <section className="bg-neutral-50 rounded-3xl p-6 border border-neutral-100 space-y-6">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center text-white shadow-lg">
-                      <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-10 h-10 bg-neutral-900 rounded-xl flex items-center justify-center text-white shadow-lg">
+                        <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-black">Monte seu Álbum</h2>
+                        <p className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Recordação do Evento</p>
+                      </div>
                     </div>
-                    <div>
-                      <h2 className="text-lg font-black">Monte seu Álbum</h2>
-                      <p className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Recordação do Evento</p>
-                    </div>
-                  </div>
 
-                  <p className="text-xs text-neutral-600 leading-relaxed">
-                    Selecione as suas <strong>10 fotos favoritas</strong> da galeria para imprimir em uma folha A4 de adesivos, perfeita para montar seu álbum físico de recordações!
-                  </p>
-                  
-                  <p className="text-xs text-neutral-500 italic bg-white p-3 rounded-xl border border-neutral-100">
-                    O valor de cada opção pode ser consultado no estande da plataforma no evento.
-                  </p>
+                    <p className="text-xs text-neutral-600 leading-relaxed">
+                      Selecione as suas <strong>10 fotos favoritas</strong> da galeria para imprimir em uma folha A4 de adesivos, perfeita para montar seu álbum físico de recordações!
+                    </p>
 
-                  <div className="space-y-2">
-                    {[
-                      { id: 'photos_only', label: 'Apenas fotos (10 adesivos)', icon: '📸' },
-                      { id: 'photos_album', label: 'Fotos + Álbum físico', icon: '📖' },
-                      { id: 'photos_album_stickers', label: 'Fotos + Álbum + Stickers', icon: '✨' }
-                    ].map((opt) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => setPrintOption(opt.id as any)}
-                        className={cn(
-                          "w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between text-left",
-                          printOption === opt.id ? "border-neutral-900 bg-white" : "border-transparent bg-white hover:border-neutral-200"
-                        )}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-xl">{opt.icon}</span>
-                          <span className="text-xs font-bold">{opt.label}</span>
-                        </div>
-                        {printOption === opt.id && <div className="w-4 h-4 bg-neutral-900 rounded-full flex items-center justify-center"><Check className="w-2 h-2 text-white" /></div>}
-                      </button>
-                    ))}
-                  </div>
+                    <p className="text-xs text-neutral-500 italic bg-white p-3 rounded-xl border border-neutral-100">
+                      O valor de cada opção pode ser consultado no estande da plataforma no evento.
+                    </p>
 
-                  {!isSelectingForPrint ? (
-                    <button 
-                      onClick={() => {
-                        setIsSelectingForPrint(true);
-                        setIsSidebarOpen(false);
-                      }}
-                      className="w-full py-3 bg-neutral-900 text-white rounded-xl font-black text-xs shadow-lg active:scale-95 transition-all"
-                    >
-                      Começar Seleção (0/10)
-                    </button>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-neutral-100">
-                        <span className="text-xs font-bold">Selecionadas: {selectedPrintPhotos.length}/10</span>
-                        <button 
-                          onClick={() => {
-                            setIsSelectingForPrint(false);
-                            setSelectedPrintPhotos([]);
-                          }}
-                          className="text-[10px] font-bold text-red-500"
+                    <div className="space-y-2">
+                      {[
+                        { id: 'photos_only', label: 'Apenas fotos (10 adesivos)', icon: '📸' },
+                        { id: 'photos_album', label: 'Fotos + Álbum físico', icon: '📖' },
+                        { id: 'photos_album_stickers', label: 'Fotos + Álbum + Stickers', icon: '✨' }
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          onClick={() => setPrintOption(opt.id as any)}
+                          className={cn(
+                            "w-full p-3 rounded-xl border-2 transition-all flex items-center justify-between text-left",
+                            printOption === opt.id ? "border-neutral-900 bg-white" : "border-transparent bg-white hover:border-neutral-200"
+                          )}
                         >
-                          Cancelar
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">{opt.icon}</span>
+                            <span className="text-xs font-bold">{opt.label}</span>
+                          </div>
+                          {printOption === opt.id && <div className="w-4 h-4 bg-neutral-900 rounded-full flex items-center justify-center"><Check className="w-2 h-2 text-white" /></div>}
+                        </button>
+                      ))}
+                    </div>
+
+                    {!isSelectingForPrint ? (
+                      <button
+                        onClick={() => {
+                          setIsSelectingForPrint(true);
+                          setIsSidebarOpen(false);
+                        }}
+                        className="w-full py-3 bg-neutral-900 text-white rounded-xl font-black text-xs shadow-lg active:scale-95 transition-all"
+                      >
+                        Começar Seleção (0/10)
+                      </button>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-neutral-100">
+                          <span className="text-xs font-bold">Selecionadas: {selectedPrintPhotos.length}/10</span>
+                          <button
+                            onClick={() => {
+                              setIsSelectingForPrint(false);
+                              setSelectedPrintPhotos([]);
+                            }}
+                            className="text-[10px] font-bold text-red-500"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                        <button
+                          onClick={handleSubmitPrintOrder}
+                          disabled={selectedPrintPhotos.length !== 10 || isSubmittingPrint}
+                          className="w-full py-3 bg-green-600 text-white rounded-xl font-black text-xs shadow-lg active:scale-95 transition-all disabled:opacity-50"
+                        >
+                          {isSubmittingPrint ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Confirmar Pedido'}
                         </button>
                       </div>
-                      <button 
-                        onClick={handleSubmitPrintOrder}
-                        disabled={selectedPrintPhotos.length !== 10 || isSubmittingPrint}
-                        className="w-full py-3 bg-green-600 text-white rounded-xl font-black text-xs shadow-lg active:scale-95 transition-all disabled:opacity-50"
-                      >
-                        {isSubmittingPrint ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Confirmar Pedido'}
-                      </button>
-                    </div>
-                  )}
-                </section>
+                    )}
+                  </section>
                 )}
 
                 <div className="pt-4 border-t border-neutral-100">
                   <h2 className="text-xl font-black mb-6">Parceiros</h2>
 
 
-                {/* Exhibitors */}
-                {event.exhibitors && event.exhibitors.length > 0 && (
-                  <div className="space-y-6">
-                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Expositores</h3>
-                    <div className="space-y-4">
-                      {event.exhibitors.map((item) => (
-                        <div key={item.id} className="bg-neutral-50 rounded-2xl p-4 border border-neutral-100 space-y-3">
-                          <div className="flex items-center gap-3">
-                            {item.logo && <img src={item.logo} className="w-10 h-10 rounded-lg object-contain bg-white p-1" referrerPolicy="no-referrer" />}
-                            <h4 className="font-bold text-sm">{item.name}</h4>
-                          </div>
-                          {item.photo && (
-                            <div className="aspect-video rounded-xl overflow-hidden">
-                              <img src={item.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  {/* Exhibitors */}
+                  {event.exhibitors && event.exhibitors.length > 0 && (
+                    <div className="space-y-6">
+                      <h3 className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Expositores</h3>
+                      <div className="space-y-4">
+                        {event.exhibitors.map((item) => (
+                          <div key={item.id} className="bg-neutral-50 rounded-2xl p-4 border border-neutral-100 space-y-3">
+                            <div className="flex items-center gap-3">
+                              {item.logo && <img src={item.logo} className="w-10 h-10 rounded-lg object-contain bg-white p-1" referrerPolicy="no-referrer" />}
+                              <h4 className="font-bold text-sm">{item.name}</h4>
                             </div>
-                          )}
-                          <p className="text-xs text-neutral-600 leading-relaxed">{item.bio}</p>
-                          {item.message && (
-                            <div className="p-3 bg-white rounded-xl border border-neutral-100 italic text-[11px] text-neutral-500">
-                              "{item.message}"
+                            {item.photo && (
+                              <div className="aspect-video rounded-xl overflow-hidden">
+                                <img src={item.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              </div>
+                            )}
+                            <p className="text-xs text-neutral-600 leading-relaxed">{item.bio}</p>
+                            {item.message && (
+                              <div className="p-3 bg-white rounded-xl border border-neutral-100 italic text-[11px] text-neutral-500">
+                                "{item.message}"
+                              </div>
+                            )}
+                            <div className="flex gap-2 pt-2">
+                              {item.socials?.instagram && (
+                                <a href={`https://instagram.com/${item.socials.instagram.replace('@', '')}`} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-pink-600 transition-colors">
+                                  <Instagram className="w-4 h-4" />
+                                </a>
+                              )}
+                              {item.socials?.whatsapp && (
+                                <a href={`https://wa.me/${item.socials.whatsapp.replace(/\D/g, '')}`} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-green-600 transition-colors">
+                                  <Phone className="w-4 h-4" />
+                                </a>
+                              )}
+                              {item.socials?.website && (
+                                <a href={item.socials.website} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-blue-600 transition-colors">
+                                  <Globe className="w-4 h-4" />
+                                </a>
+                              )}
                             </div>
-                          )}
-                          <div className="flex gap-2 pt-2">
-                            {item.socials?.instagram && (
-                              <a href={`https://instagram.com/${item.socials.instagram.replace('@', '')}`} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-pink-600 transition-colors">
-                                <Instagram className="w-4 h-4" />
-                              </a>
-                            )}
-                            {item.socials?.whatsapp && (
-                              <a href={`https://wa.me/${item.socials.whatsapp.replace(/\D/g, '')}`} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-green-600 transition-colors">
-                                <Phone className="w-4 h-4" />
-                              </a>
-                            )}
-                            {item.socials?.website && (
-                              <a href={item.socials.website} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-blue-600 transition-colors">
-                                <Globe className="w-4 h-4" />
-                              </a>
-                            )}
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Sponsors */}
-                {event.sponsors && event.sponsors.length > 0 && (
-                  <div className="space-y-6">
-                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Patrocinadores</h3>
-                    <div className="space-y-4">
-                      {event.sponsors.map((item) => (
-                        <div key={item.id} className="bg-neutral-50 rounded-2xl p-4 border border-neutral-100 space-y-3">
-                          <div className="flex items-center gap-3">
-                            {item.logo && <img src={item.logo} className="w-10 h-10 rounded-lg object-contain bg-white p-1" referrerPolicy="no-referrer" />}
-                            <h4 className="font-bold text-sm">{item.name}</h4>
-                          </div>
-                          {item.photo && (
-                            <div className="aspect-video rounded-xl overflow-hidden">
-                              <img src={item.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  {/* Sponsors */}
+                  {event.sponsors && event.sponsors.length > 0 && (
+                    <div className="space-y-6">
+                      <h3 className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Patrocinadores</h3>
+                      <div className="space-y-4">
+                        {event.sponsors.map((item) => (
+                          <div key={item.id} className="bg-neutral-50 rounded-2xl p-4 border border-neutral-100 space-y-3">
+                            <div className="flex items-center gap-3">
+                              {item.logo && <img src={item.logo} className="w-10 h-10 rounded-lg object-contain bg-white p-1" referrerPolicy="no-referrer" />}
+                              <h4 className="font-bold text-sm">{item.name}</h4>
                             </div>
-                          )}
-                          <p className="text-xs text-neutral-600 leading-relaxed">{item.bio}</p>
-                          {item.message && (
-                            <div className="p-3 bg-white rounded-xl border border-neutral-100 italic text-[11px] text-neutral-500">
-                              "{item.message}"
+                            {item.photo && (
+                              <div className="aspect-video rounded-xl overflow-hidden">
+                                <img src={item.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                              </div>
+                            )}
+                            <p className="text-xs text-neutral-600 leading-relaxed">{item.bio}</p>
+                            {item.message && (
+                              <div className="p-3 bg-white rounded-xl border border-neutral-100 italic text-[11px] text-neutral-500">
+                                "{item.message}"
+                              </div>
+                            )}
+                            <div className="flex gap-2 pt-2">
+                              {item.socials?.instagram && (
+                                <a href={`https://instagram.com/${item.socials.instagram.replace('@', '')}`} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-pink-600 transition-colors">
+                                  <Instagram className="w-4 h-4" />
+                                </a>
+                              )}
+                              {item.socials?.whatsapp && (
+                                <a href={`https://wa.me/${item.socials.whatsapp.replace(/\D/g, '')}`} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-green-600 transition-colors">
+                                  <Phone className="w-4 h-4" />
+                                </a>
+                              )}
+                              {item.socials?.website && (
+                                <a href={item.socials.website} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-blue-600 transition-colors">
+                                  <Globe className="w-4 h-4" />
+                                </a>
+                              )}
                             </div>
-                          )}
-                          <div className="flex gap-2 pt-2">
-                            {item.socials?.instagram && (
-                              <a href={`https://instagram.com/${item.socials.instagram.replace('@', '')}`} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-pink-600 transition-colors">
-                                <Instagram className="w-4 h-4" />
-                              </a>
-                            )}
-                            {item.socials?.whatsapp && (
-                              <a href={`https://wa.me/${item.socials.whatsapp.replace(/\D/g, '')}`} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-green-600 transition-colors">
-                                <Phone className="w-4 h-4" />
-                              </a>
-                            )}
-                            {item.socials?.website && (
-                              <a href={item.socials.website} target="_blank" className="p-2 bg-white rounded-lg shadow-sm hover:text-blue-600 transition-colors">
-                                <Globe className="w-4 h-4" />
-                              </a>
-                            )}
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
                 </div>
                 {/* Services */}
                 {event.services && event.services.length > 0 && (
@@ -606,14 +607,14 @@ export default function EventPage({ user }: { user: User | null }) {
           </div>
         )}
         {event.status === 'pre' && <PreEventView event={event} />}
-        {event.status === 'live' && <LiveEventView 
-        event={event} 
-        user={user} 
-        onLogin={handleLogin} 
-        isSelectingForPrint={isSelectingForPrint}
-        selectedPrintPhotos={selectedPrintPhotos}
-        togglePhotoSelection={togglePhotoSelection}
-      />}
+        {event.status === 'live' && <LiveEventView
+          event={event}
+          user={user}
+          onLogin={handleLogin}
+          isSelectingForPrint={isSelectingForPrint}
+          selectedPrintPhotos={selectedPrintPhotos}
+          togglePhotoSelection={togglePhotoSelection}
+        />}
         {event.status === 'post' && <PostEventView event={event} user={user} onLogin={handleLogin} />}
       </main>
 
@@ -621,13 +622,13 @@ export default function EventPage({ user }: { user: User | null }) {
       <AnimatePresence>
         {isLoginViewOpen && !user && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="bg-white w-full max-w-sm rounded-[40px] overflow-hidden shadow-2xl relative"
             >
-              <button 
+              <button
                 onClick={() => setIsLoginViewOpen(false)}
                 className="absolute top-6 right-6 p-2 hover:bg-neutral-100 rounded-full transition-colors"
               >
@@ -639,19 +640,19 @@ export default function EventPage({ user }: { user: User | null }) {
                   <span className="text-3xl">🐨</span>
                 </div>
                 <h2 className="text-2xl font-black mb-2">Bem-vindo!</h2>
-                
+
                 {linkSent ? (
                   <div className="space-y-6 py-4">
                     <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
                       <p className="text-sm text-green-700 font-medium">
-                        Link enviado para:<br/>
+                        Link enviado para:<br />
                         <strong className="text-green-900">{loginEmail}</strong>
                       </p>
                     </div>
                     <p className="text-xs text-neutral-500">
                       Clique no link que enviamos para o seu e-mail para entrar automaticamente.
                     </p>
-                    <button 
+                    <button
                       onClick={() => setLinkSent(false)}
                       className="text-xs font-bold text-neutral-400 hover:text-neutral-900 underline"
                     >
@@ -663,7 +664,7 @@ export default function EventPage({ user }: { user: User | null }) {
                     <p className="text-neutral-500 text-sm mb-8">
                       Para participar, enviar fotos e comentar, entre com sua conta Google.
                     </p>
-                    <button 
+                    <button
                       onClick={async () => {
                         const tid = toast.loading('Redirecionando para o Google...');
                         try {
@@ -772,7 +773,7 @@ function PreEventView({ event }: { event: EventData }) {
   return (
     <div className="p-6 space-y-8">
       {/* Countdown placeholder */}
-      <div 
+      <div
         className="text-white rounded-3xl p-8 text-center shadow-xl shadow-neutral-200"
         style={{ backgroundColor: event.primary_color || '#171717' }}
       >
@@ -829,7 +830,7 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
     // 2. Real-time Subscription
     return subscribeToPosts(event.id, (payload) => {
       const { eventType, new: newRecord, old: oldRecord } = payload;
-      
+
       setPhotos((prev) => {
         if (eventType === 'INSERT') {
           // Only show approved photos or if user is owner (simplified: just matching fetch logic)
@@ -838,15 +839,15 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
           }
           return prev;
         }
-        
+
         if (eventType === 'UPDATE') {
           return prev.map(p => p.id === newRecord.id ? { ...p, ...newRecord } : p);
         }
-        
+
         if (eventType === 'DELETE') {
           return prev.filter(p => p.id === oldRecord.id);
         }
-        
+
         return prev;
       });
     });
@@ -859,7 +860,7 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
     }
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    
+
     // Agora faz o upload direto sem passar pelo seletor de molduras
     handleDirectUpload(file);
   };
@@ -868,7 +869,7 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
     if (event.interactions_paused) return;
     const toastId = toast.loading('Processando sua foto...');
     setUploading(true);
-    
+
     try {
       if (!file.type.startsWith('image/')) {
         throw new Error('O arquivo selecionado não é uma imagem.');
@@ -881,7 +882,7 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
           const img = new Image();
           img.onload = () => {
             const canvas = document.createElement('canvas');
-            const MAX_WIDTH = 1000; 
+            const MAX_WIDTH = 1000;
             const MAX_HEIGHT = 1000;
             let width = img.width;
             let height = img.height;
@@ -902,7 +903,7 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             ctx?.drawImage(img, 0, 0, width, height);
-            
+
             const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
             resolve(dataUrl);
           };
@@ -918,7 +919,7 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
         eventId: event.id,
         url: base64,
         user_name: user.displayName || 'Anônimo',
-        user_id: user.uid,
+        firebase_uid: user.uid,
         status: 'pending'
       });
 
@@ -1017,7 +1018,7 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
 
   useEffect(() => {
     if (categoryGroups.length === 0) return;
-    
+
     // Ensure indices are valid when categoryGroups changes
     if (currentGroupIndex >= categoryGroups.length) {
       setCurrentGroupIndex(0);
@@ -1042,7 +1043,7 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
         }
       });
     }, 6000);
-    
+
     return () => clearInterval(interval);
   }, [categoryGroups, currentGroupIndex, currentPhotoIndex]);
 
@@ -1052,25 +1053,26 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
 
   return (
     <div className="p-4 space-y-12">
+      <UploadTest />
       {/* Featured Photos Slideshow */}
       {categoryGroups.length > 0 && currentGroupIndex < categoryGroups.length && currentPhotoIndex < categoryGroups[currentGroupIndex].photos.length && (
         <section className="relative px-2">
           <div className="text-center mb-10">
-            <h2 
+            <h2
               className="text-3xl md:text-5xl font-black inline-block relative tracking-tighter uppercase"
-              style={{ 
+              style={{
                 color: event.primary_color || '#171717',
                 textShadow: `2px 2px 0px ${event.secondary_color || '#e5e5e5'}80`
               }}
             >
               Destaques do Momento
-              <div 
-                className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-1/2 h-1.5 rounded-full opacity-80" 
+              <div
+                className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-1/2 h-1.5 rounded-full opacity-80"
                 style={{ backgroundColor: event.secondary_color || '#e5e5e5' }}
               />
             </h2>
           </div>
-          
+
           <div className="aspect-video bg-white rounded-[32px] overflow-hidden shadow-2xl border-[8px] border-white relative group">
             <AnimatePresence mode="wait">
               <motion.div
@@ -1081,8 +1083,8 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
                 transition={{ duration: 0.6, ease: "easeOut" }}
                 className="absolute inset-0"
               >
-                <img 
-                  src={categoryGroups[currentGroupIndex].photos[currentPhotoIndex].url} 
+                <img
+                  src={categoryGroups[currentGroupIndex].photos[currentPhotoIndex].url}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
@@ -1129,11 +1131,11 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
           <div className="flex gap-4 overflow-x-auto pb-4 px-2 snap-x custom-scrollbar">
             {officialPhotos.map((photo) => (
               <div key={photo.id} className="min-w-[280px] snap-center">
-                <PhotoCard 
-                  photo={photo} 
-                  user={user} 
-                  event={event} 
-                  onLogin={onLogin} 
+                <PhotoCard
+                  photo={photo}
+                  user={user}
+                  event={event}
+                  onLogin={onLogin}
                 />
               </div>
             ))}
@@ -1147,7 +1149,7 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
         </h2>
         <span className="text-xs text-neutral-400">{galleryPhotos.length} fotos</span>
       </div>
-      
+
       {galleryPhotos.length === 0 ? (
         <div className="text-center py-20 border-2 border-dashed border-neutral-200 rounded-3xl">
           <ImageIcon className="w-12 h-12 mx-auto text-neutral-200 mb-4" />
@@ -1164,8 +1166,8 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
                     onClick={() => togglePhotoSelection(photo.id)}
                     className={cn(
                       "absolute top-2 right-2 w-8 h-8 rounded-full border-2 flex items-center justify-center z-10 transition-all",
-                      selectedPrintPhotos.includes(photo.id) 
-                        ? "bg-green-500 border-green-500 text-white scale-110" 
+                      selectedPrintPhotos.includes(photo.id)
+                        ? "bg-green-500 border-green-500 text-white scale-110"
                         : "bg-white/80 backdrop-blur-sm border-neutral-300 text-transparent"
                     )}
                   >
@@ -1179,18 +1181,18 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
       )}
 
       {/* Floating Action Button */}
-      <input 
-        type="file" 
-        accept="image/*" 
+      <input
+        type="file"
+        accept="image/*"
         capture={event.upload_source === 'camera' ? 'environment' : undefined}
-        className="hidden" 
+        className="hidden"
         ref={fileInputRef}
         onChange={handleFileSelect}
       />
-      
+
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
         {!event.interactions_paused && (
-          <button 
+          <button
             onClick={() => user ? fileInputRef.current?.click() : onLogin()}
             disabled={uploading}
             className="w-16 h-16 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-95 transition-all hover:brightness-110 disabled:opacity-50"
@@ -1202,13 +1204,13 @@ function LiveEventView({ event, user, onLogin, isSelectingForPrint, selectedPrin
       </div>
 
       {!user && (
-        <motion.div 
+        <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="fixed bottom-24 left-4 right-4 bg-white border border-neutral-200 p-4 rounded-2xl shadow-2xl text-center z-[60]"
         >
           <p className="text-sm font-bold text-neutral-900 mb-3">Quer postar fotos e interagir?</p>
-          <button 
+          <button
             onClick={onLogin}
             className="w-full py-3 bg-neutral-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all"
           >
@@ -1300,17 +1302,17 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
       };
 
       await commentOnPost(photo.id, [...(photo.comments || []), comment]);
-      
-      if (event.comment_moderation_enabled === false && photo.user_id && photo.user_id !== user.uid) {
+
+      if (event.comment_moderation_enabled === false && photo.firebase_uid && photo.firebase_uid !== user.uid) {
         await createNotification({
-          userId: photo.user_id,
+          userId: photo.firebase_uid,
           title: 'Novo Comentário!',
           body: `${user.displayName || 'Anônimo'} comentou na sua foto.`,
           read: false,
           link: `/${event.slug}`
         });
       }
-      
+
       setNewComment('');
       if (event.comment_moderation_enabled === false) {
         toast.success('Comentário publicado!');
@@ -1325,7 +1327,7 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
   };
 
   const handleDeletePhoto = async () => {
-    if (!user || (photo.user_id !== user.uid && !isAdmin)) return;
+    if (!user || (photo.firebase_uid !== user.uid && !isAdmin)) return;
 
     try {
       await updatePostStatus(photo.id, 'rejected');
@@ -1342,7 +1344,7 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
 
     try {
       const updatedComments = photo.comments.filter(c => c.id !== commentId);
-      await commentOnPost(photo.id, updatedComments); 
+      await commentOnPost(photo.id, updatedComments);
       toast.success('Comentário excluído!');
     } catch (err) {
       console.error(err);
@@ -1351,7 +1353,7 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
 
   return (
     <>
-      <motion.div 
+      <motion.div
         layout
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -1359,10 +1361,10 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
         className="bg-white rounded-2xl overflow-hidden border border-neutral-200 shadow-sm"
       >
         <div className="aspect-square relative group cursor-pointer" onClick={() => setShowDetails(true)}>
-          <img 
-            src={photo.url} 
-            className="w-full h-full object-cover" 
-            referrerPolicy="no-referrer" 
+          <img
+            src={photo.url}
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
             loading="lazy"
           />
           {photo.status === 'pending' && (
@@ -1378,14 +1380,14 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
         </div>
         <div className="p-3 flex items-center justify-between">
           <div className="flex gap-3">
-            <button 
+            <button
               onClick={handleLike}
               className="flex items-center gap-1 text-neutral-600 hover:text-red-500 transition-colors"
             >
               <Heart className={cn("w-4 h-4", photo.reacted_users?.includes(`${user?.uid}_like`) && "fill-red-500 text-red-500")} />
               <span className="text-xs font-bold">{photo.likes || 0}</span>
             </button>
-            <button 
+            <button
               onClick={() => setShowDetails(true)}
               className="flex items-center gap-1 text-neutral-600 hover:text-neutral-900 transition-colors"
             >
@@ -1405,14 +1407,14 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
       <AnimatePresence>
         {showDetails && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 sm:p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowDetails(false)}
               className="absolute inset-0 bg-black/95 backdrop-blur-md"
             />
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
@@ -1420,12 +1422,12 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
             >
               {/* Imagem Inteira */}
               <div className="flex-1 bg-black flex items-center justify-center relative min-h-[40vh]">
-                <img 
-                  src={photo.url} 
+                <img
+                  src={photo.url}
                   className="max-w-full max-h-full object-contain"
                   referrerPolicy="no-referrer"
                 />
-                <button 
+                <button
                   onClick={() => setShowDetails(false)}
                   className="absolute top-4 right-4 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full transition-colors z-50"
                 >
@@ -1485,7 +1487,7 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
                               <div className="flex justify-between items-start mb-1">
                                 <p className="text-xs font-bold">{comment.user}</p>
                                 {(user?.uid === comment.uid || isAdmin) && (
-                                  <button 
+                                  <button
                                     onClick={() => handleDeleteComment(comment.id)}
                                     className="opacity-0 group-hover:opacity-100 transition-all text-neutral-400 hover:text-red-500"
                                     title="Excluir comentário"
@@ -1527,7 +1529,7 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
                       </div>
 
                       <form onSubmit={handleAddComment} className="flex gap-2">
-                        <input 
+                        <input
                           type="text"
                           value={newComment}
                           onChange={(e) => setNewComment(e.target.value)}
@@ -1535,7 +1537,7 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
                           className="flex-1 bg-neutral-100 border-none rounded-xl px-4 py-2 text-sm focus:ring-2 transition-all"
                           style={{ '--tw-ring-color': event.primary_color || '#171717' } as any}
                         />
-                        <button 
+                        <button
                           type="submit"
                           disabled={!newComment.trim() || isSubmitting}
                           className="p-2 text-white rounded-xl disabled:opacity-50 active:scale-95 transition-all"
@@ -1556,8 +1558,8 @@ function PhotoCard({ photo, user, event, onLogin }: PhotoCardProps) {
               </div>
 
               {/* Delete Photo Button for Owner/Admin */}
-              {(user?.uid === photo.user_id || isAdmin) && (
-                <button 
+              {(user?.uid === photo.firebase_uid || isAdmin) && (
+                <button
                   onClick={handleDeletePhoto}
                   className="absolute top-4 left-4 p-1.5 bg-white/10 hover:bg-red-500 text-white/40 hover:text-white rounded-full backdrop-blur-sm transition-all z-50"
                   title="Excluir foto"
@@ -1606,7 +1608,7 @@ function PostEventView({ event, user, onLogin }: { event: EventData, user: User 
       } else {
         sortedPhotos.sort((a, b) => (b.reactions?.[cat.id] || 0) - (a.reactions?.[cat.id] || 0));
       }
-      
+
       const topPhoto = sortedPhotos[0];
       let score = 0;
       if (topPhoto) {
@@ -1697,7 +1699,7 @@ function PostEventView({ event, user, onLogin }: { event: EventData, user: User 
         </p>
       </div>
 
-      <button 
+      <button
         className="w-full py-5 text-white rounded-2xl font-black text-lg shadow-2xl active:scale-95 transition-all"
         style={{ backgroundColor: event.primary_color || '#171717', color: event.secondary_color || '#ffffff' }}
       >
@@ -1727,7 +1729,7 @@ function PostEventView({ event, user, onLogin }: { event: EventData, user: User 
       )}
 
       {event.summary_file_url && (
-        <a 
+        <a
           href={event.summary_file_url}
           target="_blank"
           rel="noopener noreferrer"

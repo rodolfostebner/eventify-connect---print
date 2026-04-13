@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from "../lib/supabase/client";
 import type { NotificationData } from '../types';
 
 /**
@@ -9,7 +9,7 @@ export function subscribeToNotifications(
   onUpdate: (notifications: NotificationData[]) => void,
   onError?: (err: any) => void,
 ): () => void {
-  if (!supabase) return () => {};
+  if (!supabase) return () => { };
 
   // Initial fetch
   supabase

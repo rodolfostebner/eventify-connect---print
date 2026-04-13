@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from "../lib/supabase/client";
 import type { PrintOrder } from '../types';
 
 /**
@@ -10,7 +10,7 @@ export function subscribeToPrintOrders(
   onUpdate: (orders: PrintOrder[]) => void,
   onError?: (err: any) => void,
 ): () => void {
-  if (!supabase) return () => {};
+  if (!supabase) return () => { };
 
   const fetchOrders = async () => {
     const { data, error } = await supabase
