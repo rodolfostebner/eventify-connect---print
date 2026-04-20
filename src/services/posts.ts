@@ -216,20 +216,36 @@ export async function commentOnPost(photoId: string, comments: any[]): Promise<v
  * Helper to map Supabase row (snake_case) to our PhotoData interface (mixed/camelCase).
  */
 function mapRowToPhotoData(row: any): PhotoData {
-  return {
+  const data: any = {
     id: row.id,
     url: row.url,
     user_name: row.user_name,
     firebase_uid: row.firebase_uid,
-    eventId: row.event_id, // Map event_id -> eventId
-    likes: row.likes || 0,
-    reactions: row.reactions || {},
-    reacted_users: row.reacted_users || [],
-    comments: row.comments || [],
+    eventId: row.event_id,
+    likes: row.likes,
+    reactions: row.reactions,
+    reacted_users: row.reacted_users,
+    comments: row.comments,
     timestamp: row.created_at || row.timestamp,
     status: row.status,
     is_official: row.is_official,
   };
+
+  // Remove undefined fields to prevent overwriting existing state during partial realtime updates
+  Object.keys(data).forEach(key => {
+    if (data[key] === undefined) {
+      delete data[key];
+    }
+  });
+
+  return {
+    // Defaults for missing but expected fields
+    likes: 0,
+    reactions: {},
+    reacted_users: [],
+    comments: [],
+    ...data
+  } as PhotoData;
 }
 
 /**

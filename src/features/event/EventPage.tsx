@@ -58,7 +58,7 @@ export default function EventPage({ user }: { user: User | null }) {
     }
   };
 
-  const togglePhotoSelection = (photoId: string) => {
+  const togglePhotoSelection = useCallback((photoId: string) => {
     setSelectedPrintPhotos(prev => {
       if (prev.includes(photoId)) {
         return prev.filter(id => id !== photoId);
@@ -69,7 +69,7 @@ export default function EventPage({ user }: { user: User | null }) {
       }
       return [...prev, photoId];
     });
-  };
+  }, []);
 
   const handleSubmitPrintOrder = async () => {
     if (!user) {
@@ -131,10 +131,10 @@ export default function EventPage({ user }: { user: User | null }) {
     );
   }, [slug]);
 
-  const handleLogin = () => {
+  const handleLogin = useCallback(() => {
     setIsLoginViewOpen(true);
     setLinkSent(false);
-  };
+  }, []);
 
   const handleSendMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();

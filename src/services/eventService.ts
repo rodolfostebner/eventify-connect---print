@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase/client";
+import { uploadImage } from './storageService';
 import type { EventData } from '../types';
 
 /**
@@ -140,21 +141,9 @@ export async function deleteEvent(id: string): Promise<void> {
 }
 
 /**
- * Upload an event summary file to Supabase Storage.
+ * Upload an event summary file to Cloudflare R2 (reusing image upload pipeline).
  */
 export async function uploadEventSummary(eventId: string, file: File): Promise<string> {
-  if (!supabase) throw new Error('Supabase not initialized');
-
-  const filePath = `${eventId}/${file.name}`;
-  const { error } = await supabase.storage
-    .from('event-summaries')
-    .upload(filePath, file, { upsert: true });
-
-  if (error) throw error;
-
-  const { data } = supabase.storage
-    .from('event-summaries')
-    .getPublicUrl(filePath);
-
-  return data.publicUrl;
+  // We reuse the R2 storage service which returns the public URL
+  return await uploadImage(file);
 }

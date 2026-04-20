@@ -3,7 +3,7 @@ import { Trophy } from 'lucide-react';
 import type { EventData } from '../../types';
 import { User } from '../../services/authService';
 import { usePosts } from '../../hooks/usePosts';
-import { PhotoCard } from './components/PhotoCard';
+import { PhotoCard } from './components/PhotoCard/PhotoCard';
 
 export function PostEventView({ event, user, onLogin }: { event: EventData, user: User | null, onLogin: () => void }) {
   const { posts: photos } = usePosts(event?.id || '');
