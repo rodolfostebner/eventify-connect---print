@@ -67,16 +67,18 @@ export const usePhotoUpload = (event: EventData, user: User | null) => {
       const blob = await (await fetch(base64)).blob();
       const fileExt = blob.type === 'image/png' ? 'png' : 'jpg';
       const fileToUpload = new File([blob], `${user?.uid || 'anon'}_${Date.now()}.${fileExt}`, { type: blob.type });
-      
+
       const publicUrl = await uploadImage(fileToUpload);
 
       // 3. Save to Database
       await createPost({
         eventId: event.id,
-        url: publicUrl, // Use storage URL instead of base64
+        url: publicUrl,
         user_name: user?.displayName || 'Anônimo',
         firebase_uid: user?.uid,
-        status: 'approved' // Auto-approve for now if moderation not enabled on event?
+        status: event.comment_moderation_enabled
+          ? 'pending'
+          : 'approved'
       });
 
       toast.success('Foto enviada!', { id: toastId });
@@ -86,7 +88,12 @@ export const usePhotoUpload = (event: EventData, user: User | null) => {
     } finally {
       setUploading(false);
     }
-  }, [event.id, event.interactions_paused, user]);
+  }, [
+    event.id,
+    event.interactions_paused,
+    event.comment_moderation_enabled,
+    user
+  ]);
 
   return { uploading, handleDirectUpload };
 };

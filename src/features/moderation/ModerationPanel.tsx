@@ -80,9 +80,9 @@ export default function ModerationPanel({ user }: { user: User | null }) {
     try {
       await updatePostStatus(photo.id, 'approved');
       toast.success('Foto aprovada!');
-      if (photo.user_id) {
+      if (photo.firebase_uid) {
         await createNotification({
-          userId: photo.user_id,
+          userId: photo.firebase_uid,
           title: 'Foto Aprovada!',
           body: 'Sua foto foi aprovada e já está na galeria do evento.',
           link: `/${event?.slug}`,
@@ -114,7 +114,7 @@ export default function ModerationPanel({ user }: { user: User | null }) {
           eventId: event.id,
           url: 'https://images.unsplash.com/photo-1519741497674-611481863552', // Placeholder
           user_name: 'Equipe Oficial',
-          user_id: '',
+          firebase_uid: '',
           status: 'approved',
           is_official: true
         });
@@ -158,7 +158,7 @@ export default function ModerationPanel({ user }: { user: User | null }) {
 
       const newComments = [...(photo.comments || [])];
       if (action === 'rejected') {
-        newComments.splice(commentIndex, 1);
+        newComments[commentIndex] = { ...newComments[commentIndex], status: 'rejected' };
       } else {
         newComments[commentIndex] = { ...newComments[commentIndex], status: 'approved' };
       }
@@ -167,10 +167,10 @@ export default function ModerationPanel({ user }: { user: User | null }) {
       toast.success(action === 'approved' ? 'Comentário aprovado!' : 'Comentário removido!');
       
       if (action === 'approved') {
-        if (photo?.user_id) {
+        if (photo?.firebase_uid) {
           const approved = currentComments[commentIndex];
           await createNotification({
-            userId: photo.user_id,
+            userId: photo.firebase_uid,
             title: 'Novo Comentário!',
             body: `${approved.user} comentou na sua foto.`,
             link: `/${event?.slug}`,
