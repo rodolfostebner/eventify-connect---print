@@ -28,7 +28,7 @@ function App() {
         <Route path="/tv/:slug" element={<TVView />} />
         
         {/* Protected Admin Routes */}
-        <Route path="/" element={user ? <AdminDashboard user={user} /> : <LoginScreen login={login} />} />
+        <Route path="/" element={<AdminDashboard user={user} />} />
         <Route path="/admin" element={<Navigate to="/" replace />} />
         <Route path="/moderation/:slug" element={user ? <ModerationPanel user={user} /> : <Navigate to="/" replace />} />
         <Route path="/operator/:slug" element={user ? <OperatorPanel user={user} /> : <Navigate to="/" replace />} />
@@ -37,26 +37,6 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
-  )
-}
-
-function LoginScreen({ login }: { login: () => void }) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-[#fafafa] p-6">
-      <div className="bg-white p-12 rounded-[48px] shadow-2xl border border-neutral-100 text-center max-w-sm w-full">
-        <div className="w-20 h-20 bg-neutral-900 rounded-[32px] flex items-center justify-center text-white mx-auto mb-8 shadow-2xl text-4xl">🐨</div>
-        <h1 className="text-3xl font-black tracking-tighter mb-4">Eventify</h1>
-        <p className="text-neutral-400 text-sm font-medium mb-10 leading-relaxed">
-          Área administrativa. Entre com sua conta autorizada para gerenciar eventos.
-        </p>
-        <button 
-          onClick={login}
-          className="w-full py-4 bg-neutral-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-neutral-800 transition-all shadow-xl shadow-neutral-200"
-        >
-          Entrar com Google
-        </button>
-      </div>
-    </div>
   )
 }
 

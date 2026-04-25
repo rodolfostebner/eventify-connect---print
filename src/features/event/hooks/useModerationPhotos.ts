@@ -25,22 +25,9 @@ export const useModerationPhotos = (eventId: string | undefined) => {
 
     loadPhotos();
 
-    const unsubscribe = subscribeToAllPosts(eventId, (payload) => {
+    const unsubscribe = subscribeToAllPosts(eventId, () => {
       if (!mounted) return;
-      const { eventType, new: newRecord, old: oldRecord } = payload;
-
-      setPhotos((prev) => {
-        if (eventType === 'INSERT') {
-          return [newRecord, ...prev];
-        }
-        if (eventType === 'UPDATE') {
-          return prev.map(p => p.id === newRecord.id ? { ...p, ...newRecord } : p);
-        }
-        if (eventType === 'DELETE') {
-          return prev.filter(p => p.id !== oldRecord.id);
-        }
-        return prev;
-      });
+      loadPhotos();
     });
 
     return () => {

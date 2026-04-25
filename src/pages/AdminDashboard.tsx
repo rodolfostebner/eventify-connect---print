@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { LayoutDashboard, Plus, LogOut, Calendar, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
-import { login, loginWithPassword, updatePassword, logout } from '../services/authService';
+import { login, loginWithPassword, loginWithGoogle, updatePassword, logout } from '../services/authService';
 import type { User } from '../services/authService';
 
 // Feature Hooks
@@ -40,6 +40,7 @@ export default function AdminDashboard({ user }: { user: User | null }) {
     openBrandingModal,
     saveBranding,
     handleSummaryFileUpload,
+    handleItemFileUpload,
   } = useBrandingForm(setEvents);
 
   // ─── Login Screen ────────────────────────────────────────────────────────────
@@ -89,6 +90,27 @@ export default function AdminDashboard({ user }: { user: User | null }) {
                   {authMode === 'password' ? 'Entrar' : 'Receber Link'}
                 </button>
               </form>
+
+              <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-neutral-100"></div></div>
+                <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest text-neutral-300 bg-white px-4">Ou continue com</div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  const tid = toast.loading('Conectando ao Google...');
+                  try {
+                    await loginWithGoogle();
+                    toast.success('Bem-vindo!', { id: tid });
+                  } catch (err) {
+                    toast.error('Erro ao conectar.', { id: tid });
+                  }
+                }}
+                className="w-full py-4 bg-white border border-neutral-100 text-neutral-900 rounded-2xl font-bold shadow-sm hover:bg-neutral-50 transition-all flex items-center justify-center gap-3"
+              >
+                <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="Google" />
+                Google
+              </button>
             </>
           )}
         </div>
@@ -111,7 +133,15 @@ export default function AdminDashboard({ user }: { user: User | null }) {
             referrerPolicy="no-referrer"
             onError={e => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${user.displayName || 'A'}&background=random`; }}
           />
-          <button onClick={logout} className="p-2 text-neutral-400 hover:text-red-500 transition-colors" title="Sair">
+          <button 
+            onClick={async () => {
+              const tid = toast.loading('Saindo...');
+              await logout();
+              toast.success('Até logo!', { id: tid });
+            }} 
+            className="p-2 text-neutral-400 hover:text-red-500 transition-colors" 
+            title="Sair"
+          >
             <LogOut className="w-6 h-6" />
           </button>
         </div>
@@ -213,6 +243,7 @@ export default function AdminDashboard({ user }: { user: User | null }) {
         isUploadingSummary={isUploadingSummary}
         summaryFileInputRef={summaryFileInputRef}
         onSummaryUpload={handleSummaryFileUpload}
+        onItemFileUpload={handleItemFileUpload}
       />
     </div>
   );

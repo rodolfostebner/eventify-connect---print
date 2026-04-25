@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { updatePostStatus, createPost } from '../../../services/posts';
+import { uploadImage } from '../../../services/storageService';
 import { supabase } from '../../../lib/supabase/client';
 import { createNotification } from '../../../services/notificationService';
 import type { PhotoData, EventData } from '../../../types';
@@ -48,23 +49,11 @@ export const useAdminActions = (event: EventData | null) => {
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${event.id}/official_${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `photos/${fileName}`;
+        
+        // 1. Upload to R2 via storageService
+        const publicUrl = await uploadImage(file);
 
-        // 1. Upload to Storage
-        const { error: uploadError } = await supabase.storage
-          .from('photos')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        // 2. Get Public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('photos')
-          .getPublicUrl(filePath);
-
-        // 3. Create Post Record
+        // 2. Create Post Record
         await createPost({
           eventId: event.id,
           url: publicUrl,

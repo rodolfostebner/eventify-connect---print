@@ -1,7 +1,15 @@
-import { supabase } from "../lib/supabase/client";
+import { auth, googleProvider } from "../lib/firebase/client";
+import { 
+  signInWithPopup, 
+  signOut, 
+  onAuthStateChanged, 
+  signInWithEmailAndPassword,
+  updatePassword as firebaseUpdatePassword,
+  sendPasswordResetEmail
+} from "firebase/auth";
 
 /**
- * Interface compatível com o resto do app (originalmente do Firebase).
+ * Interface compatível com o resto do app.
  */
 export interface User {
   uid: string;
@@ -11,120 +19,63 @@ export interface User {
 }
 
 /**
- * Sign in using Magic Link (Supabase OTP).
+ * Sign in using Magic Link (Firebase does this differently, usually via sendSignInLinkToEmail).
+ * For now, if the user wants "Link Mágico", we can implement it or keep it as placeholder.
  */
 export async function login(email: string): Promise<void> {
-  if (!supabase) throw new Error('Supabase not initialized');
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: window.location.origin
-    }
-  });
-
-  if (error) {
-    console.error('Error during magic link login:', error);
-    throw error;
-  }
+  // Placeholder for magic link or redirect to password reset
+  await sendPasswordResetEmail(auth, email);
 }
 
 /**
- * Sign in using Google (Supabase OAuth).
+ * Sign in using Google (Firebase).
  */
 export async function loginWithGoogle(): Promise<void> {
-  if (!supabase) throw new Error('Supabase not initialized');
-
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin
-    }
-  });
-
-  if (error) {
-    console.error('Error during Google login:', error);
-    throw error;
-  }
+  await signInWithPopup(auth, googleProvider);
 }
 
 /**
- * Sign in using Email and Password.
+ * Sign in using Email and Password (Firebase).
  */
 export async function loginWithPassword(email: string, password: string): Promise<void> {
-  if (!supabase) throw new Error('Supabase not initialized');
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) {
-    console.error('Error during password login:', error);
-    throw error;
-  }
+  await signInWithEmailAndPassword(auth, email, password);
 }
 
 /**
- * Update the current user's password.
+ * Update the current user's password (Firebase).
  */
 export async function updatePassword(password: string): Promise<void> {
-  if (!supabase) throw new Error('Supabase not initialized');
-
-  const { error } = await supabase.auth.updateUser({
-    password,
-  });
-
-  if (error) {
-    console.error('Error updating password:', error);
-    throw error;
-  }
+  if (!auth.currentUser) throw new Error("No user logged in");
+  await firebaseUpdatePassword(auth.currentUser, password);
 }
 
-
-
 /**
- * Sign out the current user.
+ * Sign out the current user (Firebase).
  */
 export async function logout(): Promise<void> {
-  if (!supabase) return;
-  await supabase.auth.signOut();
+  await signOut(auth);
 }
 
 /**
- * Subscribe to auth state changes and map Supabase user to our internal User type.
+ * Subscribe to auth state changes and map Firebase user to our internal User type.
  */
 export function subscribeToAuth(onUpdate: (user: User | null) => void): () => void {
-  if (!supabase) return () => { };
-
-  // Get current session first
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    onUpdate(session?.user ? mapSupabaseUser(session.user) : null);
+  return onAuthStateChanged(auth, (fbUser) => {
+    onUpdate(fbUser ? mapFirebaseUser(fbUser) : null);
   });
-
-  // Listen for changes
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-    onUpdate(session?.user ? mapSupabaseUser(session.user) : null);
-  });
-
-  return () => {
-    subscription.unsubscribe();
-  };
 }
 
 /**
- * Helper to map Supabase User to our internal User interface.
+ * Helper to map Firebase User to our internal User interface.
  */
-function mapSupabaseUser(sbUser: any): User {
+function mapFirebaseUser(fbUser: any): User {
   return {
-    uid: sbUser.id,
-    email: sbUser.email ?? null,
-    displayName: sbUser.user_metadata?.full_name ?? sbUser.user_metadata?.name ?? 'Usuário',
-    photoURL: sbUser.user_metadata?.avatar_url ?? null,
+    uid: fbUser.uid,
+    email: fbUser.email ?? null,
+    displayName: fbUser.displayName ?? fbUser.email?.split('@')[0] ?? 'Usuário',
+    photoURL: fbUser.photoURL ?? null,
   };
 }
-
-
 
 /**
  * Listen for authentication state changes (Legacy wrapper).

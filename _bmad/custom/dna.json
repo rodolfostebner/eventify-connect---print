@@ -1,0 +1,137 @@
+{
+    "project_name": "Eventify Connect & Print",
+    "version": "2.0.0",
+    "stack": {
+        "frontend": "React 19, Vite 6, Tailwind CSS 4",
+        "auth": "Firebase Auth (Google Login)",
+        "database": "Supabase (PostgreSQL)",
+        "storage": "Cloudflare R2"
+    },
+    "database_schema": {
+        "tables": [
+            {
+                "name": "events",
+                "description": "Configurações de UI, estados do evento e dados de expositores/sponsors",
+                "columns": [
+                    "id",
+                    "name",
+                    "slug",
+                    "status",
+                    "date",
+                    "logo_url",
+                    "primary_color",
+                    "secondary_color",
+                    "bg_type",
+                    "bg_value",
+                    "tv_show_ranking",
+                    "countdown_active",
+                    "interactions_paused",
+                    "comment_moderation_enabled",
+                    "exhibitors",
+                    "sponsors",
+                    "custom_comments",
+                    "created_at",
+                    "updated_at"
+                ]
+            },
+            {
+                "name": "photos",
+                "description": "Galeria de fotos com sistema de reações e moderação",
+                "columns": [
+                    "id",
+                    "event_id",
+                    "url",
+                    "user_name",
+                    "firebase_uid",
+                    "likes",
+                    "reactions",
+                    "reacted_users",
+                    "comments",
+                    "status",
+                    "is_official",
+                    "created_at"
+                ]
+            },
+            {
+                "name": "print_orders",
+                "description": "Fila de impressão física (stickers/cartelas)",
+                "columns": [
+                    "id",
+                    "event_id",
+                    "user_id",
+                    "user_name",
+                    "photo_ids",
+                    "status",
+                    "created_at"
+                ]
+            },
+            {
+                "name": "users",
+                "description": "Perfis de usuários vinculados ao Firebase Auth",
+                "columns": [
+                    "id",
+                    "email",
+                    "display_name",
+                    "photo_url",
+                    "role",
+                    "firebase_uid"
+                ]
+            },
+            {
+                "name": "notifications",
+                "description": "Alertas do sistema para usuários",
+                "columns": [
+                    "id",
+                    "user_id",
+                    "title",
+                    "body",
+                    "read",
+                    "created_at"
+                ]
+            }
+        ]
+    },
+    "critical_observations": [
+        "Expositores e Patrocinadores são armazenados como JSONB dentro da tabela events para simplificar o fetch inicial.",
+        "A tabela de fotos usa 'firebase_uid' para rastrear a autoria via Auth e garantir permissões de exclusão.",
+        "A tabela de impressão suporta cartelas (photo_ids armazenados como array/text[]).",
+        "Comentários livres exigem moderação se não constarem em 'custom_comments' da tabela events."
+    ],
+    "business_logic": {
+        "event_states": [
+            "PRE_EVENT",
+            "LIVE",
+            "POST_EVENT"
+        ],
+        "interaction_rules": {
+            "max_comments_per_photo": 2,
+            "max_emojis_per_photo": 2,
+            "allowed_emojis": [
+                "🔥",
+                "😂",
+                "❤️",
+                "🎸"
+            ],
+            "user_deletion_rights": "self_only_after_approval"
+        },
+        "moderation_rules": {
+            "auto_approve_preset_comments": true,
+            "require_curation_for_free_text": true,
+            "curation_required_for_live_feed": true
+        },
+        "ranking_categories": {
+            "🔥": "Mais curtidas",
+            "😂": "Mais divertida",
+            "❤️": "Mais Fofura",
+            "🎸": "Rockstar",
+            "comments": "Mais comentadas",
+            "official": "Destaques Oficiais"
+        },
+        "upload_flow": "Client -> Cloudflare R2 (Direct) -> Supabase (Record URL)"
+    },
+    "ui_mapping": {
+        "exhibitors_source": "events.exhibitors (jsonb)",
+        "sponsors_source": "events.sponsors (jsonb)",
+        "comments_presets": "events.custom_comments (jsonb)"
+    }
+}

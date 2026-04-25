@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { User } from '../services/authService';
 import { login, logout, loginWithGoogle } from '../services/authService';
-import { Loader2, X, LogOut, User as UserIcon, Menu, Instagram, Globe, Phone, Check, Bell, BellOff, Star } from 'lucide-react';
+import { Loader2, X, LogOut, User as UserIcon, Menu, Instagram, Globe, Phone, Check, Bell, BellOff, Star, Users, Briefcase } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import type { EventData } from '../types';
@@ -14,6 +14,7 @@ import { cn } from '../lib/utils';
 import { LiveEventView } from '../features/event/components/LiveEventView';
 import { PreEventView } from '../features/event/components/PreEventView';
 import { PostEventView } from '../features/event/components/PostEventView';
+import { PartnerSection } from '../features/event/components/PartnerSection';
 
 export default function EventPage({ user }: { user: User | null }) {
   const { slug } = useParams<{ slug: string }>();
@@ -175,7 +176,14 @@ export default function EventPage({ user }: { user: User | null }) {
                 className="w-9 h-9 rounded-full border-2 border-white shadow-md"
                 referrerPolicy="no-referrer"
               />
-              <button onClick={logout} className="p-2 text-neutral-300 hover:text-red-500 transition-colors">
+              <button 
+                onClick={async () => {
+                  const tid = toast.loading('Saindo...');
+                  await logout();
+                  toast.success('Até logo!', { id: tid });
+                }} 
+                className="p-2 text-neutral-300 hover:text-red-500 transition-colors"
+              >
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
@@ -218,7 +226,11 @@ export default function EventPage({ user }: { user: User | null }) {
 
                 <section className="bg-neutral-50 rounded-[32px] p-8 border border-neutral-100 space-y-6">
                    <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-neutral-900 rounded-2xl flex items-center justify-center text-white shadow-xl text-2xl">🐨</div>
+                    {event.app_logo ? (
+                      <img src={event.app_logo} className="w-12 h-12 rounded-2xl object-cover shadow-xl" />
+                    ) : (
+                      <div className="w-12 h-12 bg-neutral-900 rounded-2xl flex items-center justify-center text-white shadow-xl text-2xl">🐨</div>
+                    )}
                     <div>
                       <h2 className="text-lg font-black tracking-tight">Memories Hub</h2>
                       <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">By Koala's</p>
@@ -227,6 +239,32 @@ export default function EventPage({ user }: { user: User | null }) {
                   {event.app_description && (
                     <p className="text-xs text-neutral-500 leading-relaxed font-medium">{event.app_description}</p>
                   )}
+                  {event.app_instagram || event.app_whatsapp || event.app_website ? (
+                    <div className="flex gap-3 pt-2">
+                       {event.app_instagram && <a href={`https://instagram.com/${event.app_instagram.replace('@','')}`} target="_blank" className="p-2 bg-white rounded-full border border-neutral-100 shadow-sm"><Instagram className="w-4 h-4" /></a>}
+                       {event.app_whatsapp && <a href={`https://wa.me/${event.app_whatsapp}`} target="_blank" className="p-2 bg-white rounded-full border border-neutral-100 shadow-sm"><Phone className="w-4 h-4" /></a>}
+                       {event.app_website && <a href={event.app_website} target="_blank" className="p-2 bg-white rounded-full border border-neutral-100 shadow-sm"><Globe className="w-4 h-4" /></a>}
+                    </div>
+                  ) : null}
+                </section>
+
+                {/* Partners in Sidebar */}
+                <section className="space-y-6 px-2">
+                  <PartnerSection 
+                    title="Expositores" 
+                    items={event.exhibitors || []} 
+                    icon={<Users className="w-4 h-4" />} 
+                  />
+                  <PartnerSection 
+                    title="Patrocinadores" 
+                    items={event.sponsors || []} 
+                    icon={<Star className="w-4 h-4" />} 
+                  />
+                  <PartnerSection 
+                    title="Serviços" 
+                    items={event.services || []} 
+                    icon={<Briefcase className="w-4 h-4" />} 
+                  />
                 </section>
 
                 {event.status === 'live' && (

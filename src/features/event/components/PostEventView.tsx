@@ -67,16 +67,7 @@ export const PostEventView = ({ event, user, onLogin }: PostEventViewProps) => {
         </p>
       </div>
 
-      <button
-        className="w-full py-6 text-white rounded-3xl font-black text-lg shadow-2xl active:scale-[0.98] transition-all transform hover:-translate-y-1"
-        style={{ 
-          backgroundColor: event.primary_color || '#171717', 
-          color: event.secondary_color || '#ffffff',
-          boxShadow: `0 20px 40px -10px ${(event.primary_color || '#171717')}66`
-        }}
-      >
-        Ver Álbum Digital Completo
-      </button>
+      {/* Removido botão sem função */}
 
       {rankingData.length > 0 && (
         <section className="bg-white p-8 rounded-[48px] border border-neutral-50 shadow-2xl text-left">
@@ -117,16 +108,19 @@ export const PostEventView = ({ event, user, onLogin }: PostEventViewProps) => {
           title="Expositores" 
           items={event.exhibitors || []} 
           icon={<Users className="w-4 h-4" />} 
+          showMessages={true}
         />
         <PartnerSection 
           title="Patrocinadores" 
           items={event.sponsors || []} 
           icon={<Star className="w-4 h-4" />} 
+          showMessages={true}
         />
         <PartnerSection 
           title="Serviços" 
           items={event.services || []} 
           icon={<Briefcase className="w-4 h-4" />} 
+          showMessages={true}
         />
       </div>
     </div>

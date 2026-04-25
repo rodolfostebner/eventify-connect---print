@@ -27,7 +27,7 @@ export interface EventData {
   name: string;
   slug: string;
   status: 'pre' | 'live' | 'post';
-  date: string;
+  date?: string | null;
   countdown_active?: boolean;
   logo_url?: string;
   primary_color?: string;
@@ -66,31 +66,65 @@ export interface EventData {
   tv_show_ranking?: boolean;
 }
 
-// ─── Photo ────────────────────────────────────────────────────────────────────
+// ─── Post / Moderation ──────────────────────────────────────────────────────────
 
-export interface PhotoComment {
-  id?: string;
-  user: string;
-  uid: string;
-  text: string;
-  timestamp: string;
-  status: 'pending' | 'approved' | 'rejected';
-}
-
-export interface PhotoData {
+export interface PostReaction {
   id: string;
-  url: string;
-  user_name: string;
-  firebase_uid: string
-  eventId: string;
-  likes: number;
-  reactions?: Record<string, number>;
-  reacted_users?: string[];
-  comments: PhotoComment[];
-  timestamp: any;
-  status: 'pending' | 'approved' | 'rejected';
-  is_official?: boolean;
+  post_id: string;
+  user_id: string;
+  type: string;
+  created_at: string;
 }
+
+export interface PostComment {
+  id: string;
+  post_id: string;
+  user_id: string;
+  text: string;
+  status: 'pending' | 'approved' | 'rejected';
+  is_predefined: boolean;
+  created_at: string;
+  
+  // Relational data from 'users' / Legacy fallback
+  user?: any; // temporariamente any para aceitar tanto string (legado) quanto objeto {display_name}
+  user_name?: string;
+  uid?: string;
+  timestamp?: string;
+}
+
+export interface PostData {
+  id: string;
+  event_id: string;
+  user_id: string;
+  image_url: string;
+  status: 'pending' | 'approved' | 'rejected';
+  is_official: boolean;
+  printed: boolean;
+  created_at: string;
+  
+  // Relational Data
+  user?: {
+    display_name: string;
+    photo_url?: string;
+  };
+  reactions?: PostReaction[];
+  comments?: PostComment[];
+  
+  // Aggregations
+  reaction_counts?: Record<string, number>;
+
+  // --- Legacy Mappings (Temporário para UI não quebrar) ---
+  url?: string; 
+  user_name?: string;
+  firebase_uid?: string;
+  eventId?: string;
+  likes?: number;
+  timestamp?: any;
+  reacted_users?: string[];
+}
+
+export type PhotoData = PostData;
+export type PhotoComment = PostComment;
 
 // ─── Print Order ──────────────────────────────────────────────────────────────
 

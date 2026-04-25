@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la _bmad/*.yaml)",
+      "Bash(grep -r --include=*.ts --include=*.tsx --include=*.js --include=*.jsx firebase/ src/)",
+      "Bash(grep -r --include=*.ts --include=*.tsx --include=*.js --include=*.jsx \"react\\\\|comment\\\\|emoji\\\\|reaction\" src/)",
+      "Bash(xargs grep:*)",
+      "Bash(find . -type f -name *.json -not -path ./node_modules/* -not -path ./.git/*)",
+      "Bash(find ./_bmad -type f -name *.ts -o -name *.tsx -o -name *.js -o -name *.json)",
+      "Bash(xargs -0 grep -l Encontre)",
+      "Bash(xargs -0 grep -l -i encontre)"
+    ]
+  }
+}

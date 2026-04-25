@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { updateEvent, uploadEventSummary } from '../../../services/eventService';
+import { uploadImage } from '../../../services/storageService';
 import type { EventData, ExhibitorSponsor } from '../../../types';
 
 export type BrandingFormState = {
@@ -132,10 +133,18 @@ export function useBrandingForm(
   const saveBranding = async () => {
     if (!editingEvent) return;
     setLoading(true);
-    setEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, ...brandingForm } : e));
+    
+    // Tratamento para não enviar string vazia para campos de data/timestamp
+    const payload = { ...brandingForm };
+    if (payload.date === '') {
+      (payload as any).date = null;
+    }
+
+    setEvents(prev => prev.map(e => e.id === editingEvent.id ? { ...e, ...payload } : e));
     try {
-      await updateEvent(editingEvent.id, brandingForm);
+      await updateEvent(editingEvent.id, payload);
       setEditingEvent(null);
+      toast.success('Personalização salva com sucesso!');
     } catch (err) {
       console.error(err);
       toast.error('Erro ao salvar personalização.');
@@ -159,6 +168,22 @@ export function useBrandingForm(
     }
   };
 
+  const handleItemFileUpload = async (type: 'exhibitors' | 'sponsors' | 'services', index: number, field: 'logo' | 'photo', file: File) => {
+    setLoading(true);
+    try {
+      const url = await uploadImage(file);
+      const newList = [...brandingForm[type]];
+      (newList[index] as any)[field] = url;
+      setBrandingForm(prev => ({ ...prev, [type]: newList }));
+      toast.success('Imagem enviada!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao enviar imagem.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     editingEvent,
     setEditingEvent,
@@ -170,5 +195,6 @@ export function useBrandingForm(
     openBrandingModal,
     saveBranding,
     handleSummaryFileUpload,
+    handleItemFileUpload,
   };
 }

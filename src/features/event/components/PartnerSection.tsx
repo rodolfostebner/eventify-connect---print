@@ -21,9 +21,10 @@ interface PartnerSectionProps {
   title: string;
   items: PartnerItem[];
   icon: React.ReactNode;
+  showMessages?: boolean;
 }
 
-export function PartnerSection({ title, items, icon }: PartnerSectionProps) {
+export function PartnerSection({ title, items, icon, showMessages = false }: PartnerSectionProps) {
   if (!items || items.length === 0) return null;
 
   return (
@@ -42,24 +43,19 @@ export function PartnerSection({ title, items, icon }: PartnerSectionProps) {
                   <Users className="w-6 h-6 text-neutral-400" />
                 </div>
               )}
-              <div>
+              <div className="flex-1">
                 <h3 className="font-bold text-neutral-900">{item.name}</h3>
                 <p className="text-xs text-neutral-500 line-clamp-2">{item.bio}</p>
               </div>
             </div>
             {item.photo && (
-              <div className="aspect-video rounded-xl overflow-hidden">
+              <div className="aspect-video rounded-xl overflow-hidden bg-neutral-50 border border-neutral-100">
                 <img src={item.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
             )}
-            {item.message && (
-              <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-100">
-                <p className="text-sm italic text-neutral-600">"{item.message}"</p>
-              </div>
-            )}
-            {item.final_message && !item.message && (
-              <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-100">
-                <p className="text-sm italic text-neutral-600">"{item.final_message}"</p>
+            {showMessages && (item.message || item.final_message) && (
+              <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-100 border-l-4 border-l-neutral-900">
+                <p className="text-sm italic text-neutral-600">"{item.message || item.final_message}"</p>
               </div>
             )}
             {item.socials && (
