@@ -11,6 +11,7 @@ interface ModerationControlsProps {
   onToggleTVRanking: () => void;
   onToggleModeration: () => void;
   onToggleOfficialPhotos: () => void;
+  onUpdateUploadSource: (source: 'camera' | 'gallery' | 'both') => void;
   rankingData: { title: string; emoji: string; photo: PhotoData; score: number }[];
   fileInputRef: React.RefObject<HTMLInputElement>;
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -24,6 +25,7 @@ export const ModerationControls = ({
   onToggleTVRanking,
   onToggleModeration,
   onToggleOfficialPhotos,
+  onUpdateUploadSource,
   rankingData,
   fileInputRef,
   onFileSelect
@@ -130,6 +132,32 @@ export const ModerationControls = ({
               <Upload className="w-4 h-4" />
               {event?.has_official_photos ? 'Galeria Ativa' : 'Galeria Oculta'}
             </button>
+          </div>
+
+          {/* Origem de Upload */}
+          <div className="p-6 bg-neutral-50 rounded-3xl border border-neutral-100 flex flex-col gap-4">
+            <div>
+              <h3 className="font-black text-sm uppercase tracking-tight">Origem de Upload</h3>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">Live Participantes</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {(['both', 'camera', 'gallery'] as const).map((source) => (
+                <button
+                  key={source}
+                  onClick={() => onUpdateUploadSource(source)}
+                  className={cn(
+                    'w-full py-3 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all',
+                    event?.upload_source === source || (source === 'both' && !event?.upload_source)
+                      ? 'bg-neutral-900 text-white shadow-lg'
+                      : 'bg-white border border-neutral-100 text-neutral-400 hover:bg-neutral-50'
+                  )}
+                >
+                  {source === 'both' && 'Câmera e Galeria'}
+                  {source === 'camera' && 'Apenas Câmera'}
+                  {source === 'gallery' && 'Apenas Galeria'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>

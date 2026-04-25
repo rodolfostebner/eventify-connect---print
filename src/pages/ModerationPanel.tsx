@@ -250,6 +250,7 @@ export default function ModerationPanel({ user }: { user: User | null }) {
             onToggleTVRanking={() => event && updateEvent(event.id, { tv_show_ranking: !event.tv_show_ranking })}
             onToggleModeration={() => event && updateEvent(event.id, { comment_moderation_enabled: !event.comment_moderation_enabled })}
             onToggleOfficialPhotos={() => event && updateEvent(event.id, { has_official_photos: !event.has_official_photos })}
+            onUpdateUploadSource={(source) => event && updateEvent(event.id, { upload_source: source })}
             rankingData={rankingData as any}
             fileInputRef={fileInputRef}
             onFileSelect={(e) => handleOfficialUpload(e.target.files)}
