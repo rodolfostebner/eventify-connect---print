@@ -55,13 +55,13 @@ export const FeaturedSlideshow = ({
         >
           Destaques
           <div
-            className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-1/2 h-1.5 rounded-full opacity-80"
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-12 h-1 rounded-full opacity-80"
             style={{ backgroundColor: event.secondary_color || '#e5e5e5' }}
           />
         </h2>
       </div>
 
-      <div className="aspect-video bg-white rounded-[40px] overflow-hidden shadow-2xl border-[12px] border-white relative group">
+      <div className="aspect-video bg-white rounded-2xl overflow-hidden shadow-xl border-4 md:border-8 border-white relative group">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${currentGroupIndex}-${currentPhotoIndex}`}

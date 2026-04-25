@@ -111,7 +111,7 @@ export const PhotoModal = ({
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="bg-white w-full max-w-lg rounded-[32px] overflow-hidden shadow-2xl relative flex flex-col h-full max-h-[90vh]"
+          className="bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl relative flex flex-col h-full max-h-[90vh]"
         >
           <button
             onClick={onClose}
@@ -236,7 +236,7 @@ export const PhotoModal = ({
                 disabled={!user || isSubmitting}
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                className="w-full bg-white border border-neutral-200 rounded-2xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/5 transition-all disabled:opacity-50"
+                className="w-full bg-white border border-neutral-200 rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/5 transition-all disabled:opacity-50"
               />
               <button
                 type="submit"

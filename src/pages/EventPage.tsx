@@ -214,7 +214,7 @@ export default function EventPage({ user }: { user: User | null }) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 left-0 bottom-0 w-[85%] max-w-sm z-[70] bg-white shadow-2xl overflow-y-auto no-scrollbar"
+              className="fixed top-0 left-0 bottom-0 w-[85%] md:w-[400px] max-w-lg z-[70] bg-white shadow-2xl overflow-y-auto no-scrollbar rounded-r-2xl"
             >
               <div className="p-8 space-y-10">
                 <div className="flex items-center justify-between">
@@ -224,7 +224,7 @@ export default function EventPage({ user }: { user: User | null }) {
                   </button>
                 </div>
 
-                <section className="bg-neutral-50 rounded-[32px] p-8 border border-neutral-100 space-y-6">
+                <section className="bg-neutral-50 rounded-2xl p-6 md:p-8 border border-neutral-100 space-y-6">
                    <div className="flex items-center gap-4">
                     {event.app_logo ? (
                       <img src={event.app_logo} className="w-12 h-12 rounded-2xl object-cover shadow-xl" />
@@ -250,7 +250,7 @@ export default function EventPage({ user }: { user: User | null }) {
 
                 {/* Printing Options - MOVED UP */}
                 {event.status === 'live' && (
-                  <section className="bg-neutral-50 rounded-[32px] p-8 border border-neutral-100 space-y-8">
+                  <section className="bg-neutral-50 rounded-2xl p-6 md:p-8 border border-neutral-100 space-y-8">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-neutral-900 rounded-2xl flex items-center justify-center text-white shadow-xl">
                         <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
@@ -268,7 +268,7 @@ export default function EventPage({ user }: { user: User | null }) {
                           key={opt.id}
                           onClick={() => setPrintOption(opt.id as any)}
                           className={cn(
-                            "w-full p-4 rounded-2xl border-2 transition-all flex items-center justify-between group",
+                            "w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between group",
                             printOption === opt.id ? "border-neutral-900 bg-white" : "border-transparent bg-white hover:border-neutral-200"
                           )}
                         >
@@ -287,7 +287,7 @@ export default function EventPage({ user }: { user: User | null }) {
                           setIsSelectingForPrint(true);
                           setIsSidebarOpen(false);
                         }}
-                        className="w-full py-4 bg-neutral-900 text-white rounded-2xl font-black text-xs shadow-xl active:scale-95 transition-all"
+                        className="w-full py-4 bg-neutral-900 text-white rounded-xl font-black text-xs shadow-xl active:scale-95 transition-all"
                       >
                         Começar Seleção (0/10)
                       </button>
@@ -295,7 +295,7 @@ export default function EventPage({ user }: { user: User | null }) {
                       <button
                         onClick={handleSubmitPrintOrder}
                         disabled={selectedPrintPhotos.length !== 10 || isSubmittingPrint}
-                        className="w-full py-4 bg-green-600 text-white rounded-2xl font-black text-xs shadow-xl active:scale-95 transition-all disabled:opacity-50"
+                        className="w-full py-4 bg-green-600 text-white rounded-xl font-black text-xs shadow-xl active:scale-95 transition-all disabled:opacity-50"
                       >
                         {isSubmittingPrint ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Confirmar Pedido'}
                       </button>
@@ -309,16 +309,19 @@ export default function EventPage({ user }: { user: User | null }) {
                     title="Expositores" 
                     items={event.exhibitors || []} 
                     icon={<Users className="w-4 h-4" />} 
+                    columns={1}
                   />
                   <PartnerSection 
                     title="Patrocinadores" 
                     items={event.sponsors || []} 
                     icon={<Star className="w-4 h-4" />} 
+                    columns={1}
                   />
                   <PartnerSection 
                     title="Serviços" 
                     items={event.services || []} 
                     icon={<Briefcase className="w-4 h-4" />} 
+                    columns={1}
                   />
                 </section>
               </div>
@@ -327,12 +330,12 @@ export default function EventPage({ user }: { user: User | null }) {
         )}
       </AnimatePresence>
 
-      <main className="max-w-md mx-auto pb-24">
+      <main className="max-w-6xl mx-auto pb-24 md:pb-32">
         {/* Owner Section */}
         {(event.owner_text || event.owner_photo) && (
           <div className="px-8 py-12 text-center space-y-8">
             {event.owner_photo && (
-              <div className="inline-block rounded-[40px] overflow-hidden shadow-2xl border-[10px] border-white max-w-[85%] rotate-2">
+              <div className="inline-block rounded-2xl overflow-hidden shadow-xl border-4 md:border-8 border-white max-w-[85%]">
                 <img src={event.owner_photo} className="w-full h-auto object-cover" referrerPolicy="no-referrer" />
               </div>
             )}
@@ -366,13 +369,13 @@ export default function EventPage({ user }: { user: User | null }) {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-sm rounded-[48px] overflow-hidden shadow-2xl relative p-10 text-center"
+              className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl relative p-8 md:p-12 text-center"
             >
               <button onClick={() => setIsLoginViewOpen(false)} className="absolute top-8 right-8 p-2 hover:bg-neutral-50 rounded-full transition-colors">
                 <X className="w-5 h-5" />
               </button>
 
-              <div className="w-20 h-20 bg-neutral-900 rounded-[32px] flex items-center justify-center text-white mx-auto mb-8 shadow-2xl text-4xl">🐨</div>
+              <div className="w-20 h-20 bg-neutral-900 rounded-2xl flex items-center justify-center text-white mx-auto mb-8 shadow-xl text-4xl">🐨</div>
               <h2 className="text-3xl font-black tracking-tighter mb-4">Bem-vindo!</h2>
               <p className="text-neutral-400 text-sm font-medium mb-10 leading-relaxed">
                 Entre com sua conta Google para participar, enviar fotos e interagir em tempo real.
@@ -387,7 +390,7 @@ export default function EventPage({ user }: { user: User | null }) {
                     toast.error('Erro ao conectar.', { id: tid });
                   }
                 }}
-                className="w-full py-5 bg-white border-2 border-neutral-100 text-neutral-900 rounded-2xl font-black shadow-lg hover:bg-neutral-50 active:scale-[0.98] transition-all flex items-center justify-center gap-4"
+                className="w-full py-5 bg-white border-2 border-neutral-100 text-neutral-900 rounded-xl font-black shadow-lg hover:bg-neutral-50 active:scale-[0.98] transition-all flex items-center justify-center gap-4"
               >
                 <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
                 Entrar com Google

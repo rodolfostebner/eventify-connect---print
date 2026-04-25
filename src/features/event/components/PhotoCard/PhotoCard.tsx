@@ -149,7 +149,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
         animate={{ opacity: 1, scale: 1 }}
         whileTap={{ scale: 0.98 }}
         onClick={handleOpenModal}
-        className="group relative bg-white rounded-3xl overflow-hidden border border-neutral-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
+        className="group relative bg-white rounded-xl overflow-hidden border border-neutral-100 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer"
       >
         <div className="aspect-square relative overflow-hidden">
           <img 

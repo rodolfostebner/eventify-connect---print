@@ -63,12 +63,12 @@ export const FeedGrid = ({
         </div>
 
         {galleryPhotos.length === 0 ? (
-          <div className="text-center py-24 bg-neutral-50/50 border-2 border-dashed border-neutral-100 rounded-[40px]">
+          <div className="text-center py-24 bg-neutral-50/50 border-2 border-dashed border-neutral-100 rounded-2xl">
             <ImageIcon className="w-12 h-12 mx-auto text-neutral-200 mb-4" />
             <p className="text-neutral-400 text-sm font-bold">Nenhuma foto ainda.<br/><span className="text-[10px] font-normal uppercase tracking-widest">Seja o primeiro a postar!</span></p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             <AnimatePresence>
               {galleryPhotos.map((photo) => {
                 const isSelected = selectedPrintPhotos.includes(photo.id);

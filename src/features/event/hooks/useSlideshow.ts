@@ -35,10 +35,16 @@ export const useSlideshow = (categoryGroups: { title: string; photos: PhotoData[
     return () => clearInterval(interval);
   }, [categoryGroups, currentGroupIndex, currentPhotoIndex]);
 
+  const setPhotoIndex = (groupIndex: number, photoIndex: number) => {
+    setCurrentGroupIndex(groupIndex);
+    setCurrentPhotoIndex(photoIndex);
+  };
+
   return {
     currentGroupIndex,
     currentPhotoIndex,
     setCurrentPhotoIndex,
-    setCurrentGroupIndex
+    setCurrentGroupIndex,
+    setPhotoIndex
   };
 };

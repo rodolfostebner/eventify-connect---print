@@ -28,13 +28,14 @@ export const LiveEventView = ({
   togglePhotoSelection
 }: LiveEventViewProps) => {
   const { photos } = useEventPhotos(event.id);
-  const categoryGroups = useCategoryGroups(photos, event.has_official_photos);
-  const { 
-    currentGroupIndex, 
-    currentPhotoIndex, 
-    setPhotoIndex 
+  const categoryGroups = useCategoryGroups(photos, event);
+  const {
+    currentGroupIndex,
+    currentPhotoIndex,
+    setCurrentPhotoIndex,
+    setPhotoIndex
   } = useSlideshow(categoryGroups);
-  
+
   const { uploading, handleDirectUpload } = usePhotoUpload(event, user);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,13 +58,24 @@ export const LiveEventView = ({
   const galleryPhotos = photos.filter(p => !p.is_official);
 
   return (
-    <div className="p-4 space-y-12">
+    <div className="max-w-6xl mx-auto p-4 md:p-12 space-y-12 md:space-y-24">
+      {/* Live Status Indicator */}
+      <div className="flex items-center justify-center gap-3 py-2">
+        <span className="relative flex h-3 w-3">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+        </span>
+        <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-neutral-500">
+          Feed em Tempo Real
+        </span>
+      </div>
+
       <FeaturedSlideshow
         event={event}
         categoryGroups={categoryGroups}
         currentGroupIndex={currentGroupIndex}
         currentPhotoIndex={currentPhotoIndex}
-        onSetPhotoIndex={setPhotoIndex}
+        onSetPhotoIndex={setCurrentPhotoIndex}
       />
 
       <FeedGrid

@@ -232,14 +232,14 @@ export default function TVView() {
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.2 }}
-              className="bg-black/40 backdrop-blur-xl rounded-[40px] p-8 border border-white/10 flex flex-col items-center text-center relative overflow-hidden"
+              className="bg-black/40 backdrop-blur-xl rounded-2xl p-8 border border-white/10 flex flex-col items-center text-center relative overflow-hidden"
             >
               <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-white/10 to-transparent" />
               <span className="text-6xl mb-6 relative z-10">{item.emoji}</span>
               <h3 className="text-2xl font-black uppercase tracking-tight text-white mb-8 relative z-10">
                 {item.title}
               </h3>
-              <div className="w-full aspect-square rounded-3xl overflow-hidden border-4 border-white/20 shadow-2xl relative z-10 mb-6">
+              <div className="w-full aspect-square rounded-xl overflow-hidden border-4 border-white/20 shadow-2xl relative z-10 mb-6">
                 <img src={item.photo.url} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               </div>
               <div className="relative z-10">
@@ -278,21 +278,20 @@ export default function TVView() {
             <p className="text-[10px] font-bold text-neutral-500 uppercase">Envie sua foto!</p>
             <p className="text-lg font-black text-white">/{event.slug}</p>
           </div>
-          {event.app_logo ? (
-            <div className="w-16 h-16 bg-white rounded-2xl p-2 shadow-lg flex items-center justify-center">
-              <img src={event.app_logo} alt="App" className="max-w-full max-h-full object-contain" referrerPolicy="no-referrer" />
-            </div>
-          ) : (
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{ backgroundColor: event.tv_primary_color || '#ffffff' }}>
-              <Camera className="w-5 h-5" style={{ color: event.tv_secondary_color || '#000000' }} />
-            </div>
-          )}
+          <div className="w-16 h-16 bg-neutral-900 rounded-2xl flex items-center justify-center text-white shadow-2xl border-2 border-white/20 shrink-0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+              <path d="M12 21c-4.97 0-9-4.03-9-9s4.03-9 9-9 9 4.03 9 9-4.03 9-9 9z" />
+              <path d="M7.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" />
+              <path d="M16.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" />
+              <path d="M9 15c.5 1 1.5 1.5 3 1.5s2.5-.5 3-1.5" />
+            </svg>
+          </div>
         </div>
       </header>
 
-      <main className="flex-1 grid grid-cols-12 gap-8 p-8 overflow-hidden">
+      <main className="flex-1 grid grid-cols-12 gap-10 p-10 overflow-hidden">
         {/* Slideshow */}
-        <div className="col-span-9 bg-black/20 rounded-[40px] overflow-hidden relative shadow-2xl border border-white/5">
+        <div className="col-span-9 bg-black/20 rounded-2xl overflow-hidden relative shadow-2xl border border-white/5">
           <AnimatePresence mode="wait">
             {currentPhoto ? (
               <motion.div
@@ -306,19 +305,19 @@ export default function TVView() {
                 <div className="relative w-full h-full flex items-center justify-center">
                   <img
                     src={currentPhoto.url}
-                    className="max-w-full max-h-full object-contain rounded-3xl shadow-2xl border-8 border-white/10"
+                    className="max-w-full max-h-full object-contain rounded-xl shadow-2xl border-8 border-white/10"
                     referrerPolicy="no-referrer"
                   />
 
-                  <div className="absolute top-8 left-8 bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/10 flex items-center gap-3">
-                    <span className="text-3xl">{currentGroup.emoji}</span>
+                  <div className="absolute top-10 left-10 bg-black/60 backdrop-blur-md px-8 py-4 rounded-xl border border-white/10 flex items-center gap-4">
+                    <span className="text-4xl">{currentGroup.emoji}</span>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Categoria</p>
                       <h3 className="text-xl font-black uppercase tracking-tight" style={{ color: event.tv_primary_color || '#ffffff' }}>{currentGroup.title}</h3>
                     </div>
                   </div>
 
-                  <div className="absolute bottom-8 left-8 right-8 p-6 bg-black/60 backdrop-blur-md rounded-3xl border border-white/10">
+                  <div className="absolute bottom-10 left-10 right-10 p-8 bg-black/60 backdrop-blur-md rounded-2xl border border-white/10">
                     <div className="flex justify-between items-center">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center font-bold text-white/60">
