@@ -14,7 +14,7 @@ function mapRowToPostData(row: any): PostData {
 
   reactions.forEach(r => {
     reactionCounts[r.type] = (reactionCounts[r.type] || 0) + 1;
-    reactedUsers.push(r.type === 'like' ? r.user_id : `${r.user_id}_${r.type}`);
+    reactedUsers.push(`${r.user_id}_${r.type}`);
   });
 
   // Map comments
@@ -45,7 +45,7 @@ function mapRowToPostData(row: any): PostData {
     eventId: row.event_id,
     firebase_uid: row.user_id,
     user_name: row.users?.display_name || 'Anônimo',
-    likes: reactionCounts['like'] || 0,
+    likes: reactionCounts['🔥'] || 0,
     reacted_users: reactedUsers,
     timestamp: row.created_at
   };
@@ -131,6 +131,14 @@ export async function updatePostStatus(id: string, status: 'approved' | 'rejecte
   const { error } = await supabase.from('posts').update({ status }).eq('id', id);
   if (error) throw error;
 }
+/**
+ * Delete a post.
+ */
+export async function deletePost(id: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('posts').delete().eq('id', id);
+  if (error) throw error;
+}
 
 /**
  * Toggle like reaction
@@ -138,9 +146,9 @@ export async function updatePostStatus(id: string, status: 'approved' | 'rejecte
 export async function likePost(postId: string, userId: string, delta: 1 | -1): Promise<void> {
   if (!supabase) return;
   if (delta === 1) {
-    await supabase.from('reactions').upsert({ post_id: postId, user_id: userId, type: 'like' });
+    await supabase.from('reactions').upsert({ post_id: postId, user_id: userId, type: '🔥' });
   } else {
-    await supabase.from('reactions').delete().match({ post_id: postId, user_id: userId, type: 'like' });
+    await supabase.from('reactions').delete().match({ post_id: postId, user_id: userId, type: '🔥' });
   }
 }
 
@@ -158,39 +166,37 @@ export async function reactToPost(postId: string, emoji: string, userId: string,
 
 /**
  * Add a comment to a post.
- * Legacy behavior receives the full array, so we extract the new comment to insert.
  */
-export async function commentOnPost(postId: string, comments: any[]): Promise<void> {
+export async function commentOnPost(postId: string, comment: { uid: string, text: string, status?: string }): Promise<void> {
   if (!supabase) return;
   
-  // Find the last comment which is the new one (legacy behavior appends to array)
-  // For proper refactoring, we should change the UI to just pass the new text.
-  // But to satisfy "tolerar a transição sem quebrar" we adapt here:
-  const newComment = comments[comments.length - 1];
-  
-  // Se for uma chamada de moderação para deletar um comentário (deleted: true)
-  const deletedComment = comments.find(c => c.deleted);
-  if (deletedComment) {
-    await supabase.from('comments').delete().eq('id', deletedComment.id);
-    return;
-  }
-  
-  // Se for aprovação de comentário:
-  const approvedComment = comments.find(c => c.status === 'approved' && !c.id.startsWith('temp-'));
-  if (approvedComment) {
-    await supabase.from('comments').update({ status: 'approved' }).eq('id', approvedComment.id);
-  }
+  const { error } = await supabase.from('comments').insert({
+    post_id: postId,
+    user_id: comment.uid,
+    text: comment.text,
+    status: comment.status || 'pending',
+    is_predefined: false
+  });
 
-  // Se for novo comentário:
-  if (newComment && (!newComment.id || newComment.id.includes('-'))) {
-     await supabase.from('comments').insert({
-       post_id: postId,
-       user_id: newComment.uid,
-       text: newComment.text,
-       status: newComment.status || 'pending',
-       is_predefined: false
-     });
-  }
+  if (error) throw error;
+}
+
+/**
+ * Approve a comment.
+ */
+export async function approveComment(commentId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('comments').update({ status: 'approved' }).eq('id', commentId);
+  if (error) throw error;
+}
+
+/**
+ * Delete/Reject a comment.
+ */
+export async function deleteComment(commentId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('comments').delete().eq('id', commentId);
+  if (error) throw error;
 }
 
 /**

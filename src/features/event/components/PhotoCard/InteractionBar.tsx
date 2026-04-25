@@ -21,11 +21,11 @@ export const InteractionBar = React.memo(({
         onClick={onLike}
         aria-label="Curtir foto"
         className={cn(
-          "flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95",
-          hasLiked ? "text-red-500" : "text-neutral-400 hover:text-neutral-600"
+          "flex items-center gap-1.5 text-xs font-black transition-all active:scale-95",
+          hasLiked ? "text-neutral-900" : "text-neutral-400 hover:text-neutral-600"
         )}
       >
-        <Heart className={cn("w-4 h-4", hasLiked && "fill-current")} />
+        <span className="text-sm">🔥</span>
         {likes}
       </button>
 

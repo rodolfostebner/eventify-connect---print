@@ -4,7 +4,7 @@ import type { PhotoData } from '../../../types';
 
 interface CommentModerationProps {
   photos: PhotoData[];
-  onModerateComment: (photoId: string, commentIndex: number, action: 'approved' | 'rejected') => void;
+  onModerateComment: (photoId: string, commentId: string, action: 'approved' | 'rejected') => void;
 }
 
 export const CommentModeration = ({ photos, onModerateComment }: CommentModerationProps) => {
@@ -31,19 +31,19 @@ export const CommentModeration = ({ photos, onModerateComment }: CommentModerati
             <img src={comment.photoUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-1">{comment.user}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 mb-1">{comment.user_name}</p>
             <p className="text-base font-medium text-neutral-900 leading-snug">{comment.text}</p>
           </div>
           <div className="flex gap-3">
             <button
-              onClick={() => onModerateComment(comment.photoId, comment.index, 'rejected')}
+              onClick={() => onModerateComment(comment.photoId, comment.id, 'rejected')}
               className="p-4 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-colors"
               title="Rejeitar"
             >
               <Trash2 className="w-5 h-5" />
             </button>
             <button
-              onClick={() => onModerateComment(comment.photoId, comment.index, 'approved')}
+              onClick={() => onModerateComment(comment.photoId, comment.id, 'approved')}
               className="p-4 bg-green-600 text-white rounded-2xl hover:bg-green-700 shadow-lg shadow-green-100 transition-all active:scale-95"
               title="Aprovar"
             >

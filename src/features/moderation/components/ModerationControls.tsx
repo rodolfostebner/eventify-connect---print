@@ -9,6 +9,8 @@ interface ModerationControlsProps {
   onUploadClick: () => void;
   onToggleInteractions: () => void;
   onToggleTVRanking: () => void;
+  onToggleModeration: () => void;
+  onToggleOfficialPhotos: () => void;
   rankingData: { title: string; emoji: string; photo: PhotoData; score: number }[];
   fileInputRef: React.RefObject<HTMLInputElement>;
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -20,6 +22,8 @@ export const ModerationControls = ({
   onUploadClick,
   onToggleInteractions,
   onToggleTVRanking,
+  onToggleModeration,
+  onToggleOfficialPhotos,
   rankingData,
   fileInputRef,
   onFileSelect
@@ -85,6 +89,46 @@ export const ModerationControls = ({
             >
               <Trophy className="w-4 h-4" />
               {event?.tv_show_ranking ? 'Ocultar na TV' : 'Mostrar na TV'}
+            </button>
+          </div>
+
+          {/* Moderação (Extra) */}
+          <div className="p-6 bg-neutral-50 rounded-3xl border border-neutral-100 flex flex-col gap-4">
+            <div>
+              <h3 className="font-black text-sm uppercase tracking-tight">Curadoria</h3>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">Aprovação de comentários</p>
+            </div>
+            <button
+              onClick={onToggleModeration}
+              className={cn(
+                'w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg',
+                event?.comment_moderation_enabled
+                  ? 'bg-green-600 text-white shadow-green-100'
+                  : 'bg-white border-2 border-neutral-100 text-neutral-600 hover:bg-neutral-100 shadow-neutral-100',
+              )}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              {event?.comment_moderation_enabled ? 'Moderação Ativa' : 'Moderação Desativada'}
+            </button>
+          </div>
+
+          {/* Fotos Oficiais */}
+          <div className="p-6 bg-neutral-50 rounded-3xl border border-neutral-100 flex flex-col gap-4">
+            <div>
+              <h3 className="font-black text-sm uppercase tracking-tight">Fotos Oficiais</h3>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">Habilitar Galeria Oficial</p>
+            </div>
+            <button
+              onClick={onToggleOfficialPhotos}
+              className={cn(
+                'w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg',
+                event?.has_official_photos
+                  ? 'bg-orange-500 text-white shadow-orange-100'
+                  : 'bg-white border-2 border-neutral-100 text-neutral-600 hover:bg-neutral-100 shadow-neutral-100',
+              )}
+            >
+              <Upload className="w-4 h-4" />
+              {event?.has_official_photos ? 'Galeria Ativa' : 'Galeria Oculta'}
             </button>
           </div>
         </div>

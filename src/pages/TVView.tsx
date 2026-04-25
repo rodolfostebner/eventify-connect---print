@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Camera, Heart } from 'lucide-react';
@@ -57,28 +57,27 @@ export default function TVView() {
       setPhotos(allPhotos);
 
       const categories = [
-        { id: 'likes', title: 'Mais Curtida', emoji: '❤️' },
+        { id: '🔥', title: 'Mais Curtidas', emoji: '🔥' },
         { id: '😂', title: 'Mais Divertida', emoji: '😂' },
-        { id: '✨', title: 'Momento Especial', emoji: '✨' },
-        { id: '💬', title: 'Mais Comentada', emoji: '💬' },
-        { id: '🎸', title: 'Rock Star', emoji: '🎸' },
-        { id: '⭐', title: 'Queridinha', emoji: '⭐' },
+        { id: '❤️', title: 'Mais Fofura', emoji: '❤️' },
+        { id: '🗣️', title: 'Mais Comentada', emoji: '🗣️' },
+        { id: '🎸', title: 'Rockstar', emoji: '🎸' },
       ];
 
       const groups = categories.map((cat) => {
         let sortedPhotos = allPhotos.filter((p) => !p.is_official);
-        if (cat.id === 'likes') {
+        if (cat.id === '🔥') {
           sortedPhotos.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-        } else if (cat.id === '💬') {
-          sortedPhotos.sort((a, b) => (b.comments?.length || 0) - (a.comments?.length || 0));
+        } else if (cat.id === '🗣️') {
+          sortedPhotos.sort((a, b) => (b.comments?.filter(c => c.status === 'approved').length || 0) - (a.comments?.filter(c => c.status === 'approved').length || 0));
         } else {
           sortedPhotos.sort((a, b) => (b.reactions?.[cat.id] || 0) - (a.reactions?.[cat.id] || 0));
         }
 
         const top5 = sortedPhotos
           .filter((p) => {
-            if (cat.id === 'likes') return (p.likes || 0) > 0;
-            if (cat.id === '💬') return (p.comments?.length || 0) > 0;
+            if (cat.id === '🔥') return (p.likes || 0) > 0;
+            if (cat.id === '🗣️') return (p.comments?.filter(c => c.status === 'approved').length || 0) > 0;
             return (p.reactions?.[cat.id] || 0) > 0;
           })
           .slice(0, 5);
@@ -93,7 +92,7 @@ export default function TVView() {
           .sort((a, b) => (b.likes || 0) - (a.likes || 0))
           .slice(0, 5);
         if (officialPhotos.length > 0) {
-          groups.push({ title: 'Melhor Foto Oficial', emoji: '📸', photos: officialPhotos });
+          groups.push({ title: 'Destaques Oficiais', emoji: '📸', photos: officialPhotos });
         }
       }
 
@@ -330,10 +329,10 @@ export default function TVView() {
                         </div>
                       </div>
                       <div className="flex gap-4">
-                        {Object.entries(currentPhoto.reactions || { '❤️': currentPhoto.likes }).map(([emoji, count]) => (
+                        {Object.entries(currentPhoto.reaction_counts || { '❤️': currentPhoto.likes || 0 }).map(([emoji, count]) => (
                           <div key={emoji} className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-2xl">
                             <span className="text-2xl">{emoji}</span>
-                            <span className="text-xl font-black">{count as number}</span>
+                            <span className="text-xl font-black">{count}</span>
                           </div>
                         ))}
                       </div>

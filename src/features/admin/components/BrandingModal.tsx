@@ -18,10 +18,13 @@ interface BrandingModalProps {
   onItemFileUpload: (type: 'exhibitors' | 'sponsors' | 'services', index: number, field: 'logo' | 'photo', file: File) => Promise<void>;
 }
 
-function ColorPicker({ label, value, onChange }: { label: string; value: string; onChange: (val: string) => void }) {
+function ColorPicker({ label, sublabel, value, onChange }: { label: string; sublabel?: string; value: string; onChange: (val: string) => void }) {
   return (
     <div>
-      <label className="block text-[10px] font-bold uppercase text-neutral-500 mb-1">{label}</label>
+      <div className="flex flex-col mb-1">
+        <label className="text-[10px] font-bold uppercase text-neutral-500">{label}</label>
+        {sublabel && <span className="text-[8px] text-neutral-400 font-medium">{sublabel}</span>}
+      </div>
       <div className="flex gap-2">
         <input type="color" value={value} onChange={e => onChange(e.target.value)} className="w-10 h-10 rounded-lg overflow-hidden border-none cursor-pointer" />
         <input type="text" value={value} onChange={e => onChange(e.target.value)} className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs font-mono" />
@@ -135,10 +138,10 @@ export function BrandingModal({
 
             <div className="space-y-8 max-h-[75vh] overflow-y-auto pr-2 custom-scrollbar">
 
-              {/* Informações Básicas */}
-              <section className="space-y-4">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-400 border-b border-neutral-100 pb-2">Identidade Visual</h4>
-                <div className="grid grid-cols-2 gap-4">
+              {/* Informações Básicas e Cores do App */}
+              <section className="space-y-6">
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-400 border-b border-neutral-100 pb-2">Identidade Visual do Evento</h4>
+                <div className="grid grid-cols-2 gap-6">
                   <div className="col-span-2">
                     <label className="block text-[10px] font-bold uppercase text-neutral-500 mb-1">Nome do Evento</label>
                     <input type="text" value={form.name} onChange={e => set({ name: e.target.value })} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm" />
@@ -161,11 +164,27 @@ export function BrandingModal({
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-500 mb-1">URL da Logo Principal</label>
-                    <input type="text" value={form.logo_url} onChange={e => set({ logo_url: e.target.value })} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm" />
+                    <label className="block text-[10px] font-bold uppercase text-neutral-500 mb-1">Logo Principal (URL)</label>
+                    <input type="text" value={form.logo_url} onChange={e => set({ logo_url: e.target.value })} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm" placeholder="URL da imagem..." />
                   </div>
-                  <ColorPicker label="Cor Primária" value={form.primary_color} onChange={v => set({ primary_color: v })} />
-                  <ColorPicker label="Cor Secundária" value={form.secondary_color} onChange={v => set({ secondary_color: v })} />
+                </div>
+
+                <div className="bg-neutral-50 p-6 rounded-3xl border border-neutral-100 space-y-4">
+                  <p className="text-[10px] font-black uppercase text-neutral-400 tracking-widest mb-2">Cores do Aplicativo (Versão Mobile)</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <ColorPicker 
+                      label="Cor de Destaque" 
+                      sublabel="Botões, Ícones ativos e Links"
+                      value={form.primary_color} 
+                      onChange={v => set({ primary_color: v })} 
+                    />
+                    <ColorPicker 
+                      label="Cor de Texto" 
+                      sublabel="Títulos e Corpo do texto"
+                      value={form.secondary_color} 
+                      onChange={v => set({ secondary_color: v })} 
+                    />
+                  </div>
                 </div>
               </section>
 
@@ -220,8 +239,18 @@ export function BrandingModal({
               <section className="space-y-4 p-5 bg-neutral-900 rounded-3xl border border-white/10 text-white shadow-xl shadow-blue-900/10">
                 <div className="flex items-center gap-2 mb-2"><Palette className="w-4 h-4 text-blue-400" /><h4 className="text-[10px] font-black uppercase text-blue-400 tracking-widest">Painel TV (Realtime)</h4></div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div><label className="block text-[8px] font-bold uppercase text-neutral-500 mb-1">Destaque TV</label><input type="color" value={form.tv_primary_color} onChange={e => set({ tv_primary_color: e.target.value })} className="w-full h-10 rounded-lg overflow-hidden border-none cursor-pointer" /></div>
-                  <div><label className="block text-[8px] font-bold uppercase text-neutral-500 mb-1">Textos TV</label><input type="color" value={form.tv_secondary_color} onChange={e => set({ tv_secondary_color: e.target.value })} className="w-full h-10 rounded-lg overflow-hidden border-none cursor-pointer" /></div>
+                  <ColorPicker 
+                    label="Cor de Destaque TV" 
+                    sublabel="Bordas de Fotos e Ranking"
+                    value={form.tv_primary_color} 
+                    onChange={v => set({ tv_primary_color: v })} 
+                  />
+                  <ColorPicker 
+                    label="Cor de Texto TV" 
+                    sublabel="Nomes e Pontuações no Telão"
+                    value={form.tv_secondary_color} 
+                    onChange={v => set({ tv_secondary_color: v })} 
+                  />
                 </div>
                 <div className="space-y-3">
                   <label className="block text-[8px] font-bold uppercase text-neutral-500">Fundo da TV</label>
@@ -256,16 +285,6 @@ export function BrandingModal({
               {/* Funcionalidades */}
               <section className="space-y-4">
                 <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-400 border-b border-neutral-100 pb-2">Configurações de Fluxo</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
-                    <div><p className="text-[10px] font-bold">Moderação</p><p className="text-[8px] text-neutral-400 uppercase">Comentários</p></div>
-                    <ToggleSwitch value={form.comment_moderation_enabled} onChange={() => set({ comment_moderation_enabled: !form.comment_moderation_enabled })} />
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
-                    <div><p className="text-[10px] font-bold">Fotos Oficiais</p><p className="text-[8px] text-neutral-400 uppercase">Habilitar Seção</p></div>
-                    <ToggleSwitch value={form.has_official_photos} onChange={() => set({ has_official_photos: !form.has_official_photos })} />
-                  </div>
-                </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase text-neutral-500 mb-2">Comentários Padrão Sugeridos</label>
                   <textarea 

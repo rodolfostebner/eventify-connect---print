@@ -64,6 +64,7 @@ export interface EventData {
   app_logo?: string;
   interactions_paused?: boolean;
   tv_show_ranking?: boolean;
+  admin_emails?: string[];
 }
 
 // ─── Post / Moderation ──────────────────────────────────────────────────────────

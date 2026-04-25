@@ -1,36 +1,22 @@
 import { supabase } from "../lib/supabase/client"
 
 export async function createUserIfNotExists(user: any) {
-    console.log("USER LOGIN:", user)
+  if (!supabase) return;
+  
+  console.log("[UserService] Syncing user:", user.uid);
 
-    const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("firebase_uid", user.uid)
+  const { error } = await supabase.from("users").upsert({
+    firebase_uid: user.uid,
+    email: user.email,
+    display_name: user.displayName,
+    photo_url: user.photoURL,
+  }, { 
+    onConflict: 'firebase_uid' 
+  });
 
-    if (error) {
-        console.error("Erro ao buscar usuário:", error)
-        return
-    }
-
-    if (!data || data.length === 0) {
-        console.log("Criando usuário...")
-
-        const { error: insertError } = await supabase.from("users").insert([
-            {
-                firebase_uid: user.uid,
-                email: user.email,
-                display_name: user.displayName,
-                photo_url: user.photoURL,
-            },
-        ])
-
-        if (insertError) {
-            console.error("Erro ao criar usuário:", insertError)
-        } else {
-            console.log("Usuário criado com sucesso")
-        }
-    } else {
-        console.log("Usuário já existe")
-    }
+  if (error) {
+    console.error("[UserService] Error syncing user:", error);
+  } else {
+    console.log("[UserService] User synced successfully");
+  }
 }

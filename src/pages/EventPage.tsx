@@ -248,25 +248,7 @@ export default function EventPage({ user }: { user: User | null }) {
                   ) : null}
                 </section>
 
-                {/* Partners in Sidebar */}
-                <section className="space-y-6 px-2">
-                  <PartnerSection 
-                    title="Expositores" 
-                    items={event.exhibitors || []} 
-                    icon={<Users className="w-4 h-4" />} 
-                  />
-                  <PartnerSection 
-                    title="Patrocinadores" 
-                    items={event.sponsors || []} 
-                    icon={<Star className="w-4 h-4" />} 
-                  />
-                  <PartnerSection 
-                    title="Serviços" 
-                    items={event.services || []} 
-                    icon={<Briefcase className="w-4 h-4" />} 
-                  />
-                </section>
-
+                {/* Printing Options - MOVED UP */}
                 {event.status === 'live' && (
                   <section className="bg-neutral-50 rounded-[32px] p-8 border border-neutral-100 space-y-8">
                     <div className="flex items-center gap-4">
@@ -320,6 +302,25 @@ export default function EventPage({ user }: { user: User | null }) {
                     )}
                   </section>
                 )}
+
+                {/* Partners in Sidebar */}
+                <section className="space-y-6 px-2">
+                  <PartnerSection 
+                    title="Expositores" 
+                    items={event.exhibitors || []} 
+                    icon={<Users className="w-4 h-4" />} 
+                  />
+                  <PartnerSection 
+                    title="Patrocinadores" 
+                    items={event.sponsors || []} 
+                    icon={<Star className="w-4 h-4" />} 
+                  />
+                  <PartnerSection 
+                    title="Serviços" 
+                    items={event.services || []} 
+                    icon={<Briefcase className="w-4 h-4" />} 
+                  />
+                </section>
               </div>
             </motion.div>
           </>

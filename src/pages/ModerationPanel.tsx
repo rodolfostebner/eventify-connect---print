@@ -3,9 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, ShieldCheck, LogOut } from 'lucide-react';
 
-import type { EventData, PhotoData, PrintOrder } from '../types';
+import type { EventData, PhotoData, PrintOrder, PostComment } from '../types';
 import { subscribeToEvent, updateEvent } from '../services/eventService';
-import { commentOnPost } from '../services/posts';
+import { fetchAllPosts, subscribeToAllPosts, updatePostStatus, deletePost, commentOnPost, approveComment, deleteComment } from '../services/posts';
 import { completePrintOrder, deletePrintOrder } from '../services/printService';
 import { User, logout } from '../services/authService';
 import { cn } from '../lib/utils';
@@ -31,7 +31,7 @@ export default function ModerationPanel({ user }: { user: User | null }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Data Hooks
-  const { photos, loading: loadingPhotos } = useModerationPhotos(event?.id);
+  const { photos, setPhotos, loading: loadingPhotos } = useModerationPhotos(event?.id);
   const { printOrders, loading: loadingPrints } = usePrintOrders(event?.id);
   const { 
     uploading, 
@@ -50,6 +50,7 @@ export default function ModerationPanel({ user }: { user: User | null }) {
     );
   }, [slug]);
 
+
   const handleApprovePhotoLocal = async (photo: PhotoData) => {
     setPhotos(prev => prev.map(p => p.id === photo.id ? { ...p, status: 'approved' } : p));
     await handleApprovePhoto(photo);
@@ -62,48 +63,50 @@ export default function ModerationPanel({ user }: { user: User | null }) {
 
   const handleModerateComment = async (
     photoId: string,
-    commentIndex: number,
+    commentId: string,
     action: 'approved' | 'rejected',
   ) => {
     try {
       const photo = photos.find(p => p.id === photoId);
       if (!photo) return;
 
-      const newComments = [...(photo.comments || [])];
-      if (action === 'rejected') {
-        newComments.splice(commentIndex, 1);
-      } else {
-        newComments[commentIndex] = { ...newComments[commentIndex], status: 'approved' };
-      }
-
       // Optimistic update
-      setPhotos(prev => prev.map(p => p.id === photoId ? { ...p, comments: newComments } : p));
+      setPhotos(prev => prev.map(p => {
+        if (p.id !== photoId) return p;
+        const newComments = (p.comments || []).map((c): PostComment => 
+          c.id === commentId ? { ...c, status: action } : c
+        ).filter(c => action === 'approved' || c.id !== commentId);
+        return { ...p, comments: newComments };
+      }));
 
-      await commentOnPost(photoId, newComments);
+      if (action === 'approved') {
+        await approveComment(commentId);
+      } else {
+        await deleteComment(commentId);
+      }
+      
       toast.success(action === 'approved' ? 'Comentário aprovado!' : 'Comentário removido!');
     } catch (err) {
       console.error(err);
       toast.error('Erro ao moderar comentário.');
-      // Refresh to original state if needed (subscription will handle it)
     }
   };
 
   const rankingData = useMemo(() => {
-    const approvedPhotos = photos.filter((p) => p.status === 'approved' && !p.is_official);
+    const approvedPhotos = photos.filter((p) => p.status === 'approved');
     const categories = [
-      { id: 'likes', title: 'Mais Curtida', emoji: '❤️' },
+      { id: '🔥', title: 'Mais Curtidas', emoji: '🔥' },
       { id: '😂', title: 'Mais Divertida', emoji: '😂' },
-      { id: '✨', title: 'Momento Especial', emoji: '✨' },
-      { id: '💬', title: 'Mais Comentada', emoji: '💬' },
-      { id: '🎸', title: 'Rock Star', emoji: '🎸' },
-      { id: '⭐', title: 'Queridinha', emoji: '⭐' },
+      { id: '❤️', title: 'Mais Fofura', emoji: '❤️' },
+      { id: '🗣️', title: 'Mais Comentada', emoji: '🗣️' },
+      { id: '🎸', title: 'Rockstar', emoji: '🎸' },
     ];
 
-    return categories.map((cat) => {
-      let sortedPhotos = [...approvedPhotos];
-      if (cat.id === 'likes') {
+    const ranking = categories.map((cat) => {
+      let sortedPhotos = [...approvedPhotos].filter(p => !p.is_official);
+      if (cat.id === '🔥') {
         sortedPhotos.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-      } else if (cat.id === '💬') {
+      } else if (cat.id === '🗣️') {
         sortedPhotos.sort((a, b) => (b.comments?.filter(c => c.status === 'approved').length || 0) - (a.comments?.filter(c => c.status === 'approved').length || 0));
       } else {
         sortedPhotos.sort((a, b) => (b.reactions?.[cat.id] || 0) - (a.reactions?.[cat.id] || 0));
@@ -112,13 +115,29 @@ export default function ModerationPanel({ user }: { user: User | null }) {
       const topPhoto = sortedPhotos[0];
       let score = 0;
       if (topPhoto) {
-        if (cat.id === 'likes') score = topPhoto.likes || 0;
-        else if (cat.id === '💬') score = topPhoto.comments?.filter(c => c.status === 'approved').length || 0;
+        if (cat.id === '🔥') score = topPhoto.likes || 0;
+        else if (cat.id === '🗣️') score = topPhoto.comments?.filter(c => c.status === 'approved').length || 0;
         else score = topPhoto.reactions?.[cat.id] || 0;
       }
       return { title: cat.title, emoji: cat.emoji, photo: topPhoto, score };
     }).filter((r) => r.photo && r.score > 0);
-  }, [photos]);
+
+    // Destaques Oficiais
+    if (event?.has_official_photos) {
+      const officialPhotos = approvedPhotos.filter(p => p.is_official).sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      if (officialPhotos.length > 0) {
+        ranking.push({
+          title: 'Destaques Oficiais',
+          emoji: '📸',
+          photo: officialPhotos[0],
+          score: officialPhotos[0].likes || 0
+        });
+      }
+    }
+
+    return ranking;
+  }, [photos, event?.has_official_photos]);
+
 
   const handleLogout = async () => {
     try {
@@ -229,6 +248,8 @@ export default function ModerationPanel({ user }: { user: User | null }) {
             onUploadClick={() => fileInputRef.current?.click()}
             onToggleInteractions={() => event && updateEvent(event.id, { interactions_paused: !event.interactions_paused })}
             onToggleTVRanking={() => event && updateEvent(event.id, { tv_show_ranking: !event.tv_show_ranking })}
+            onToggleModeration={() => event && updateEvent(event.id, { comment_moderation_enabled: !event.comment_moderation_enabled })}
+            onToggleOfficialPhotos={() => event && updateEvent(event.id, { has_official_photos: !event.has_official_photos })}
             rankingData={rankingData as any}
             fileInputRef={fileInputRef}
             onFileSelect={(e) => handleOfficialUpload(e.target.files)}
