@@ -34,16 +34,18 @@ export async function uploadImage(file: File): Promise<string> {
             throw new Error(`Falha no upload para o Storage: ${uploadResponse.statusText}`);
         }
 
-        // 3. Monta a URL pública (usando a var de ambiente do Vite se disponível, ou o publicUrl retornado pela edge function)
-        const publicUrlBase = import.meta.env.VITE_R2_PUBLIC_URL || data.publicUrlBase;
+        // 3. Monta a URL pública
+        let finalUrl = data.publicUrl;
         
-        if (!publicUrlBase) {
-            console.warn("VITE_R2_PUBLIC_URL não está configurada no .env. Imagens podem não carregar corretamente.");
+        if (!finalUrl) {
+            // Fallback: se a edge function não retornar publicUrl, tenta montar no cliente
+            // Usa a variável de ambiente se existir, senão usa a URL conhecida do projeto Koalas
+            const fallbackBase = "https://pub-1516365c685b4c02b3d5dd2f7726080b.r2.dev";
+            const publicUrlBase = import.meta.env.VITE_R2_PUBLIC_URL || data.publicUrlBase || fallbackBase;
+            
+            const cleanBase = publicUrlBase.replace(/\/$/, '');
+            finalUrl = `${cleanBase}/${fileName}`;
         }
-
-        // Formata a url garantindo que não há barras duplas ou falta de barras
-        const cleanBase = publicUrlBase ? publicUrlBase.replace(/\/$/, '') : '';
-        const finalUrl = `${cleanBase}/${fileName}`;
 
         return finalUrl;
 
