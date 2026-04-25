@@ -8,6 +8,7 @@ export function useAdminEvents(userId: string | undefined) {
   const [loading, setLoading] = useState(false);
   const [newEventName, setNewEventName] = useState('');
   const [newEventSlug, setNewEventSlug] = useState('');
+  const [newEventAdminEmail, setNewEventAdminEmail] = useState('');
 
   useEffect(() => {
     if (!userId) return;
@@ -56,10 +57,12 @@ export function useAdminEvents(userId: string | undefined) {
         ],
         sponsors: [],
         services: [],
+        admin_emails: newEventAdminEmail ? [newEventAdminEmail] : [],
       });
       toast.success(`Evento criado! Acesse /event/${newEventSlug}`);
       setNewEventName('');
       setNewEventSlug('');
+      setNewEventAdminEmail('');
     } catch (e: any) {
       if (e?.message === 'SLUG_TAKEN') {
         toast.error('Este slug já está em uso. Escolha outro.');
@@ -79,6 +82,8 @@ export function useAdminEvents(userId: string | undefined) {
     setNewEventName,
     newEventSlug,
     setNewEventSlug,
+    newEventAdminEmail,
+    setNewEventAdminEmail,
     updateStatus,
     handleDeleteEvent,
     createNewEvent,

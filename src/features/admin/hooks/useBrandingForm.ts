@@ -40,6 +40,7 @@ export type BrandingFormState = {
   app_instagram: string;
   app_website: string;
   app_logo: string;
+  admin_emails_input: string;
 };
 
 const defaultBrandingForm: BrandingFormState = {
@@ -78,6 +79,7 @@ const defaultBrandingForm: BrandingFormState = {
   app_instagram: '',
   app_website: '',
   app_logo: '',
+  admin_emails_input: '',
 };
 
 export function useBrandingForm(
@@ -127,6 +129,7 @@ export function useBrandingForm(
       app_instagram: event.app_instagram || '',
       app_website: event.app_website || '',
       app_logo: event.app_logo || '',
+      admin_emails_input: Array.isArray(event.admin_emails) ? event.admin_emails.join(', ') : '',
     });
   };
 
@@ -135,8 +138,12 @@ export function useBrandingForm(
     setLoading(true);
     
     // Tratamento para não enviar string vazia para campos de data/timestamp
-    const payload = { ...brandingForm };
-    if (payload.date === '') {
+    const { admin_emails_input, ...rest } = brandingForm;
+    const payload = { 
+      ...rest,
+      admin_emails: admin_emails_input.split(',').map(s => s.trim()).filter(Boolean)
+    };
+    if ((payload as any).date === '') {
       (payload as any).date = null;
     }
 

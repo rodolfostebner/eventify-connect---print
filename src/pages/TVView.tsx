@@ -71,14 +71,14 @@ export default function TVView() {
         } else if (cat.id === '🗣️') {
           sortedPhotos.sort((a, b) => (b.comments?.filter(c => c.status === 'approved').length || 0) - (a.comments?.filter(c => c.status === 'approved').length || 0));
         } else {
-          sortedPhotos.sort((a, b) => (b.reactions?.[cat.id] || 0) - (a.reactions?.[cat.id] || 0));
+          sortedPhotos.sort((a, b) => (b.reaction_counts?.[cat.id] || 0) - (a.reaction_counts?.[cat.id] || 0));
         }
 
         const top5 = sortedPhotos
           .filter((p) => {
             if (cat.id === '🔥') return (p.likes || 0) > 0;
             if (cat.id === '🗣️') return (p.comments?.filter(c => c.status === 'approved').length || 0) > 0;
-            return (p.reactions?.[cat.id] || 0) > 0;
+            return (p.reaction_counts?.[cat.id] || 0) > 0;
           })
           .slice(0, 5);
 

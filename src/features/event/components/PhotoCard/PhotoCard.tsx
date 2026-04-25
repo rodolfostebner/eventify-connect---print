@@ -35,7 +35,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
     }
 
     // Limits check (dna.json: max_emojis_per_photo = 2)
-    const userReactions = photo.reacted_users?.filter(r => r.startsWith(user.uid)) || [];
+    const userReactions = photo.reacted_users?.filter(r => r.startsWith(`${user.uid}_`)) || [];
     if (!hasLiked && userReactions.length >= 2 && !isAdmin) {
       toast.error('Limite de 2 reações por foto atingido.');
       return;
@@ -63,7 +63,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
     const hasReacted = photo.reacted_users?.includes(reactKey);
 
     // Limits check (dna.json: max_emojis_per_photo = 2)
-    const userReactions = photo.reacted_users?.filter(r => r.startsWith(user.uid)) || [];
+    const userReactions = photo.reacted_users?.filter(r => r.startsWith(`${user.uid}_`)) || [];
     if (!hasReacted && userReactions.length >= 2 && !isAdmin) {
       toast.error('Limite de 2 reações por foto atingido.');
       return;
@@ -181,8 +181,6 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
         photo={photo}
         user={user}
         isAdmin={isAdmin}
-        hasLiked={hasLiked}
-        onLike={handleLike}
         onReact={handleReact}
         onAddComment={handleAddComment}
         onDeleteComment={handleDeleteComment}

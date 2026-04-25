@@ -167,6 +167,11 @@ export function BrandingModal({
                     <label className="block text-[10px] font-bold uppercase text-neutral-500 mb-1">Logo Principal (URL)</label>
                     <input type="text" value={form.logo_url} onChange={e => set({ logo_url: e.target.value })} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm" placeholder="URL da imagem..." />
                   </div>
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-bold uppercase text-neutral-500 mb-1">E-mails de Administradores</label>
+                    <input type="text" value={form.admin_emails_input} onChange={e => set({ admin_emails_input: e.target.value })} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm" placeholder="email1@exemplo.com, email2@exemplo.com" />
+                    <p className="text-[9px] text-neutral-400 mt-1 uppercase font-bold tracking-tighter">Separe por vírgula para múltiplos admins.</p>
+                  </div>
                 </div>
 
                 <div className="bg-neutral-50 p-6 rounded-3xl border border-neutral-100 space-y-4">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LayoutDashboard, Plus, LogOut, Calendar, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
@@ -28,8 +28,15 @@ export default function AdminDashboard({ user }: { user: User | null }) {
     events, setEvents, loading,
     newEventName, setNewEventName,
     newEventSlug, setNewEventSlug,
+    newEventAdminEmail, setNewEventAdminEmail,
     updateStatus, handleDeleteEvent, createNewEvent,
   } = useAdminEvents(user?.uid);
+
+  useEffect(() => {
+    if (user?.email && !newEventAdminEmail) {
+      setNewEventAdminEmail(user.email);
+    }
+  }, [user?.email]);
 
   const {
     editingEvent, setEditingEvent,
@@ -163,6 +170,11 @@ export default function AdminDashboard({ user }: { user: User | null }) {
             <div>
               <label className="block text-xs font-bold text-neutral-500 mb-1">Slug (URL)</label>
               <input type="text" value={newEventSlug} onChange={e => setNewEventSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} placeholder="Ex: casamento-joao-maria" className="w-full p-3 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-neutral-500 mb-1">E-mail do Administrador (Pode ser o seu)</label>
+              <input type="email" value={newEventAdminEmail} onChange={e => setNewEventAdminEmail(e.target.value)} placeholder="Ex: admin@evento.com" className="w-full p-3 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900" />
+              <p className="text-[9px] text-neutral-400 mt-1 uppercase font-bold tracking-tighter">Este e-mail terá acesso total à moderação e controles.</p>
             </div>
           </div>
           <button onClick={createNewEvent} disabled={loading || !newEventName || !newEventSlug} className="w-full px-6 py-3 bg-neutral-900 text-white rounded-xl font-bold disabled:opacity-50">

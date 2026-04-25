@@ -33,7 +33,7 @@ export const PostEventView = ({ event, user, onLogin }: PostEventViewProps) => {
       } else if (cat.id === '🗣️') {
         sortedPhotos.sort((a, b) => (b.comments?.filter(c => c.status === 'approved').length || 0) - (a.comments?.filter(c => c.status === 'approved').length || 0));
       } else {
-        sortedPhotos.sort((a, b) => (b.reactions?.[cat.id] || 0) - (a.reactions?.[cat.id] || 0));
+        sortedPhotos.sort((a, b) => (b.reaction_counts?.[cat.id] || 0) - (a.reaction_counts?.[cat.id] || 0));
       }
 
       const topPhoto = sortedPhotos[0];
@@ -41,7 +41,7 @@ export const PostEventView = ({ event, user, onLogin }: PostEventViewProps) => {
       if (topPhoto) {
         if (cat.id === '🔥') score = topPhoto.likes || 0;
         else if (cat.id === '🗣️') score = topPhoto.comments?.filter(c => c.status === 'approved').length || 0;
-        else score = topPhoto.reactions?.[cat.id] || 0;
+        else score = topPhoto.reaction_counts?.[cat.id] || 0;
       }
 
       return { title: cat.title, emoji: cat.emoji, photo: topPhoto, score };
