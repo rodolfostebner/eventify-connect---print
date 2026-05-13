@@ -1,6 +1,6 @@
 # Project Context: Eventify Connect & Print
-> **Gerado por**: GPC (bmad-generate-project-context) | **Data**: 2026-04-25  
-> **BMAD Status**: PRD v4 validado ✅ | Fase de implementação: aguardando Arquitetura + Epics
+> **Gerado por**: GPC (bmad-generate-project-context) | **Data**: 2026-05-02
+> **BMAD Status**: PRD v4 validado ✅ | Fase de implementação: Arquitetura em andamento
 
 ---
 
@@ -26,6 +26,7 @@
 | Realtime | Supabase Realtime | — |
 | Auth | Firebase Auth (Google OAuth) | firebase 12.x |
 | Storage | Cloudflare R2 (presigned URLs via Edge Function) | — |
+| AI Layer | Google Generative AI (Gemini) | @google/genai 1.x |
 | Ícones | lucide-react | 0.546.x |
 | Notificações UI | sonner | 2.x |
 | Datas | date-fns | 4.x |
@@ -42,8 +43,7 @@ src/
 ├── index.css                      # Estilos globais Tailwind 4
 │
 ├── types/
-│   └── index.ts                   # Todos os tipos TypeScript do projeto
-│                                  # ⚠️ PhotoData ainda reflete schema legado (photos)
+│   └── index.ts                   # Todos os tipos TypeScript do projeto (PostData normalizado)
 │
 ├── lib/
 │   ├── firebase/client.ts         # Firebase: auth + googleProvider
@@ -55,20 +55,16 @@ src/
 │   ├── useAuth.ts                 # Firebase onAuthStateChanged + createUserIfNotExists
 │   ├── useEvent.ts                # subscribeToEvent por slug
 │   ├── useEvents.ts               # subscribeToEvents (todos)
-│   └── usePosts.ts                # fetchPosts + subscribeToPosts (→ tabela photos ⚠️)
+│   └── usePosts.ts                # fetchPosts + subscribeToPosts (tabela posts)
 │
 ├── services/
-│   ├── authService.ts             # Supabase Auth: OTP, Google, email/senha, logout
+│   ├── authService.ts             # Firebase Auth: Google, email/senha, logout
 │   ├── eventService.ts            # CRUD events + subscribeToEvents/Event
 │   ├── notificationService.ts     # CRUD + subscribe notifications
-│   ├── posts.ts                   # ⚠️ LEGADO: aponta para tabela `photos`
-│   │                              #   Inclui: fetch, create, update, subscribe, react, comment
+│   ├── posts.ts                   # Gerenciamento de posts, reações e comentários (tabelas posts, reactions, comments)
 │   ├── printService.ts            # CRUD print_orders (usa photo_ids array — legado parcial)
 │   ├── storageService.ts          # uploadImage → R2 via Edge Function `get-r2-upload-url`
-│   ├── userService.ts             # createUserIfNotExists (sync Firebase → Supabase users)
-│   ├── photoService.ts            # ⚠️ DESCONTINUADO — stub vazio
-│   ├── mockData.ts                # ⚠️ DESCONTINUADO — stub vazio
-│   └── mockFirestore.ts           # ⚠️ DESCONTINUADO — stub vazio
+│   └── userService.ts             # createUserIfNotExists (sync Firebase → Supabase users)
 │
 ├── pages/                         # Re-exportações — renderizam features/
 │   ├── AdminDashboard.tsx
@@ -132,12 +128,11 @@ src/
 │   │       └── usePrintQueue.ts   # Subscribe à fila em tempo real
 │   │
 │   └── tv/
-│       └── TVView.tsx             # Live Wall — slideshow fullscreen + ranking
+│   │   └── TVView.tsx             # Live Wall — slideshow fullscreen + ranking
 │
 ├── components/
 │   ├── ErrorBoundary.tsx          # Boundary global de erro
-│   ├── NotificationsListener.tsx  # Ouve notificações em tempo real
-│   └── UploadTest.tsx             # ⚠️ Componente de teste — remover em prod
+│   └── NotificationsListener.tsx  # Ouve notificações em tempo real
 │
 └── constants/                     # Constantes globais (verificar conteúdo)
 
@@ -166,7 +161,7 @@ supabase/
 
 ## 🔐 Autenticação — Estado Atual
 
-- **Firebase Auth (Google OAuth)** para todos os usuários (participantes e admins) via `useAuth.ts`
+- **Firebase Auth (Google OAuth)** para todos os usuários (participantes e admins) via `authService.ts`
 - Hook: `onAuthStateChanged` → `signInWithPopup(googleProvider)`
 - Sincronização: `createUserIfNotExists()` → salva em `users` (Supabase) por `firebase_uid`
 - Identificador principal: `firebase_uid` (text)
@@ -180,15 +175,11 @@ supabase/
 - **`events`** — completo, 40+ campos, inclui temas, TV, social, flags de controle
 - **`users`** — sincronização Firebase→Supabase por `firebase_uid`
 - **`notifications`** — notificações por `user_id`, com leitura em tempo real
-- **`posts`** — ✅ tabela nova normalizada (destino da migração)
-- **`reactions`** — ✅ tabela nova normalizada
-- **`comments`** — ✅ tabela nova normalizada
+- **`posts`** — ✅ Tabela principal normalizada (substitui `photos`)
+- **`reactions`** — ✅ Tabela normalizada de reações
+- **`comments`** — ✅ Tabela normalizada de comentários
 - **`print_orders`** — usa `photo_ids` (array texto) — estrutura legada parcial
-- **`print_order_items`** — ✅ tabela nova (FK: print_order_id + post_id)
-
-### Tabela legada (em migração)
-- **`photos`** — denormalizada (`likes int`, `reactions jsonb`, `comments jsonb`, `reacted_users text[]`, `firebase_uid`)
-- **Status**: `posts.ts` ainda aponta para esta tabela — migração incompleta
+- **`print_order_items`** — ✅ Estrutura pronta (FK: print_order_id + post_id) — implementação pendente nos services
 
 ---
 
@@ -197,15 +188,12 @@ supabase/
 | Serviço | Tabela(s) | Status |
 |---|---|---|
 | `eventService.ts` | `events` | ✅ Ativo |
-| `posts.ts` | `photos` ⚠️ | 🔴 WIP — aponta para legado |
+| `posts.ts` | `posts`, `reactions`, `comments` | ✅ Ativo e normalizado |
 | `printService.ts` | `print_orders` | ⚠️ Usa `photo_ids` array (legado) |
 | `notificationService.ts` | `notifications` | ✅ Ativo |
 | `userService.ts` | `users` | ✅ Ativo (Firebase→Supabase sync) |
 | `storageService.ts` | Cloudflare R2 | ✅ Ativo |
-| `authService.ts` | Supabase Auth | ⚠️ Código órfão (A auth será 100% Firebase) |
-| `photoService.ts` | — | ⚠️ Descontinuado — remover |
-| `mockData.ts` | — | ⚠️ Descontinuado — remover |
-| `mockFirestore.ts` | — | ⚠️ Descontinuado — remover |
+| `authService.ts` | Firebase Auth | ✅ Ativo |
 
 ---
 
@@ -233,8 +221,7 @@ supabase.channel(`public:{tabela}:{campo}=eq.${valor}`)
 Canais ativos:
 - `public:events` — dashboard admin
 - `public:events:slug=eq.{slug}` — página do evento
-- `public:photos:event_id=eq.{id}` — feed (⚠️ legado)
-- `public:photos:all:event_id=eq.{id}` — moderação (⚠️ legado)
+- `public:posts:event_id=eq.{id}` — feed
 - `public:print_orders:event_id=eq.{id}` — operador
 - `public:notifications:user_id=eq.{id}` — notificações
 
@@ -244,12 +231,9 @@ Canais ativos:
 
 | # | Item | Impacto | Prioridade |
 |---|---|---|---|
-| 1 | `posts.ts` aponta para tabela `photos` (legado) | Alto — toda lógica de feed/moderação está no legado | 🔴 Alta |
-| 2 | `PhotoData` type não reflete schema de `posts` | Alto — TypeScript inconsistente com BD | 🔴 Alta |
-| 3 | `print_orders` usa `photo_ids` array (não FK) | Médio — perda de integridade referencial | 🟡 Média |
-| 5 | Arquivos `photoService.ts`, `mockData.ts`, `mockFirestore.ts` não removidos | Baixo — ruído de código morto | 🟢 Baixa |
-| 6 | `UploadTest.tsx` presente em components | Baixo — não deve ir para produção | 🟢 Baixa |
-| 7 | Duplicata de views em `features/event/` (raiz vs `components/`) | Baixo — confusão de estrutura | 🟢 Baixa |
+| 1 | `print_orders` usa `photo_ids` array (não FK) | Médio — perda de integridade referencial | 🟡 Média |
+| 2 | Duplicata de views em `features/event/` (raiz vs `components/`) | Baixo — confusão de estrutura | 🟢 Baixa |
+| 3 | Migrar `print_orders` para usar `print_order_items` | Médio — integridade de dados | 🟡 Média |
 
 ---
 
@@ -268,6 +252,9 @@ VITE_FIREBASE_APP_ID=
 
 # Cloudflare R2
 VITE_R2_PUBLIC_URL=
+
+# AI
+GEMINI_API_KEY=
 ```
 
 ---
@@ -288,7 +275,7 @@ VITE_R2_PUBLIC_URL=
 |---|---|
 | PRD | ✅ v4 validado |
 | Project Context | ✅ Este documento |
-| Arquitetura (CA) | ⏳ Próximo passo |
+| Arquitetura (CA) | ⏳ Em andamento |
 | UX Design (CU) | ⏳ Aguardando CA |
 | Epics & Stories (CE) | ⏳ Aguardando CA + CU |
 | Sprint Plan (SP) | ⏳ Aguardando CE |
