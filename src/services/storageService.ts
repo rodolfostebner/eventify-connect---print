@@ -7,9 +7,9 @@ export async function uploadImage(file: File): Promise<string> {
     try {
         // 1. Solicita a Pre-Signed URL para a Edge Function do Supabase
         const { data, error } = await supabase.functions.invoke('get-r2-upload-url', {
-            body: { 
-                fileName, 
-                contentType: file.type || 'image/jpeg' 
+            body: {
+                fileName,
+                contentType: file.type || 'image/jpeg'
             }
         });
 
@@ -36,13 +36,13 @@ export async function uploadImage(file: File): Promise<string> {
 
         // 3. Monta a URL pública
         let finalUrl = data.publicUrl;
-        
+
         if (!finalUrl) {
             // Fallback: se a edge function não retornar publicUrl, tenta montar no cliente
             // Usa a variável de ambiente se existir, senão usa a URL conhecida do projeto Koalas
             const fallbackBase = "https://pub-1516365c685b4c02b3d5dd2f7726080b.r2.dev";
             const publicUrlBase = import.meta.env.VITE_R2_PUBLIC_URL || data.publicUrlBase || fallbackBase;
-            
+
             const cleanBase = publicUrlBase.replace(/\/$/, '');
             finalUrl = `${cleanBase}/${fileName}`;
         }
