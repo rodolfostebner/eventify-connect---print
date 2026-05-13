@@ -1,4 +1,4 @@
-import { Eye, LayoutDashboard, ShieldCheck, Settings, Share2, Trash2, Play, Pause, CheckCircle2, Printer } from 'lucide-react';
+import { Eye, LayoutDashboard, ShieldCheck, Settings, Share2, Trash2, Play, Pause, CheckCircle2, Printer, Store } from 'lucide-react';
 import type { EventData } from '../../../types';
 
 interface EventCardProps {
@@ -73,6 +73,12 @@ export function EventCard({ event, onUpdateStatus, onShare, onEdit, onDelete }: 
           className="flex-1 py-2 bg-violet-50 border border-violet-100 rounded-lg text-[10px] font-bold text-violet-600 flex items-center justify-center gap-1"
         >
           <Printer className="w-3 h-3" /> OPERADOR
+        </button>
+        <button
+          onClick={() => window.open(`/expositores/${event.slug}`, '_blank')}
+          className="flex-1 py-2 bg-amber-50 border border-amber-100 rounded-lg text-[10px] font-bold text-amber-600 flex items-center justify-center gap-1"
+        >
+          <Store className="w-3 h-3" /> EXPOSITORES
         </button>
       </div>
 

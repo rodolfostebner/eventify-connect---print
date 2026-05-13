@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Check, X, ArrowLeft, Loader2, MessageCircle, ShieldCheck, Trash2, Printer, Eye, Upload, Pause, Play, Trophy, LogOut } from 'lucide-react';
 import type { EventData, PhotoData, PrintOrder } from '../../types';
 import { subscribeToEvent } from '../../services/eventService';
-import { fetchAllPosts, subscribeToAllPosts, updatePostStatus, commentOnPost, createPost } from '../../services/posts';
+import { fetchAllPosts, subscribeToAllPosts, updatePostStatus, approveComment, deleteComment, createPost } from '../../services/posts';
 import { subscribeToPrintOrders, completePrintOrder, deletePrintOrder } from '../../services/printService';
 import { createNotification } from '../../services/notificationService';
 import { updateEvent } from '../../services/eventService';
@@ -156,26 +156,25 @@ export default function ModerationPanel({ user }: { user: User | null }) {
       const photo = photos.find(p => p.id === photoId);
       if (!photo) return;
 
-      const newComments = [...(photo.comments || [])];
+      const comment = (photo.comments || [])[commentIndex];
+      if (!comment?.id) return;
+
       if (action === 'rejected') {
-        newComments[commentIndex] = { ...newComments[commentIndex], status: 'rejected' };
+        await deleteComment(comment.id);
       } else {
-        newComments[commentIndex] = { ...newComments[commentIndex], status: 'approved' };
+        await approveComment(comment.id);
       }
 
-      await commentOnPost(photoId, newComments);
       toast.success(action === 'approved' ? 'Comentário aprovado!' : 'Comentário removido!');
-      
-      if (action === 'approved') {
-        if (photo?.firebase_uid) {
-          const approved = currentComments[commentIndex];
-          await createNotification({
-            userId: photo.firebase_uid,
-            title: 'Novo Comentário!',
-            body: `${approved.user} comentou na sua foto.`,
-            link: `/${event?.slug}`,
-          });
-        }
+
+      if (action === 'approved' && photo.firebase_uid) {
+        const approved = currentComments?.[commentIndex];
+        await createNotification({
+          userId: photo.firebase_uid,
+          title: 'Novo Comentário!',
+          body: `${approved?.user_name || approved?.user || 'Alguém'} comentou na sua foto.`,
+          link: `/${event?.slug}`,
+        });
       }
     } catch (err) {
       console.error(err);

@@ -5,6 +5,9 @@ import AdminDashboard from "./pages/AdminDashboard"
 import ModerationPanel from "./pages/ModerationPanel"
 import TVView from "./pages/TVView"
 import OperatorPanel from "./pages/OperatorPanel"
+import ExhibitorPanelPage from "./pages/ExhibitorPanelPage"
+import ExhibitorLoginPage from "./pages/ExhibitorLoginPage"
+import ExhibitorPortalPage from "./pages/ExhibitorPortalPage"
 import { Toaster } from "sonner"
 
 function App() {
@@ -26,12 +29,17 @@ function App() {
         {/* Public Routes */}
         <Route path="/event/:slug" element={<EventPage user={user} />} />
         <Route path="/tv/:slug" element={<TVView />} />
-        
-        {/* Protected Admin Routes */}
+
+        {/* Exhibitor Routes (Supabase Auth) */}
+        <Route path="/expositor/login" element={<ExhibitorLoginPage />} />
+        <Route path="/expositor" element={<ExhibitorPortalPage />} />
+
+        {/* Protected Admin Routes (Firebase Auth) */}
         <Route path="/" element={<AdminDashboard user={user} />} />
         <Route path="/admin" element={<Navigate to="/" replace />} />
         <Route path="/moderation/:slug" element={user ? <ModerationPanel user={user} /> : <Navigate to="/" replace />} />
         <Route path="/operator/:slug" element={user ? <OperatorPanel user={user} /> : <Navigate to="/" replace />} />
+        <Route path="/expositores/:slug" element={user ? <ExhibitorPanelPage /> : <Navigate to="/" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

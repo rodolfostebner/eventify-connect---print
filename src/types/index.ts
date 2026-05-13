@@ -141,6 +141,56 @@ export interface PrintOrder {
   status?: 'pending' | 'completed';
 }
 
+// ─── Exhibitors ───────────────────────────────────────────────────────────────
+
+export interface Exhibitor {
+  id: string;
+  event_id: string;
+  number: number;
+  name: string;
+  description?: string | null;
+  logo_url?: string | null;
+  photo_url?: string | null;
+  message?: string | null;
+  final_message?: string | null;
+  instagram_url?: string | null;
+  whatsapp?: string | null;
+  website_url?: string | null;
+  status: 'active' | 'inactive';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExhibitorUser {
+  id: string;
+  exhibitor_id: string;
+  supabase_user_id: string;
+  username: string;
+  created_at: string;
+}
+
+export interface Product {
+  id: string;
+  exhibitor_id: string;
+  name: string;
+  description?: string | null;
+  price?: number | null;
+  photos: string[];
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Lead {
+  id: string;
+  product_id: string;
+  exhibitor_id: string;
+  customer_name: string;
+  customer_phone: string;
+  created_at: string;
+  product?: { name: string };
+}
+
 // ─── Notification ─────────────────────────────────────────────────────────────
 
 export interface NotificationData {

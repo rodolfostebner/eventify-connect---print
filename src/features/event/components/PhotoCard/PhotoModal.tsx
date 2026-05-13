@@ -4,7 +4,7 @@ import { X, Heart, Trash2, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../../../lib/utils';
-import type { PhotoData, PhotoComment } from '../../../../types';
+import type { PhotoData, PhotoComment, EventData } from '../../../../types';
 import { User } from '../../../../services/authService';
 
 interface CommentItemProps {

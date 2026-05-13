@@ -24,9 +24,10 @@ interface PartnerSectionProps {
   icon: React.ReactNode;
   showMessages?: boolean;
   columns?: number;
+  onViewCatalog?: (item: PartnerItem) => void;
 }
 
-export function PartnerSection({ title, items, icon, showMessages = false, columns }: PartnerSectionProps) {
+export function PartnerSection({ title, items, icon, showMessages = false, columns, onViewCatalog }: PartnerSectionProps) {
   if (!items || items.length === 0) return null;
 
   const gridCols = columns === 1 
@@ -66,13 +67,21 @@ export function PartnerSection({ title, items, icon, showMessages = false, colum
             )}
             {item.socials && (
               <div className="border-t border-neutral-100 pt-2 mt-auto">
-                <SocialLinks 
+                <SocialLinks
                   instagram={item.socials.instagram}
                   whatsapp={item.socials.whatsapp}
                   website={item.socials.website}
                   buttonClassName="p-1.5 md:p-2 bg-neutral-50 rounded-full text-neutral-600 transition-colors hover:bg-neutral-100"
                 />
               </div>
+            )}
+            {onViewCatalog && (
+              <button
+                onClick={() => onViewCatalog(item)}
+                className="w-full py-2 rounded-lg text-xs font-bold text-neutral-900 bg-neutral-100 hover:bg-neutral-200 transition-colors"
+              >
+                Confira o catálogo →
+              </button>
             )}
           </div>
         ))}
