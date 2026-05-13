@@ -1,0 +1,255 @@
+# Definições da Ultima Reunião
+
+## Perfis de Usuários
+
+- Admin 
+    > Administrador do sistema, acessa todas as funcionalidade e gerencia configurações gerais
+- EventAdmin 
+    > Administrador do Evento - Cliente principal, dono do evento, que poderá alterar dados do evento, cadastrar expositores e demais
+    > configurações do evento
+- Expositor
+    > Administrador do Estande/Expositor - perfil atrelado aos usuarios que farão a gestão de produtos e demais informações de seu estande de 
+    > exposição.
+- Avaliador
+    > Perfil que fará a avaliação dos expositores, acessando pagina específica para esse fim e utilizando metricas de avaliação pré definidas 
+    > pelo administrador do evento.
+- Participante
+    > Usuario participante da feira, que poderá acessar a aplicação na pagina de feed, avaliar e comentar expositores e postar fotos durante a 
+    > feira.
+
+# Definição de Features:
+
+## 1. FEED
+  > Pagina que será acessada pelo publico em geral para acompanhar expositores em 3 fases:
+
+  - Pré evento
+    Poderá visualizar expositores (com seus catalogo de produtos, registrar interesse em algum produto específico).
+    Também sera gravado o interesse em expositores e seus produtos conforme interação do usuario, estilo google ads, registrando clicks para 
+    geração de relatorio.
+  - Dia do Evento
+    Poderá curtir expositores, postar comentarios de avaliação e postar fotos suas durante o evento. Participações o tornarão elegível a 
+    sorteio de brindes durante a feira.
+    Também sera gravado o interesse em expositores e seus produtos conforme interação do usuario, estilo google ads, registrando clicks para 
+    geração de relatorio.
+    [D2] - Verificar se podemos vincular ao instagram da escola dona do evento para redirecionar posts do instagram para o app. 
+  - Pós Evento
+    Poderão acompanhar Fotos do evento, Ranking dos expositores e demais informações relevantes a feira.
+
+
+### Informações do Feed
+  > [D3] - Qual o mMelhor layout para adequar todas as informações sem prejudicar a usabilidade
+
+- **Dados da Escola**
+  Área no topo do feed, com algumas informações da escola.
+  [D1] - Verificar se podemos vincular ao instagram da escola dona do evento para redirecionar posts do instagram para o app. 
+- **Expositores**
+  Área central do feed com a lista dos expositores e botão para visualizar o catalogo de produtos
+- **Fotos dos Participantes**
+  Área intercalada com expositores ou em área exclusiva para exibir fotos postadas pelos participantes
+- **Patrocinadores**
+  Área no fim da pagina para divulgação dos patrocinadores, com menor destaque
+
+## 2. EXPOSITORES
+  > Tela para gerenciamento do stand de exposição, que possibilitará alterar nome, descrição, fotos do estande e dados de contato e:
+  - **Cadastrar produtos** -
+    Adicionar, alterar e excluir produtos
+  - **Registro de Interessados** - registrado no pré evento (com possibilidade de exportar para Excel) - 
+    Listagem de pessoas que demonstraram interesse, com possibilidade de definir status (Atendido, Pago, Retirado)
+  - **Listagem de Visitantes** - google ads do aplicativo - 
+    Resumo de visitas no estande virtual e produtos
+
+## 3. AVALIAÇÃO
+> Tela para Avaliação dos Expositores, conforme categorias pré definidas
+
+## 4. PAINEL TV
+> Tela para exibir no Projetor/TV durante o evento, mostrando expositores, fotos, patrocinadores, Propaganda da Escola, Sorteios
+
+- Carrosel Expositores (aplicar temporizador baseado no rank de curtidas, melhores rankeados ficam alguns segundos a mais, mas todos aparecem)
+- Carrosel de Fotos/Comentarios [PD3]
+- Carrosel de Patrocinadores
+- Marketing Escola [PD4]
+- Sorteios [PD1][PD2]
+- Avisos em Geral
+
+
+## 5. ADMINISTRAÇÃO DO EVENTO
+> Tela para gerenciar informações do evento por parte da escola
+
+- Cadastrar Expositores e seus usuários, resetar senha de usuários
+- Cadastrar Fotos e Videos de divulgação
+- Cadastrar Avaliadores
+- Cadastrar Categorias de Avaliação de Expositores
+- Moderação de fotos e comentarios **(comum para Administração Geral e Administração do Evento)**
+- Cadastrar Avisos para exibir no telão **(comum para Administração Geral e Administração do Evento)**
+- Definir pesos de avaliação por perfil (Participante, Expositor e Avaliador)
+- Administração do painel TV (telão)
+- Cadastro de Marketing para o telão [PD4]
+
+## 6. ADMINISTRAÇÃO GERAL
+> Tela para cadastro de novo evento, definição de configurações gerais
+
+- Criar Evento
+- Demais configurações
+- Moderação de Fotos e comentarios **(comum para Administração Geral e Administração do Evento)**
+- Cadastrar Avisos para exibir no telão **(comum para Administração Geral e Administração do Evento)**
+
+## 7. MODERAÇÃO DE FOTOS E COMENTARIOS
+
+## 8. CADASTRO DE AVISOS
+> Possibilitar exibir mensagens diversas via tela propria, com imagem de fundo e icones, dando flexibilidade ao organizador para uma eventual necessidade
+Exemplos: 
+- Proprietario do veiculo placa ABC1234 favor dirigir-se ao veiculo.
+- Atenção ganhador do sorteio do kit velas aromaticas, valor dirigir-se ao estande para receber seu premio.
+- Oferta especial - Estande de Pamonha com desconto de 50%, aproveite!!
+- 30 minutos para o fim da feira, aproveite para adquirir produtos com desconto!!
+
+## 9. ADMINISTRAÇÃO DO PAINEL TV (TELÃO)
+> Define o que esta sendo exibido.
+
+- Feed da feira - carrosel gerado pelo aplicativo;
+- Sorteio - Interrompe carrosel de feed e exibe sorteio
+- Avisos - interrompe carrosel de feed e exibe aviso
+
+# DÚVIDAS
+- [D1] - Verificar viabilidade tecnica de integração do app com o instagram
+- [D2] - Possibilidade desse relatorio gerar alguma relevancia no rank de expositores
+- [D3] - Verificar qual o melhor leiaute para organizar as informações (abas laterais, feed continuo, botões no topo...)
+- [D4] - Musica de fundo talvez, para tocar no evento?
+- [D5] - Definição da tela de sorteio pendente... (cadastro de brindes, listagem de participantes registrados)
+
+# REGRAS DE NEGOCIO
+
+- [RN1] Participantes da feira só poderão comentar e avaliar o mesmo expositor uma quantidade x (definida no painel de administração do evento)
+- [RN2] Avaliações terão diferentes pesos e categorias, a ser definidas via Administração do Evento
+- [RN3] Participantes que registram avaliação são registrados em uma tabela para concorrer aos sorteios
+
+# PENDENCIA DE VIABILIDADE TECNICA
+
+- [PVT1] Identificar logins unicos na plataforma para evitar flood de comentarios e curtidas, descaracterizando ranking enviado pelos participantes da feira
+- [PVT2] Registrar visitas aos expositores e seus produtos, estilo google analytics, registrar no banco e permitir consulta por expositores e possibilidade de gerar rank baseado nesse indicador de visitas
+
+# PENDENTE DE DEFINIÇÃO
+
+- [PD1] Tela de sorteios
+- [PD2] Regra para sorteios - mesmo participantes receberão tickets para sorteio com base em avaliação por expositor? Ex. Se Fulano avaliou todos os expositores ele receberá 1 ticket para cada avaliação ou sera unico por participante?
+- [PD3] Administradores poderão registrar fotos para enriquecer feed?
+- [PD4] Criaremos uma tela para marketing da escola? 
+
+---
+
+# REVIEW TÉCNICA — 2026-05-13
+
+## Status de Implementação por Feature
+
+| Feature | Status | Observação |
+|---------|--------|------------|
+| Feed — Expositores + catálogo | ✅ Implementado | Modal de catálogo público com pré-venda |
+| Feed — Fotos dos participantes | ✅ Implementado | Ainda na tabela `photos` legada |
+| Feed — Patrocinadores | ⚠️ Parcial | Usa JSON no evento (`ExhibitorSponsor`), não tabela dedicada |
+| Feed — Registro de clicks/visitas | ❌ Não implementado | [PVT2] em aberto |
+| Feed — Sorteios | ❌ Não implementado | Aguarda definição [PD1][PD2] |
+| Expositores — CRUD + produtos + usuários | ✅ Implementado | Painel admin `/expositores/:slug` |
+| Expositores — Leads de pré-venda | ⚠️ Parcial | Falta status (Atendido/Pago/Retirado) e exportação Excel |
+| Perfil Expositor (portal dedicado) | ✅ Implementado | `/expositor` com Supabase Auth |
+| Perfil EventAdmin | ❌ Não implementado | Hoje o Admin acumula tudo |
+| Perfil Avaliador | ❌ Não implementado | |
+| Sistema de Avaliação | ❌ Não implementado | Aguarda definição [RN2] |
+| Painel TV — Slideshow + Rankings | ✅ Implementado | |
+| Painel TV — Carrossel expositores por rank | ❌ Não implementado | |
+| Painel TV — Sorteios / Avisos | ❌ Não implementado | |
+| Administração do Evento — base | ✅ Implementado | |
+| Administração do Evento — Avaliadores/Categorias/Pesos | ❌ Não implementado | |
+| Cadastro de Avisos | ❌ Não implementado | |
+| Moderação fotos e comentários | ✅ Implementado | |
+
+## Dúvidas — Recomendação de Encerramento
+
+| Item | Recomendação |
+|------|-------------|
+| [D1] Integração Instagram | **Descartar** — API do Instagram requer Meta Business Verification, inviável |
+| [D2] Relatório de visitas no rank | Manter aberto — depende de [PVT2] |
+| [D3] Layout do feed | **Decisão urgente** — com expositores e fotos no mesmo feed, o layout precisa ser definido antes da próxima sprint |
+| [D4] Música de fundo | **Descartar** — autoplay de áudio é bloqueado por padrão em todos os browsers modernos |
+| [D5] Tela de sorteio | Manter aberto — depende de [PD1][PD2] |
+
+## Ajuste de Schema Necessário (antes de ir para produção)
+
+- Tabela `leads`: adicionar campo `status ENUM('novo','atendido','pago','retirado') DEFAULT 'novo'`
+- Decisões de [PD2] e [RN2] impactam criação das tabelas `evaluation_categories`, `evaluation_weights`, `raffle_tickets` — definir antes de desenvolver
+
+---
+
+# DIVISÃO DE TRABALHO — 2 PROGRAMADORES
+
+> Estratégia: dividir por **eixo de produto**, não por tipo de arquivo.
+> Cada eixo tem domínio claro sobre suas features e arquivos, minimizando conflitos de merge.
+
+## Dev A — Eixo "Feed & Participante"
+> Responsável pela experiência do participante na tela do evento.
+
+**Features:**
+- Decisão e implementação do novo layout do feed [D3] — pré / live / post
+- Sistema de Avaliação de Expositores (novo módulo completo)
+- Tickets de sorteio vinculados a avaliações [PD2][RN3]
+
+**Arquivos de domínio exclusivo (Dev A):**
+```
+src/features/event/components/LiveEventView.tsx
+src/features/event/components/PreEventView.tsx
+src/features/event/components/PostEventView.tsx
+src/features/event/components/Feed/
+src/features/event/hooks/
+src/features/evaluation/          ← novo módulo, criar do zero
+supabase/migrations/*_evaluation* ← migrations de avaliação
+```
+
+---
+
+## Dev B — Eixo "Expositor & Backoffice"
+> Responsável pela experiência do expositor e das telas de administração/telão.
+
+**Features:**
+- Status do lead (Atendido/Pago/Retirado) + exportação Excel
+- Analytics de visitas ao stand [PVT2]
+- Cadastro de Avisos para o telão (Feature #8)
+- Painel TV expandido: carrossel expositores por rank, exibição de avisos (Feature #9)
+- Administração do Evento: cadastro de Avaliadores, Categorias e Pesos
+
+**Arquivos de domínio exclusivo (Dev B):**
+```
+src/features/exhibitors/ExhibitorPanel.tsx
+src/features/exhibitor/ExhibitorPortal.tsx
+src/services/leadService.ts
+src/services/exhibitorService.ts
+src/features/tv/TVView.tsx
+src/features/announcements/       ← novo módulo, criar do zero
+supabase/migrations/*_leads*      ← migration de status
+supabase/migrations/*_visits*     ← migration de analytics
+```
+
+---
+
+## Arquivos Compartilhados — Coordenar via PR
+
+Estes arquivos serão alterados pelos dois. Combinar quem faz cada PR e na qual ordem:
+
+| Arquivo | Motivo | Recomendação |
+|---------|--------|--------------|
+| `src/types/index.ts` | Dev A adiciona tipos de Avaliação; Dev B adiciona status de Lead e Visit | Cada um abre PR separado; revisar antes de fazer merge do segundo |
+| `src/App.tsx` | Novas rotas de Avaliação (Dev A) e Avisos/Admin (Dev B) | Merge sequencial — um PR de cada vez |
+| `supabase/migrations/` | Migrations têm ordem numérica e dependência entre si | Coordenar numeração antes de iniciar; nunca criar migration com mesmo timestamp |
+| `CLAUDE.md` | Documentação atualizada por ambos | Atualizar no final de cada PR, não durante |
+
+## Fluxo de Branch Sugerido
+
+```
+main
+ ├── feature/feed-layout-participante     (Dev A)
+ ├── feature/sistema-avaliacao            (Dev A)
+ ├── feature/lead-status-excel            (Dev B)
+ ├── feature/analytics-visitas            (Dev B)
+ ├── feature/avisos-telao                 (Dev B)
+ └── feature/tv-carrossel-expositores     (Dev B)
+```
+
+Cada branch é independente. PRs para `main` com review cruzado antes do merge.

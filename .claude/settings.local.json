@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs head:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(npx vite:*)",
+      "Bash(xargs kill:*)",
+      "Bash(timeout 15 node node_modules/vite/bin/vite.js --port=3000 --host=0.0.0.0)",
+      "Bash(Get-ChildItem -Path \"C:\\\\code\\\\eventfy\\\\eventify-connect---print\" -Recurse -Force)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Recurse -Force)",
+      "Bash(Select-Object -First 50)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(npx tsc *)",
+      "Bash(git tag *)",
+      "Bash(git fetch *)"
+    ]
+  }
+}
