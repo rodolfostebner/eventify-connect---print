@@ -145,11 +145,14 @@ Exemplos:
 |---------|--------|------------|
 | Feed — Expositores + catálogo | ✅ Implementado | Modal de catálogo público com pré-venda |
 | Feed — Fotos dos participantes | ✅ Implementado | Ainda na tabela `photos` legada |
-| Feed — Patrocinadores | ⚠️ Parcial | Usa JSON no evento (`ExhibitorSponsor`), não tabela dedicada |
+| Feed — Patrocinadores | ✅ Implementado | Tabela dedicada `sponsors`, carrossel de fotos, dados do banco |
+| Feed — Contador pré-evento responsivo | ✅ Implementado | Ajustado para mobile |
 | Feed — Registro de clicks/visitas | ❌ Não implementado | [PVT2] em aberto |
 | Feed — Sorteios | ❌ Não implementado | Aguarda definição [PD1][PD2] |
 | Expositores — CRUD + produtos + usuários | ✅ Implementado | Painel admin `/expositores/:slug` |
-| Expositores — Leads de pré-venda | ⚠️ Parcial | Falta status (Atendido/Pago/Retirado) e exportação Excel |
+| Expositores — Foto do stand (photo_url) | ✅ Implementado | Upload no painel admin e portal do expositor |
+| Expositores — Leads de pré-venda | ✅ Implementado | Status (novo/atendido/pago/retirado) + exportação CSV/Excel |
+| Patrocinadores — Painel de cadastro | ✅ Implementado | `/patrocinadores/:slug`, CRUD completo, até 3 fotos |
 | Perfil Expositor (portal dedicado) | ✅ Implementado | `/expositor` com Supabase Auth |
 | Perfil EventAdmin | ❌ Não implementado | Hoje o Admin acumula tudo |
 | Perfil Avaliador | ❌ Não implementado | |
@@ -157,6 +160,7 @@ Exemplos:
 | Painel TV — Slideshow + Rankings | ✅ Implementado | |
 | Painel TV — Carrossel expositores por rank | ❌ Não implementado | |
 | Painel TV — Sorteios / Avisos | ❌ Não implementado | |
+| Administração Geral — Dashboard redesenhado | ✅ Implementado | Full-width, botão '+' inline, EventCard com ícones |
 | Administração do Evento — base | ✅ Implementado | |
 | Administração do Evento — Avaliadores/Categorias/Pesos | ❌ Não implementado | |
 | Cadastro de Avisos | ❌ Não implementado | |
@@ -174,7 +178,8 @@ Exemplos:
 
 ## Ajuste de Schema Necessário (antes de ir para produção)
 
-- Tabela `leads`: adicionar campo `status ENUM('novo','atendido','pago','retirado') DEFAULT 'novo'`
+- ~~Tabela `leads`: adicionar campo `status ENUM('novo','atendido','pago','retirado') DEFAULT 'novo'`~~ ✅ Feito (migration 20260518000000_leads_status.sql)
+- Tabela `sponsors`: ✅ Criada (migration 20260519000000_sponsors.sql)
 - Decisões de [PD2] e [RN2] impactam criação das tabelas `evaluation_categories`, `evaluation_weights`, `raffle_tickets` — definir antes de desenvolver
 
 ---
@@ -191,6 +196,8 @@ Exemplos:
 - Decisão e implementação do novo layout do feed [D3] — pré / live / post
 - Sistema de Avaliação de Expositores (novo módulo completo)
 - Tickets de sorteio vinculados a avaliações [PD2][RN3]
+
+> ⚠️ Pendente definição de [D3] (layout), [RN2] (pesos/categorias de avaliação) e [PD2] (regra de sorteio)
 
 **Arquivos de domínio exclusivo (Dev A):**
 ```
@@ -209,7 +216,9 @@ supabase/migrations/*_evaluation* ← migrations de avaliação
 > Responsável pela experiência do expositor e das telas de administração/telão.
 
 **Features:**
-- Status do lead (Atendido/Pago/Retirado) + exportação Excel
+- ~~Status do lead (Atendido/Pago/Retirado) + exportação Excel~~ ✅ Feito
+- ~~Painel de Patrocinadores~~ ✅ Feito (fora da divisão original)
+- ~~Foto do stand (photo_url) no painel e portal~~ ✅ Feito
 - Analytics de visitas ao stand [PVT2]
 - Cadastro de Avisos para o telão (Feature #8)
 - Painel TV expandido: carrossel expositores por rank, exibição de avisos (Feature #9)
