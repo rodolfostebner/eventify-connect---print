@@ -181,12 +181,32 @@ export interface Product {
   updated_at: string;
 }
 
+// ─── Sponsors ─────────────────────────────────────────────────────────────────
+
+export interface Sponsor {
+  id: string;
+  event_id: string;
+  name: string;
+  description?: string | null;
+  photos: string[];
+  instagram_url?: string | null;
+  whatsapp?: string | null;
+  website_url?: string | null;
+  order_index: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type LeadStatus = 'novo' | 'atendido' | 'pago' | 'retirado';
+
 export interface Lead {
   id: string;
   product_id: string;
   exhibitor_id: string;
   customer_name: string;
   customer_phone: string;
+  status: LeadStatus;
   created_at: string;
   product?: { name: string };
 }

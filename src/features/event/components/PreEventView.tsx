@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Star, Briefcase } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
-import type { EventData, Exhibitor } from '../../../types';
+import type { EventData, Exhibitor, Sponsor } from '../../../types';
 import { PartnerSection } from './PartnerSection';
 import { ExhibitorCatalogModal } from './ExhibitorCatalogModal';
 import { getExhibitors } from '../../../services/exhibitorService';
+import { getSponsors } from '../../../services/sponsorService';
 
 export const PreEventView = ({ event }: { event: EventData }) => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
   const [dbExhibitors, setDbExhibitors] = useState<Exhibitor[]>([]);
+  const [dbSponsors, setDbSponsors] = useState<Sponsor[]>([]);
   const [selectedExhibitor, setSelectedExhibitor] = useState<Exhibitor | null>(null);
 
   useEffect(() => {
@@ -32,6 +34,7 @@ export const PreEventView = ({ event }: { event: EventData }) => {
 
   useEffect(() => {
     getExhibitors(event.id).then(setDbExhibitors).catch(() => {});
+    getSponsors(event.id).then(setDbSponsors).catch(() => {});
   }, [event.id]);
 
   // Mapeia Exhibitor (tabela) para o formato PartnerItem
@@ -53,6 +56,19 @@ export const PreEventView = ({ event }: { event: EventData }) => {
   // Fallback para o JSONB legado enquanto a migração não foi executada
   const exhibitorSource = dbExhibitors.length > 0 ? exhibitorItems : (event.exhibitors || []);
 
+  const sponsorItems = dbSponsors.map(s => ({
+    id: s.id,
+    name: s.name,
+    bio: s.description ?? '',
+    photos: s.photos,
+    socials: {
+      instagram: s.instagram_url ?? undefined,
+      whatsapp: s.whatsapp ?? undefined,
+      website: s.website_url ?? undefined,
+    },
+  }));
+  const sponsorSource = dbSponsors.length > 0 ? sponsorItems : (event.sponsors || []);
+
   const handleViewCatalog = (item: { id?: string }) => {
     const found = dbExhibitors.find(ex => ex.id === item.id);
     if (found) setSelectedExhibitor(found);
@@ -62,19 +78,19 @@ export const PreEventView = ({ event }: { event: EventData }) => {
     <div className="max-w-6xl mx-auto p-4 md:p-12 space-y-12 md:space-y-24">
       {/* Countdown Hero */}
       <div
-        className="text-white rounded-2xl p-10 md:p-20 text-center shadow-xl relative overflow-hidden group"
+        className="text-white rounded-2xl p-5 md:p-20 text-center shadow-xl relative overflow-hidden group"
         style={{ backgroundColor: event.primary_color || '#171717' }}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/5 pointer-events-none" />
         <div className="relative z-10">
           <p
-            className="text-[10px] md:text-xs uppercase tracking-[0.4em] font-black opacity-60 mb-8 md:mb-10"
+            className="text-[9px] md:text-xs uppercase tracking-[0.4em] font-black opacity-60 mb-4 md:mb-10"
             style={{ color: event.secondary_color || '#ffffff' }}
           >
             O evento começa em
           </p>
           <div
-            className="flex flex-wrap justify-center items-center gap-6 md:gap-16"
+            className="flex flex-wrap justify-center items-center gap-4 md:gap-16"
             style={{ color: event.secondary_color || '#ffffff' }}
           >
             {[
@@ -88,11 +104,11 @@ export const PreEventView = ({ event }: { event: EventData }) => {
                     :
                   </span>
                 )}
-                <div className="flex flex-col items-center min-w-[80px] md:min-w-[120px]">
-                  <span className="text-6xl md:text-8xl font-black tracking-tighter tabular-nums leading-none">
+                <div className="flex flex-col items-center min-w-[56px] md:min-w-[120px]">
+                  <span className="text-[2.5rem] md:text-8xl font-black tracking-tighter tabular-nums leading-none">
                     {value.toString().padStart(2, '0')}
                   </span>
-                  <span className="text-[10px] md:text-xs uppercase font-bold opacity-50 tracking-widest mt-3 md:mt-4">
+                  <span className="text-[9px] md:text-xs uppercase font-bold opacity-50 tracking-widest mt-2 md:mt-4">
                     {label}
                   </span>
                 </div>
@@ -111,7 +127,7 @@ export const PreEventView = ({ event }: { event: EventData }) => {
         />
         <PartnerSection
           title="Patrocinadores"
-          items={event.sponsors || []}
+          items={sponsorSource}
           icon={<Star className="w-5 h-5" />}
         />
         <PartnerSection

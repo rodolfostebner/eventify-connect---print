@@ -8,6 +8,7 @@ import OperatorPanel from "./pages/OperatorPanel"
 import ExhibitorPanelPage from "./pages/ExhibitorPanelPage"
 import ExhibitorLoginPage from "./pages/ExhibitorLoginPage"
 import ExhibitorPortalPage from "./pages/ExhibitorPortalPage"
+import SponsorPanelPage from "./pages/SponsorPanelPage"
 import { Toaster } from "sonner"
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
         <Route path="/moderation/:slug" element={user ? <ModerationPanel user={user} /> : <Navigate to="/" replace />} />
         <Route path="/operator/:slug" element={user ? <OperatorPanel user={user} /> : <Navigate to="/" replace />} />
         <Route path="/expositores/:slug" element={user ? <ExhibitorPanelPage /> : <Navigate to="/" replace />} />
+        <Route path="/patrocinadores/:slug" element={user ? <SponsorPanelPage /> : <Navigate to="/" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

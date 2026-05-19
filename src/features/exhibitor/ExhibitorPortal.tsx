@@ -8,9 +8,9 @@ import { toast } from 'sonner';
 import { useExhibitorAuth } from '../../hooks/useExhibitorAuth';
 import { updateExhibitor } from '../../services/exhibitorService';
 import { getProducts, createProduct, updateProduct, deactivateProduct } from '../../services/productService';
-import { getLeads } from '../../services/leadService';
+import { getLeads, updateLeadStatus } from '../../services/leadService';
 import { uploadImage } from '../../services/storageService';
-import type { Product, Lead } from '../../types';
+import type { Product, Lead, LeadStatus } from '../../types';
 
 const MAX_PRODUCT_PHOTOS = 3;
 
@@ -27,7 +27,9 @@ function PerfilTab({ exhibitor, onUpdated }: { exhibitor: NonNullable<ReturnType
     website_url: exhibitor.website_url || '',
   });
   const [logo, setLogo] = useState(exhibitor.logo_url || '');
+  const [photo, setPhoto] = useState(exhibitor.photo_url || '');
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -45,6 +47,21 @@ function PerfilTab({ exhibitor, onUpdated }: { exhibitor: NonNullable<ReturnType
     }
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadImage(file);
+      setPhoto(url);
+    } catch {
+      toast.error('Erro ao fazer upload da foto do stand');
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = '';
+    }
+  };
+
   const handleSave = async () => {
     if (!form.name.trim()) return toast.error('Nome obrigatório');
     setSaving(true);
@@ -53,6 +70,7 @@ function PerfilTab({ exhibitor, onUpdated }: { exhibitor: NonNullable<ReturnType
         name: form.name.trim(),
         description: form.description.trim() || null,
         logo_url: logo || null,
+        photo_url: photo || null,
         instagram_url: form.instagram_url.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
         website_url: form.website_url.trim() || null,
@@ -83,6 +101,30 @@ function PerfilTab({ exhibitor, onUpdated }: { exhibitor: NonNullable<ReturnType
             : <Upload className="w-4 h-4" />}
           {uploadingLogo ? 'Enviando...' : 'Alterar logo'}
           <input type="file" accept="image/*" className="sr-only" onChange={handleLogoUpload} disabled={uploadingLogo} />
+        </label>
+      </div>
+
+      {/* Foto do stand */}
+      <div>
+        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider block mb-1.5">Foto do stand</label>
+        <p className="text-[10px] text-neutral-400 mb-2">Exibida como banner no card do feed</p>
+        {photo && (
+          <div className="relative mb-2 rounded-2xl overflow-hidden aspect-video bg-neutral-100 border border-neutral-100">
+            <img src={photo} className="w-full h-full object-cover" />
+            <button
+              onClick={() => setPhoto('')}
+              className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+        <label className="flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-semibold cursor-pointer transition-colors w-fit">
+          {uploadingPhoto
+            ? <div className="w-4 h-4 border-2 border-neutral-400 border-t-neutral-700 rounded-full animate-spin" />
+            : <Upload className="w-4 h-4" />}
+          {uploadingPhoto ? 'Enviando...' : photo ? 'Alterar foto' : 'Adicionar foto'}
+          <input type="file" accept="image/*" className="sr-only" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
         </label>
       </div>
 
@@ -350,15 +392,65 @@ function ProdutosTab({ exhibitorId }: { exhibitorId: string }) {
   );
 }
 
+// ─── Leads helpers ────────────────────────────────────────────────────────────
+
+const LEAD_STATUS_LABEL: Record<LeadStatus, string> = {
+  novo: 'Novo',
+  atendido: 'Atendido',
+  pago: 'Pago',
+  retirado: 'Retirado',
+};
+
+const LEAD_STATUS_STYLE: Record<LeadStatus, string> = {
+  novo: 'bg-blue-100 text-blue-700',
+  atendido: 'bg-amber-100 text-amber-700',
+  pago: 'bg-green-100 text-green-700',
+  retirado: 'bg-neutral-100 text-neutral-500',
+};
+
+function exportLeadsCSV(leads: Lead[], exhibitorName: string) {
+  const BOM = '﻿';
+  const header = ['Nome', 'Telefone', 'Produto', 'Status', 'Data'];
+  const rows = leads.map(l => [
+    l.customer_name,
+    l.customer_phone,
+    l.product?.name ?? '',
+    LEAD_STATUS_LABEL[l.status] ?? l.status,
+    new Date(l.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+  ]);
+  const csv = BOM + [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `leads_${exhibitorName.toLowerCase().replace(/\s+/g, '_')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── Leads Tab (Expositor) ─────────────────────────────────────────────────────
 
-function LeadsTabExpositor({ exhibitorId }: { exhibitorId: string }) {
+function LeadsTabExpositor({ exhibitorId, exhibitorName }: { exhibitorId: string; exhibitorName: string }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = () =>
     getLeads(exhibitorId).then(setLeads).catch(() => {}).finally(() => setLoading(false));
-  }, [exhibitorId]);
+
+  useEffect(() => { load(); }, [exhibitorId]);
+
+  const handleStatusChange = async (lead: Lead, status: LeadStatus) => {
+    setUpdatingId(lead.id);
+    try {
+      await updateLeadStatus(lead.id, status);
+      setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, status } : l));
+    } catch {
+      toast.error('Erro ao atualizar status');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -370,7 +462,21 @@ function LeadsTabExpositor({ exhibitorId }: { exhibitorId: string }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-neutral-500">{leads.length} interesse{leads.length !== 1 ? 's' : ''} registrado{leads.length !== 1 ? 's' : ''}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-neutral-500">{leads.length} interesse{leads.length !== 1 ? 's' : ''} registrado{leads.length !== 1 ? 's' : ''}</p>
+        {leads.length > 0 && (
+          <button
+            onClick={() => exportLeadsCSV(leads, exhibitorName)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Exportar Excel
+          </button>
+        )}
+      </div>
+
       {leads.length === 0 ? (
         <div className="text-center py-12 text-neutral-400">
           <Phone className="w-10 h-10 mx-auto mb-3 opacity-30" />
@@ -380,22 +486,29 @@ function LeadsTabExpositor({ exhibitorId }: { exhibitorId: string }) {
       ) : (
         leads.map(lead => (
           <div key={lead.id} className="p-4 border border-neutral-100 rounded-2xl bg-white shadow-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm text-neutral-900">{lead.customer_name}</p>
                 <p className="text-sm text-neutral-600 font-medium">{lead.customer_phone}</p>
                 {lead.product?.name && (
                   <p className="text-xs text-neutral-400 mt-0.5">Produto: {lead.product.name}</p>
                 )}
+                <p className="text-[10px] text-neutral-400 mt-1">
+                  {new Date(lead.created_at).toLocaleDateString('pt-BR', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                  })}
+                </p>
               </div>
-              <p className="text-[10px] text-neutral-400 shrink-0 whitespace-nowrap">
-                {new Date(lead.created_at).toLocaleDateString('pt-BR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </p>
+              <select
+                value={lead.status ?? 'novo'}
+                disabled={updatingId === lead.id}
+                onChange={e => handleStatusChange(lead, e.target.value as LeadStatus)}
+                className={`shrink-0 text-xs font-bold px-2 py-1 rounded-lg border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-neutral-900/20 disabled:opacity-50 ${LEAD_STATUS_STYLE[lead.status ?? 'novo']}`}
+              >
+                {(Object.keys(LEAD_STATUS_LABEL) as LeadStatus[]).map(s => (
+                  <option key={s} value={s}>{LEAD_STATUS_LABEL[s]}</option>
+                ))}
+              </select>
             </div>
           </div>
         ))
@@ -509,7 +622,7 @@ export default function ExhibitorPortal() {
           <PerfilTab exhibitor={exhibitor} onUpdated={() => setRefreshKey(k => k + 1)} />
         )}
         {tab === 'produtos' && <ProdutosTab key={refreshKey} exhibitorId={exhibitor.id} />}
-        {tab === 'leads' && <LeadsTabExpositor exhibitorId={exhibitor.id} />}
+        {tab === 'leads' && <LeadsTabExpositor exhibitorId={exhibitor.id} exhibitorName={exhibitor.name} />}
       </div>
     </div>
   );

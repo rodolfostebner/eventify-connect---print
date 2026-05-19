@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 
 import { LayoutDashboard, Plus, LogOut, Calendar, Settings, Eye, Trash2, CheckCircle2, Play, Pause, ShieldCheck, Palette, X as CloseIcon, Share2, Copy, Check, Upload, Loader2, FileText } from 'lucide-react';
+import { EventCard } from './components/EventCard';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { motion, AnimatePresence } from 'motion/react';
@@ -29,6 +30,7 @@ export default function AdminDashboard({ user }: { user: User | null }) {
   const summaryFileInputRef = useRef<HTMLInputElement>(null);
   const [newEventName, setNewEventName] = useState('');
   const [newEventSlug, setNewEventSlug] = useState('');
+  const [creatingNew, setCreatingNew] = useState(false);
   const [brandingForm, setBrandingForm] = useState({
     name: '',
     logo_url: '',
@@ -172,6 +174,7 @@ export default function AdminDashboard({ user }: { user: User | null }) {
       toast.success(`Evento criado! Acesse /evento/${newEventSlug}`);
       setNewEventName('');
       setNewEventSlug('');
+      setCreatingNew(false);
     } catch (e: any) {
       if (e?.message === 'SLUG_TAKEN') {
         toast.error('Este slug já está em uso. Escolha outro.');
@@ -303,172 +306,112 @@ export default function AdminDashboard({ user }: { user: User | null }) {
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 p-6">
-      <header className="max-w-4xl mx-auto flex items-center justify-between mb-12">
+    <div className="min-h-screen bg-neutral-50">
+      {/* Header */}
+      <header className="bg-white border-b border-neutral-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-neutral-500 text-sm">Bem-vindo, {user.displayName}</p>
+          <h1 className="text-xl font-bold text-neutral-900">Dashboard</h1>
+          <p className="text-xs text-neutral-400">Bem-vindo, {user.displayName}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <img 
-            src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'A'}&background=random`} 
-            className="w-10 h-10 rounded-full border border-neutral-200"
+        <div className="flex items-center gap-2">
+          <img
+            src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'A'}&background=random`}
+            className="w-9 h-9 rounded-full border border-neutral-200"
             referrerPolicy="no-referrer"
-            onError={(e) => {
-              e.currentTarget.src = `https://ui-avatars.com/api/?name=${user.displayName || 'A'}&background=random`;
-            }}
+            onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${user.displayName || 'A'}&background=random`; }}
           />
           <button onClick={logout} className="p-2 text-neutral-400 hover:text-red-500 transition-colors" title="Sair">
-            <LogOut className="w-6 h-6" />
+            <LogOut className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setCreatingNew(true)}
+            title="Novo evento"
+            className="p-2 rounded-xl bg-neutral-900 text-white hover:bg-neutral-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
           </button>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto grid gap-6 md:grid-cols-2">
-        <div className="bg-white p-8 rounded-3xl border border-neutral-200 shadow-sm">
-          <div className="w-12 h-12 bg-neutral-100 rounded-2xl flex items-center justify-center mb-6">
-            <Plus className="w-6 h-6 text-neutral-900" />
-          </div>
-          <h2 className="text-xl font-bold mb-2">Novo Evento</h2>
-          <p className="text-neutral-500 text-sm mb-6">Crie um novo evento e comece a engajar seu público.</p>
-          <div className="space-y-4 mb-6">
-            <div>
-              <label className="block text-xs font-bold text-neutral-500 mb-1">Nome do Evento</label>
-              <input 
-                type="text" 
-                value={newEventName}
-                onChange={(e) => setNewEventName(e.target.value)}
-                placeholder="Ex: Casamento João e Maria"
-                className="w-full p-3 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900"
-              />
+      <main className="p-6 space-y-6">
+        {/* Grade de eventos */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {/* Card de criação inline */}
+          {creatingNew && (
+            <div className="bg-white rounded-2xl border-2 border-dashed border-neutral-200 p-5 space-y-3 shadow-sm">
+              <p className="text-sm font-bold text-neutral-900">Novo Evento</p>
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Nome</label>
+                <input
+                  type="text"
+                  value={newEventName}
+                  onChange={(e) => setNewEventName(e.target.value)}
+                  placeholder="Ex: Feira de Negócios 2026"
+                  autoFocus
+                  onKeyDown={(e) => e.key === 'Enter' && createDemoEvent()}
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Slug (URL)</label>
+                <input
+                  type="text"
+                  value={newEventSlug}
+                  onChange={(e) => setNewEventSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                  placeholder="feira-negocios-2026"
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+                />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={createDemoEvent}
+                  disabled={loading || !newEventName || !newEventSlug}
+                  className="flex-1 py-2 bg-neutral-900 text-white text-sm font-bold rounded-lg disabled:opacity-50 hover:bg-neutral-700 transition-colors"
+                >
+                  {loading ? 'Criando...' : 'Criar'}
+                </button>
+                <button
+                  onClick={() => { setCreatingNew(false); setNewEventName(''); setNewEventSlug(''); }}
+                  className="px-4 py-2 bg-neutral-100 text-neutral-600 text-sm font-bold rounded-lg hover:bg-neutral-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-bold text-neutral-500 mb-1">Slug (URL)</label>
-              <input 
-                type="text" 
-                value={newEventSlug}
-                onChange={(e) => setNewEventSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
-                placeholder="Ex: casamento-joao-maria"
-                className="w-full p-3 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900"
-              />
+          )}
+
+          {events.map((event) => (
+            <EventCard
+              key={event.id}
+              event={event}
+              onUpdateStatus={updateStatus}
+              onShare={setSharingEvent}
+              onEdit={openBrandingModal}
+              onDelete={handleDeleteEvent}
+            />
+          ))}
+
+          {events.length === 0 && !creatingNew && (
+            <div className="col-span-full flex flex-col items-center justify-center py-24 text-neutral-300">
+              <Calendar className="w-12 h-12 mb-3" />
+              <p className="text-sm font-semibold">Nenhum evento ainda</p>
+              <p className="text-xs mt-1">Clique no + para criar seu primeiro evento</p>
             </div>
-          </div>
-          <button 
-            onClick={createDemoEvent}
-            disabled={loading || !newEventName || !newEventSlug}
-            className="w-full px-6 py-3 bg-neutral-900 text-white rounded-xl font-bold disabled:opacity-50"
-          >
-            {loading ? 'Criando...' : 'Criar Evento'}
-          </button>
+          )}
         </div>
 
-        <div className="bg-white p-8 rounded-3xl border border-neutral-200 shadow-sm">
-          <div className="w-12 h-12 bg-neutral-100 rounded-2xl flex items-center justify-center mb-6">
-            <Calendar className="w-6 h-6 text-neutral-900" />
-          </div>
-          <h2 className="text-xl font-bold mb-6">Meus Eventos</h2>
-          
-          <div className="space-y-4">
-            {events.length === 0 ? (
-              <div className="text-xs font-bold text-neutral-300 uppercase tracking-widest">Nenhum evento encontrado</div>
-            ) : (
-              events.map((event) => (
-                <div key={event.id} className="p-4 rounded-2xl border border-neutral-100 bg-neutral-50 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold text-sm">{event.name}</h3>
-                      <p className="text-[10px] text-neutral-400 uppercase font-bold tracking-tighter">/{event.slug}</p>
-                    </div>
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                      event.status === 'pre' ? 'bg-blue-100 text-blue-600' :
-                      event.status === 'live' ? 'bg-red-100 text-red-600 animate-pulse' :
-                      'bg-neutral-200 text-neutral-600'
-                    }`}>
-                      {event.status}
-                    </span>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => updateStatus(event.id, 'pre')}
-                      className={`flex-1 py-2 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors ${event.status === 'pre' ? 'bg-blue-600 text-white' : 'bg-white text-neutral-600 border border-neutral-200'}`}
-                    >
-                      <Pause className="w-3 h-3" /> PRE
-                    </button>
-                    <button 
-                      onClick={() => updateStatus(event.id, 'live')}
-                      className={`flex-1 py-2 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors ${event.status === 'live' ? 'bg-red-600 text-white' : 'bg-white text-neutral-600 border border-neutral-200'}`}
-                    >
-                      <Play className="w-3 h-3" /> LIVE
-                    </button>
-                    <button 
-                      onClick={() => updateStatus(event.id, 'post')}
-                      className={`flex-1 py-2 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 transition-colors ${event.status === 'post' ? 'bg-neutral-600 text-white' : 'bg-white text-neutral-600 border border-neutral-200'}`}
-                    >
-                      <CheckCircle2 className="w-3 h-3" /> POST
-                    </button>
-                  </div>
-
-                  <div className="flex gap-2 pt-2 border-t border-neutral-200">
-                    <button 
-                      onClick={() => window.open(`/evento/${event.slug}`, '_blank')}
-                      className="flex-1 py-2 bg-white border border-neutral-200 rounded-lg text-[10px] font-bold text-neutral-600 flex items-center justify-center gap-1"
-                    >
-                      <Eye className="w-3 h-3" /> VER APP
-                    </button>
-                    <button 
-                      onClick={() => window.open(`/evento/${event.slug}/tv`, '_blank')}
-                      className="flex-1 py-2 bg-white border border-neutral-200 rounded-lg text-[10px] font-bold text-neutral-600 flex items-center justify-center gap-1"
-                    >
-                      <LayoutDashboard className="w-3 h-3" /> TV
-                    </button>
-                    <button 
-                      onClick={() => window.open(`/evento/${event.slug}/moderation`, '_blank')}
-                      className="flex-1 py-2 bg-blue-50 border border-blue-100 rounded-lg text-[10px] font-bold text-blue-600 flex items-center justify-center gap-1"
-                    >
-                      <ShieldCheck className="w-3 h-3" /> CURADORIA
-                    </button>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => setSharingEvent(event)}
-                      className="flex-1 py-2 bg-white border border-neutral-200 rounded-lg text-[10px] font-bold text-neutral-600 flex items-center justify-center gap-1 hover:bg-neutral-50"
-                    >
-                      <Share2 className="w-3 h-3" /> COMPARTILHAR
-                    </button>
-                    <button 
-                      onClick={() => openBrandingModal(event)}
-                      className="flex-1 py-2 bg-neutral-100 rounded-lg text-[10px] font-bold text-neutral-600 flex items-center justify-center gap-1 hover:bg-neutral-200"
-                    >
-                      <Settings className="w-3 h-3" /> CONFIGURAÇÕES
-                    </button>
-                    <button
-                      onClick={() => handleDeleteEvent(event.id)}
-                      className="flex-1 py-2 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-red-100"
-                    >
-                      <Trash2 className="w-3 h-3" /> EXCLUIR
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Security / Password section */}
-        <div className="bg-white p-8 rounded-3xl border border-neutral-200 shadow-sm md:col-span-2">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 bg-neutral-100 rounded-2xl flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6 text-neutral-900" />
+        {/* Segurança da Conta */}
+        <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-neutral-100 rounded-xl flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-5 h-5 text-neutral-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold">Segurança da Conta</h2>
-              <p className="text-neutral-500 text-sm">Defina uma senha para acessar o painel sem depender de e-mail.</p>
+              <p className="font-bold text-sm text-neutral-900">Segurança da Conta</p>
+              <p className="text-xs text-neutral-400">Defina uma senha para acessar o painel sem depender de e-mail.</p>
             </div>
           </div>
-          
-          <form 
+          <form
             onSubmit={async (e) => {
               e.preventDefault();
               if (!newPassword) return;
@@ -484,21 +427,21 @@ export default function AdminDashboard({ user }: { user: User | null }) {
                 setIsUpdatingPassword(false);
               }
             }}
-            className="flex flex-col sm:flex-row gap-4"
+            className="flex flex-col sm:flex-row gap-3"
           >
-            <input 
+            <input
               type="password"
               placeholder="Nova senha permanente"
               required
               minLength={6}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="flex-1 p-3 rounded-xl border border-neutral-200 focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
             />
-            <button 
+            <button
               type="submit"
               disabled={isUpdatingPassword || !newPassword}
-              className="px-8 py-3 bg-neutral-900 text-white rounded-xl font-bold disabled:opacity-50 whitespace-nowrap"
+              className="px-6 py-2 bg-neutral-900 text-white text-sm font-bold rounded-lg disabled:opacity-50 hover:bg-neutral-700 transition-colors whitespace-nowrap"
             >
               {isUpdatingPassword ? 'Salvando...' : 'Salvar Senha'}
             </button>
