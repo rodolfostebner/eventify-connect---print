@@ -18,16 +18,16 @@ export const useCategoryGroups = (photos: PhotoData[], event: EventData) => {
     }
 
     const mostFunny = [...approved]
-      .filter(p => (p.reactions?.['😂'] || 0) > 0)
-      .sort((a, b) => (b.reactions?.['😂'] || 0) - (a.reactions?.['😂'] || 0))
+      .filter(p => (p.reaction_counts?.['😂'] || 0) > 0)
+      .sort((a, b) => (b.reaction_counts?.['😂'] || 0) - (a.reaction_counts?.['😂'] || 0))
       .slice(0, 5);
     if (mostFunny.length > 0) {
       categories.push({ title: 'Mais Divertida 😂', photos: mostFunny });
     }
 
     const specialMoment = [...approved]
-      .filter(p => (p.reactions?.['✨'] || 0) > 0)
-      .sort((a, b) => (b.reactions?.['✨'] || 0) - (a.reactions?.['✨'] || 0))
+      .filter(p => (p.reaction_counts?.['✨'] || 0) > 0)
+      .sort((a, b) => (b.reaction_counts?.['✨'] || 0) - (a.reaction_counts?.['✨'] || 0))
       .slice(0, 5);
     if (specialMoment.length > 0) {
       categories.push({ title: 'Momento Especial ✨', photos: specialMoment });

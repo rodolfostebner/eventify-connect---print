@@ -74,8 +74,7 @@ export const usePhotoUpload = (event: EventData, user: AppUser | null) => {
       await createPost({
         eventId: event.id,
         url: publicUrl,
-        user_name: user?.display_name || 'Anônimo',
-        firebase_uid: user?.id,
+        user_id: user?.id,
         status: event.comment_moderation_enabled
           ? 'pending'
           : 'approved'

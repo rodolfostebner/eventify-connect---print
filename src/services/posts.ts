@@ -138,7 +138,7 @@ export async function createPost(post: Partial<PostData>): Promise<PostData> {
   const { data, error } = await supabase
     .from('posts')
     .insert([row])
-    .select('*, reactions(*), comments(*)')
+    .select('*')
     .single();
 
   if (error) throw error;

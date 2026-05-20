@@ -57,12 +57,9 @@ export const useAdminActions = (event: EventData | null) => {
         await createPost({
           eventId: event.id,
           url: publicUrl,
-          user_name: 'Equipe Oficial',
-          firebase_uid: 'admin',
+          user_id: 'official',
           status: 'approved',
           is_official: true,
-          likes: 0,
-          comments: []
         });
         
         successCount++;
