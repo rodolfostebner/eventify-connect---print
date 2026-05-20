@@ -144,7 +144,7 @@ export const PhotoModal = ({
                     </div>
                   </div>
                   
-                  {(isAdmin || (user && (photo.user_id === user.id || photo.firebase_uid === user.id))) && onDeletePhoto && (
+                  {(isAdmin || (user && photo.user_id === user.id)) && onDeletePhoto && (
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();

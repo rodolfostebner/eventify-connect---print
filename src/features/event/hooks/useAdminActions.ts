@@ -14,11 +14,9 @@ export const useAdminActions = (event: EventData | null) => {
       await updatePostStatus(photo.id, 'approved');
       toast.success('Foto aprovada!');
       
-      // Notify user if possible (requires user_id or firebase_uid)
-      const userId = (photo as any).user_id || photo.firebase_uid;
-      if (userId && event) {
+      if (photo.user_id && event) {
         await createNotification({
-          userId: userId,
+          userId: photo.user_id,
           title: 'Foto Aprovada!',
           body: 'Sua foto foi aprovada e já está na galeria do evento.',
           link: `/${event.slug}`,

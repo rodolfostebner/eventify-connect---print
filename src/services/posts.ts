@@ -42,7 +42,6 @@ function mapRowToPostData(row: any): PostData {
     // Legacy fallback bindings
     url: row.image_url,
     eventId: row.event_id,
-    firebase_uid: row.user_id,
     user_name: 'Anônimo',
     likes: reactionCounts['🔥'] || 0,
     reacted_users: reactedUsers,
@@ -128,7 +127,7 @@ export async function createPost(post: Partial<PostData>): Promise<PostData> {
 
   const row = {
     event_id: post.eventId || post.event_id,
-    user_id: post.firebase_uid || post.user_id,
+    user_id: post.user_id,
     image_url: post.url || post.image_url,
     status: post.status || 'pending',
     is_official: post.is_official || false,

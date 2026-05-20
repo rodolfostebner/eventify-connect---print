@@ -115,9 +115,8 @@ export interface PostData {
   reaction_counts?: Record<string, number>;
 
   // --- Legacy Mappings (Temporário para UI não quebrar) ---
-  url?: string; 
+  url?: string;
   user_name?: string;
-  firebase_uid?: string;
   eventId?: string;
   likes?: number;
   timestamp?: any;
