@@ -51,6 +51,36 @@ function mapRowToPostData(row: any): PostData {
 }
 
 /**
+ * Anexa reactions e comments (fetch separado — sem depender de FK no PostgREST)
+ */
+async function attachInteractions(rows: any[]): Promise<any[]> {
+  if (!supabase || rows.length === 0) return rows;
+
+  const postIds = rows.map(r => r.id);
+
+  const [{ data: reactions }, { data: comments }] = await Promise.all([
+    supabase.from('reactions').select('*').in('post_id', postIds),
+    supabase.from('comments').select('*').in('post_id', postIds),
+  ]);
+
+  const reactionsByPost: Record<string, any[]> = {};
+  (reactions || []).forEach(r => {
+    (reactionsByPost[r.post_id] ||= []).push(r);
+  });
+
+  const commentsByPost: Record<string, any[]> = {};
+  (comments || []).forEach(c => {
+    (commentsByPost[c.post_id] ||= []).push(c);
+  });
+
+  return rows.map(r => ({
+    ...r,
+    reactions: reactionsByPost[r.id] || [],
+    comments: commentsByPost[r.id] || [],
+  }));
+}
+
+/**
  * Fetch all approved posts for a specific event.
  */
 export async function fetchPosts(eventId: string): Promise<PostData[]> {
@@ -68,7 +98,8 @@ export async function fetchPosts(eventId: string): Promise<PostData[]> {
     throw error;
   }
 
-  return (data || []).map(mapRowToPostData);
+  const withInteractions = await attachInteractions(data || []);
+  return withInteractions.map(mapRowToPostData);
 }
 
 /**
@@ -84,7 +115,9 @@ export async function fetchAllPosts(eventId: string): Promise<PostData[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return (data || []).map(mapRowToPostData);
+
+  const withInteractions = await attachInteractions(data || []);
+  return withInteractions.map(mapRowToPostData);
 }
 
 /**
