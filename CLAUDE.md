@@ -14,9 +14,7 @@ Projeto criado pelo Google AI App (Firebase Studio / Project IDX). Denis colabor
 
 - **Frontend**: React 19 + TypeScript 5.8 + Vite 6 + Tailwind CSS 4
 - **Database/Realtime**: Supabase (PostgreSQL + Realtime subscriptions)
-- **Auth (dual)**:
-  - Firebase Google OAuth — admins e participantes
-  - Supabase Auth (email/senha) — expositores (dominio virtual `expo.eventify.app`)
+- **Auth**: Supabase Auth unificado — Google OAuth + Magic Link para todos os perfis. BETA_MODE ignora Supabase Auth e autentica por email direto na tabela `users` (para desenvolvimento sem OAuth configurado)
 - **Storage**: Cloudflare R2 (upload direto via presigned URL gerada por Edge Function)
 - **UI**: Motion/Framer (animacoes), lucide-react (icones), sonner (toasts), date-fns (datas PT-BR)
 - **Deploy**: Vercel (SPA rewrite via vercel.json)
@@ -44,17 +42,12 @@ npm run test:e2e       # testes E2E (Playwright)
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
 
-# Firebase
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_APP_ID=
-
 # Cloudflare R2
 VITE_R2_PUBLIC_URL=
 
 # Opcional
 VITE_APP_URL=          # default: window.location.origin
+VITE_BETA_MODE=true    # true = login por email sem OAuth (dev); false = Google OAuth + Magic Link (prod)
 ```
 
 Edge Functions (Supabase): `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`
@@ -65,7 +58,7 @@ Edge Functions (Supabase): `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCES
 
 ```
 src/
-  App.tsx                  # Rotas (Firebase Admin + Supabase Expositor + publicas)
+  App.tsx                  # Rotas por perfil (admin, event_admin, avaliador, expositor, participant + publicas)
   main.tsx                 # Entry point React 19
   index.css                # Estilos globais Tailwind 4 (@layer directives)
 
@@ -74,45 +67,48 @@ src/
 
   types/
     index.ts               # Todos os tipos TS
-                           # ExhibitorSponsor — tipo legado (JSON em events.exhibitors[])
-                           # Exhibitor — tipo novo (tabela dedicada)
-                           # EventData, PostData, PhotoData, PrintOrder,
-                           # ExhibitorUser, Product, Lead, NotificationData
+                           # ExhibitorSponsor — tipo legado (JSON em events.services[])
+                           # Exhibitor, AppUser, UserRole, UserEmailRole — schema normalizado
+                           # EventData, PostData, PhotoData, PrintOrder, Product, Lead, Sponsor
 
   lib/
-    firebase/client.ts     # Firebase Auth + googleProvider
     supabase/client.ts     # Supabase client (null-safe se sem .env)
     utils.ts               # cn(), getAppUrl()
 
   services/
+    authService.ts         # Login Google OAuth + Magic Link + logout (Supabase Auth)
+    userService.ts         # syncUser, findOrCreateUserByEmail, CRUD users, pré-cadastro email roles
     eventService.ts        # CRUD eventos + subscriptions realtime
-    posts.ts               # LEGADO: aponta para tabela `photos` (nao migrou)
+    posts.ts               # CRUD posts + reactions + comments (tabelas posts, reactions, comments)
     printService.ts        # Pedidos de impressao (usa photo_ids array — legado parcial)
     storageService.ts      # Upload R2 via Edge Function get-r2-upload-url
-    userService.ts         # Sync Firebase -> Supabase (createUserIfNotExists)
     notificationService.ts # CRUD + subscribe notificacoes
     exhibitorService.ts    # CRUD expositores + subscription realtime (tabela exhibitors)
-    exhibitorAuthService.ts# Supabase Auth para expositores: login, criar user, reset senha
     productService.ts      # CRUD produtos do expositor (tabela products)
     leadService.ts         # Criar/listar leads de pre-venda (tabela leads)
-    authService.ts         # ORFAO: codigo de Supabase Auth — remover
+    sponsorService.ts      # CRUD patrocinadores (tabela sponsors)
+
+  contexts/
+    AuthContext.tsx         # AuthProvider + useAuth + BETA_MODE — re-exportado em hooks/useAuth.ts
 
   hooks/
-    useAuth.ts             # Firebase onAuthStateChanged + createUserIfNotExists
+    useAuth.ts             # Re-exporta AuthContext: user (AppUser), loading, login, loginMagic, loginBeta, logout
     useEvent.ts            # subscribeToEvent por slug
     useEvents.ts           # subscribeToEvents (todos os eventos)
-    usePosts.ts            # fetchPosts + subscribe (tabela photos — legado)
-    useExhibitorAuth.ts    # Supabase onAuthStateChange + getExhibitorByUserId
+    usePosts.ts            # fetchPosts + subscribe (tabela posts)
 
   pages/                   # Re-exportam features/ (thin wrappers)
     AdminDashboard.tsx
     EventPage.tsx
+    LoginPage.tsx
     ModerationPanel.tsx
     OperatorPanel.tsx
     TVView.tsx
     ExhibitorPanelPage.tsx   # Admin: gestao de expositores do evento
-    ExhibitorLoginPage.tsx   # Expositor: tela de login
     ExhibitorPortalPage.tsx  # Expositor: portal pos-login
+    SponsorPanelPage.tsx     # Admin: gestao de patrocinadores
+    EventAdminPortalPage.tsx # EventAdmin: portal de administracao do evento (stub)
+    AvaliadorPage.tsx        # Avaliador: painel de avaliacao (stub)
 
   features/
     admin/
@@ -158,9 +154,20 @@ src/
     exhibitors/
       ExhibitorPanel.tsx   # Admin: sidebar com lista + detail (tabs: dados/produtos/usuarios/leads)
 
+    auth/
+      LoginPage.tsx        # Login unificado: Google OAuth + Magic Link + Beta mode
+
     exhibitor/
-      ExhibitorLogin.tsx   # Tela de login Supabase Auth para expositores
       ExhibitorPortal.tsx  # Portal do expositor (tabs: perfil/produtos/leads)
+
+    eventAdmin/
+      EventAdminPortal.tsx # Portal do EventAdmin (stub — a implementar)
+
+    avaliador/
+      AvaliadorPage.tsx    # Painel do avaliador (stub — a implementar)
+
+    sponsors/
+      SponsorPanel.tsx     # Admin: CRUD patrocinadores do evento
 
     moderation/
       ModerationPanel.tsx  # Painel de curadoria
@@ -191,13 +198,10 @@ supabase/
   functions/
     get-r2-upload-url/
       index.ts             # Edge Function Deno: gera presigned URL para R2 (5 min)
-      deno.json
-    create-exhibitor-user/
-      index.ts             # Edge Function Deno: cria usuario Supabase Auth para expositor
-      deno.json
-    reset-exhibitor-password/
-      index.ts             # Edge Function Deno: reseta senha de usuario expositor
-      deno.json
+    create-event-role-user/
+      index.ts             # Edge Function Deno: cria usuario Supabase Auth para qualquer perfil
+    reset-event-role-password/
+      index.ts             # Edge Function Deno: reseta senha de usuario por perfil
 
 tests/
   smoke.spec.ts
@@ -216,36 +220,36 @@ docs/
 
 | Rota | Acesso | Componente | Status |
 |------|--------|------------|--------|
-| `/` | Admin (Firebase Auth) | AdminDashboard | Ativo |
+| `/login` | Publico | LoginPage | Ativo |
+| `/` | Admin | AdminDashboard | Ativo |
 | `/admin` | — | Redireciona para `/` | — |
 | `/event/:slug` | Publico | EventPage (3 views por status) | Ativo |
 | `/tv/:slug` | Publico | TVView (slideshow fullscreen) | Ativo |
-| `/moderation/:slug` | Admin (Firebase) | ModerationPanel | Ativo |
-| `/operator/:slug` | Admin (Firebase) | OperatorPanel | UI incompleta |
-| `/expositores/:slug` | Admin (Firebase) | ExhibitorPanelPage | Ativo |
-| `/expositor/login` | Publico | ExhibitorLoginPage | Ativo |
-| `/expositor` | Expositor (Supabase Auth) | ExhibitorPortalPage | Ativo |
+| `/moderation/:slug` | Admin | ModerationPanel | Ativo |
+| `/operator/:slug` | Admin | OperatorPanel | UI incompleta |
+| `/expositores/:slug` | Admin | ExhibitorPanelPage | Ativo |
+| `/patrocinadores/:slug` | Admin | SponsorPanelPage | Ativo |
+| `/expositor` | Expositor | ExhibitorPortalPage | Ativo |
+| `/eventadmin` | EventAdmin | EventAdminPortalPage | Stub |
+| `/avaliador` | Avaliador | AvaliadorPage | Stub |
 | `*` | — | Redireciona para `/` | — |
 
 ---
 
 ## Fluxo de Auth
 
-### Admin / Participante (Firebase)
-1. Firebase Google OAuth (`signInWithPopup`)
-2. `useAuth.ts` escuta `onAuthStateChanged`
-3. No login, `createUserIfNotExists()` sincroniza usuario na tabela `users` do Supabase
-4. Admin = `role='admin'` na tabela users OU email presente em `admin_emails[]` do evento
+### Todos os perfis (Supabase Auth unificado)
+1. Usuario acessa `/login`
+2. **BETA_MODE=true** (desenvolvimento): digita email → `findOrCreateUserByEmail()` → sessao em localStorage
+3. **BETA_MODE=false** (producao): Google OAuth ou Magic Link via Supabase
+4. `AuthContext` escuta `supabase.auth.onAuthStateChange` → chama `syncUser()` → retorna `AppUser`
+5. `AppUser.role` determina redirecionamento: `admin→/`, `event_admin→/eventadmin`, `avaliador→/avaliador`, `expositor→/expositor`, `participant→/`
 
-### Expositor (Supabase Auth)
-1. Admin cria credenciais via `ExhibitorPanel` → chama Edge Function `create-exhibitor-user`
-2. Edge Function cria usuario Supabase Auth com email virtual `{username}@expo.eventify.app`
-3. Expositor acessa `/expositor/login`, autentica com username + senha
-4. `useExhibitorAuth.ts` escuta `supabase.auth.onAuthStateChange`
-5. Apos login, busca o `Exhibitor` vinculado ao `supabase_user_id` via tabela `exhibitor_users`
-6. Admin pode resetar senha via Edge Function `reset-exhibitor-password`
-
-Username gerado automaticamente: `exp{numero}_{slug_evento}_{nome_responsavel}`
+### Como role e definida
+- Novo usuario: verifica `user_email_roles` (pre-cadastro pelo admin) → aplica role cadastrada ou `participant`
+- Expositor: admin pre-cadastra em `user_email_roles` com `role='expositor'` e `exhibitor_id`; Edge Function `create-event-role-user` cria usuario Supabase Auth
+- Apos primeiro login, registro em `user_email_roles` e deletado (role fica em `users.role`)
+- Admin pode alterar role via `updateUserRole()` diretamente na tabela `users`
 
 ---
 
@@ -276,8 +280,7 @@ Callbacks sempre fazem refetch completo — nunca merge parcial do payload.
 Canais ativos:
 - `public:events` — dashboard admin
 - `public:events:slug=eq.{slug}` — pagina do evento
-- `public:photos:event_id=eq.{id}` — feed (LEGADO)
-- `public:photos:all:event_id=eq.{id}` — moderacao (LEGADO)
+- `public:event_data:{id}` — feed + moderacao (posts, reactions, comments)
 - `public:print_orders:event_id=eq.{id}` — operador
 - `public:notifications:user_id=eq.{id}` — notificacoes
 - `public:exhibitors:event_id=eq.{id}` — painel de expositores
@@ -291,23 +294,18 @@ Canais ativos:
 | Tabela | Descricao | Status |
 |--------|-----------|--------|
 | `events` | Config completa do evento (~40 campos): status, branding, admin_emails[], TV config, social, flags | Ativo |
-| `users` | Sync Firebase (firebase_uid, email, display_name, photo_url) | Ativo |
-| `posts` | Fotos normalizadas (id, event_id, user_id, image_url, status, is_official, printed) | Destino da migracao |
+| `users` | Perfil unificado: supabase_user_id, email, display_name, photo_url, role, event_id, exhibitor_id | Ativo |
+| `user_email_roles` | Pre-cadastro de email com role antes do primeiro login | Ativo |
+| `posts` | Fotos normalizadas (id, event_id, user_id, image_url, status, is_official, printed) | Ativo |
 | `reactions` | Emoji + user por post (normalizado) | Ativo |
 | `comments` | Texto + status moderacao por post (normalizado) | Ativo |
 | `print_orders` | Pedidos de impressao (option, photo_ids[] texto, status) | Legado parcial |
 | `print_order_items` | FK: print_order_id + post_id (normalizado) | Ativo |
 | `notifications` | Notificacoes por usuario (title, body, read, link) | Ativo |
-| `exhibitors` | Stand virtual: name, description, logo_url, contatos, status, number | Ativo |
-| `exhibitor_users` | Vinculo expositor ↔ usuario Supabase Auth (supabase_user_id, username) | Ativo |
+| `exhibitors` | Stand virtual: name, description, logo_url, photo_url, contatos, status, number | Ativo |
 | `products` | Produtos do expositor (name, description, price, photos[], active) | Ativo |
-| `leads` | Interesse de pre-venda (product_id, exhibitor_id, customer_name, customer_phone) | Ativo |
-
-### Tabela legada (em migracao)
-
-| Tabela | Descricao | Status |
-|--------|-----------|--------|
-| `photos` | Denormalizada: likes (int), reactions (jsonb), comments (jsonb), reacted_users[], firebase_uid | Em uso por posts.ts — migracao incompleta |
+| `leads` | Interesse de pre-venda (product_id, exhibitor_id, customer_name, customer_phone, status) | Ativo |
+| `sponsors` | Patrocinadores do evento (name, description, photos[], contatos, order_index, active) | Ativo |
 
 ---
 
@@ -315,17 +313,17 @@ Canais ativos:
 
 | Servico | Tabela(s) | Status |
 |---------|-----------|--------|
+| `authService.ts` | Supabase Auth | Ativo |
+| `userService.ts` | `users`, `user_email_roles` | Ativo |
 | `eventService.ts` | `events` | Ativo |
-| `exhibitorService.ts` | `exhibitors`, `exhibitor_users` | Ativo |
-| `exhibitorAuthService.ts` | Supabase Auth + Edge Functions | Ativo |
+| `posts.ts` | `posts`, `reactions`, `comments` | Ativo |
+| `exhibitorService.ts` | `exhibitors`, `users` | Ativo |
 | `productService.ts` | `products` | Ativo |
 | `leadService.ts` | `leads` | Ativo |
+| `sponsorService.ts` | `sponsors` | Ativo |
 | `storageService.ts` | Cloudflare R2 | Ativo |
-| `userService.ts` | `users` | Ativo |
 | `notificationService.ts` | `notifications` | Ativo |
 | `printService.ts` | `print_orders` | Ativo (usa array legado) |
-| `posts.ts` | `photos` (legado) | WIP — deve migrar para `posts` |
-| `authService.ts` | Supabase Auth | Orfao — remover |
 
 ---
 
@@ -333,13 +331,11 @@ Canais ativos:
 
 | # | Item | Impacto | Prioridade |
 |---|------|---------|------------|
-| 1 | `posts.ts` aponta para tabela `photos` (legado) | Alto — todo feed/moderacao no schema antigo | Alta |
-| 2 | `PhotoData` type alias para `PostData` — migracao incompleta | Alto — TypeScript inconsistente com BD | Alta |
-| 3 | `print_orders.photo_ids` e text[] sem FK | Medio — sem integridade referencial | Media |
-| 4 | Duplicatas em `features/event/` (raiz vs `components/`) | Baixo — confusao de estrutura | Baixa |
-| 5 | `ExhibitorSponsor` (tipo legado em types/index.ts) coexiste com `Exhibitor` (tabela dedicada) | Baixo — confusao conceitual | Baixa |
-| 6 | `authService.ts` orfao (auth e Firebase/Supabase, nao usado) | Baixo — codigo morto | Baixa |
-| 7 | `@google/genai` no package.json sem uso | Baixo — dependencia desnecessaria | Baixa |
+| 1 | `PhotoData` type alias para `PostData` — mantido por compatibilidade com UI | Baixo — TypeScript verboso | Baixa |
+| 2 | `print_orders.photo_ids` e text[] sem FK | Medio — sem integridade referencial | Media |
+| 3 | Duplicatas em `features/event/` (raiz vs `components/`) | Baixo — confusao de estrutura | Baixa |
+| 4 | `ExhibitorSponsor` (tipo legado em types/index.ts) coexiste com `Exhibitor` (tabela dedicada) | Baixo — confusao conceitual | Baixa |
+| 5 | `@google/genai` no package.json sem uso | Baixo — dependencia desnecessaria | Baixa |
 
 ---
 
@@ -359,7 +355,7 @@ Canais ativos:
 
 ## Features por Perfil de Usuario
 
-### Admin (Firebase Auth + role=admin ou admin_emails)
+### Admin (role=admin)
 - Dashboard: criar, editar, excluir eventos
 - Branding: cores, gradientes, padroes, logo, config TV
 - Gerenciar expositores: criar, editar, excluir, ver produtos e leads

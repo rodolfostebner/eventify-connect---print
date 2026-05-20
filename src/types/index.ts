@@ -158,14 +158,6 @@ export interface Exhibitor {
   updated_at: string;
 }
 
-export interface ExhibitorUser {
-  id: string;
-  exhibitor_id: string;
-  supabase_user_id: string;
-  username: string;
-  created_at: string;
-}
-
 export interface Product {
   id: string;
   exhibitor_id: string;
