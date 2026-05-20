@@ -15,7 +15,12 @@
       "Bash(Format-Table -AutoSize)",
       "Bash(npx tsc *)",
       "Bash(git tag *)",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "Bash(supabase *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git config *)",
+      "Bash(git push *)"
     ]
   }
 }

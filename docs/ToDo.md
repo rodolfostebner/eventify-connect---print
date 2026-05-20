@@ -127,11 +127,13 @@ Exemplos:
 
 - [PVT1] Identificar logins unicos na plataforma para evitar flood de comentarios e curtidas, descaracterizando ranking enviado pelos participantes da feira
 - [PVT2] Registrar visitas aos expositores e seus produtos, estilo google analytics, registrar no banco e permitir consulta por expositores e possibilidade de gerar rank baseado nesse indicador de visitas
+  > ✅ **Solução definida** — ver `docs/analytics-visitas.md` para modelo completo: tabelas, eventos rastreados, sistema de tickets para sorteio e plano de implementação. **Implementar após conclusão das páginas pendentes (modal patrocinador, modal serviço, botão de share).**
 
 # PENDENTE DE DEFINIÇÃO
 
 - [PD1] Tela de sorteios
 - [PD2] Regra para sorteios - mesmo participantes receberão tickets para sorteio com base em avaliação por expositor? Ex. Se Fulano avaliou todos os expositores ele receberá 1 ticket para cada avaliação ou sera unico por participante?
+  > ✅ **Parcialmente definido** — ver `docs/analytics-visitas.md` (seções "Sorteios" e "Sistema de Tickets"). Modelo adotado: até 6 tickets por visitante, 1 por tipo de ação (check-in em stand, foto postada, lead, link clicado, compartilhamento, reação). Contagem binária — repetir a mesma ação não acumula.
 - [PD3] Administradores poderão registrar fotos para enriquecer feed?
 - [PD4] Criaremos uma tela para marketing da escola? 
 
@@ -147,7 +149,7 @@ Exemplos:
 | Feed — Fotos dos participantes | ✅ Implementado | Ainda na tabela `photos` legada |
 | Feed — Patrocinadores | ✅ Implementado | Tabela dedicada `sponsors`, carrossel de fotos, dados do banco |
 | Feed — Contador pré-evento responsivo | ✅ Implementado | Ajustado para mobile |
-| Feed — Registro de clicks/visitas | ❌ Não implementado | [PVT2] em aberto |
+| Feed — Registro de clicks/visitas | ⏳ Aguardando páginas pendentes | [PVT2] — solução definida em `docs/analytics-visitas.md` |
 | Feed — Sorteios | ❌ Não implementado | Aguarda definição [PD1][PD2] |
 | Expositores — CRUD + produtos + usuários | ✅ Implementado | Painel admin `/expositores/:slug` |
 | Expositores — Foto do stand (photo_url) | ✅ Implementado | Upload no painel admin e portal do expositor |
@@ -165,6 +167,28 @@ Exemplos:
 | Administração do Evento — Avaliadores/Categorias/Pesos | ❌ Não implementado | |
 | Cadastro de Avisos | ❌ Não implementado | |
 | Moderação fotos e comentários | ✅ Implementado | |
+
+## Login via Magic Link (participantes)
+
+> Definido em reunião de 2026-05-19 como substituto/complemento ao Google OAuth para participantes.
+
+| Item | Status |
+|------|--------|
+| `authService.ts` — placeholder comentado | Código órfão — remover |
+| Modal de login em `EventPage.tsx` | Só exibe botão Google atualmente |
+| Supabase `signInWithOtp({ email })` | ❌ Não implementado |
+| Handler de retorno da magic link URL | ❌ Não implementado |
+| Hook de auth para participantes via Supabase | ❌ Não implementado |
+
+**O que implementar:**
+1. Novo modal de login com campo de email (convive com botão Google como opção alternativa)
+2. Chamar `supabase.auth.signInWithOtp({ email })` no submit
+3. Tratar retorno da URL com token (Supabase redireciona de volta após clique no link)
+4. Integrar com `useAuth.ts` ou criar hook paralelo para sessão Supabase do participante
+
+**Motivação:** evitar dependência exclusiva do Google OAuth, que pode restringir acesso a alguns visitantes. Magic link cobre quem não tem conta Google ou prefere não usar.
+
+---
 
 ## Dúvidas — Recomendação de Encerramento
 
@@ -219,7 +243,7 @@ supabase/migrations/*_evaluation* ← migrations de avaliação
 - ~~Status do lead (Atendido/Pago/Retirado) + exportação Excel~~ ✅ Feito
 - ~~Painel de Patrocinadores~~ ✅ Feito (fora da divisão original)
 - ~~Foto do stand (photo_url) no painel e portal~~ ✅ Feito
-- Analytics de visitas ao stand [PVT2]
+- Analytics de visitas ao stand [PVT2] — ver `docs/analytics-visitas.md` para plano completo de implementação
 - Cadastro de Avisos para o telão (Feature #8)
 - Painel TV expandido: carrossel expositores por rank, exibição de avisos (Feature #9)
 - Administração do Evento: cadastro de Avaliadores, Categorias e Pesos
