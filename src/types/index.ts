@@ -52,8 +52,6 @@ export interface EventData {
   post_event_message?: string;
   summary_file_url?: string;
   has_official_photos?: boolean;
-  exhibitors?: ExhibitorSponsor[];
-  sponsors?: ExhibitorSponsor[];
   services?: ExhibitorSponsor[];
   custom_comments?: string[];
   upload_source?: 'camera' | 'gallery' | 'both';

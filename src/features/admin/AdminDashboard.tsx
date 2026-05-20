@@ -106,8 +106,6 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
     post_event_message: '',
     summary_file_url: '',
     has_official_photos: false,
-    exhibitors: [] as ExhibitorSponsor[],
-    sponsors: [] as ExhibitorSponsor[],
     services: [] as ExhibitorSponsor[],
     date: '',
     custom_comments: [] as string[],
@@ -174,8 +172,6 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
       post_event_message: event.post_event_message || '',
       summary_file_url: event.summary_file_url || '',
       has_official_photos: event.has_official_photos || false,
-      exhibitors: event.exhibitors || [],
-      sponsors: event.sponsors || [],
       services: event.services || [],
       date: event.date || '',
       custom_comments: event.custom_comments || [],
@@ -215,8 +211,6 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
         date: new Date().toISOString(),
         countdown_active: true,
         status: 'pre',
-        exhibitors: [],
-        sponsors: [],
         services: [],
       });
       toast.success(`Evento criado! Acesse /evento/${newEventSlug}`);

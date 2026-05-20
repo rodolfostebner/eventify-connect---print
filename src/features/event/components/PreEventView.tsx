@@ -53,8 +53,7 @@ export const PreEventView = ({ event }: { event: EventData }) => {
     },
   }));
 
-  // Fallback para o JSONB legado enquanto a migração não foi executada
-  const exhibitorSource = dbExhibitors.length > 0 ? exhibitorItems : (event.exhibitors || []);
+  const exhibitorSource = exhibitorItems;
 
   const sponsorItems = dbSponsors.map(s => ({
     id: s.id,
@@ -67,7 +66,7 @@ export const PreEventView = ({ event }: { event: EventData }) => {
       website: s.website_url ?? undefined,
     },
   }));
-  const sponsorSource = dbSponsors.length > 0 ? sponsorItems : (event.sponsors || []);
+  const sponsorSource = sponsorItems;
 
   const handleViewCatalog = (item: { id?: string }) => {
     const found = dbExhibitors.find(ex => ex.id === item.id);

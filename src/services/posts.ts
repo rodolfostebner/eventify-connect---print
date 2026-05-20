@@ -19,7 +19,7 @@ function mapRowToPostData(row: any): PostData {
 
   const mappedComments = comments.map(c => ({
     ...c,
-    user_name: 'Anônimo',
+    user_name: c.user_name || 'Anônimo',
     uid: c.user_id,
     timestamp: c.created_at,
   }));
@@ -33,7 +33,7 @@ function mapRowToPostData(row: any): PostData {
     is_official: row.is_official,
     printed: row.printed,
     created_at: row.created_at,
-    
+
     user: undefined,
     reactions,
     comments: mappedComments,
@@ -42,7 +42,7 @@ function mapRowToPostData(row: any): PostData {
     // Legacy fallback bindings
     url: row.image_url,
     eventId: row.event_id,
-    user_name: 'Anônimo',
+    user_name: row.user_name || 'Anônimo',
     likes: reactionCounts['🔥'] || 0,
     reacted_users: reactedUsers,
     timestamp: row.created_at
@@ -50,7 +50,8 @@ function mapRowToPostData(row: any): PostData {
 }
 
 /**
- * Anexa reactions e comments (fetch separado — sem depender de FK no PostgREST)
+ * Anexa reactions, comments e resolve display_name dos usuários (posts + comments).
+ * Fetch separado — sem depender de FK no PostgREST.
  */
 async function attachInteractions(rows: any[]): Promise<any[]> {
   if (!supabase || rows.length === 0) return rows;
@@ -62,6 +63,20 @@ async function attachInteractions(rows: any[]): Promise<any[]> {
     supabase.from('comments').select('*').in('post_id', postIds),
   ]);
 
+  // Resolve nomes: autores dos posts + autores dos comments
+  const userIdSet = new Set<string>();
+  rows.forEach(r => { if (r.user_id && r.user_id !== 'official') userIdSet.add(r.user_id); });
+  (comments || []).forEach(c => { if (c.user_id) userIdSet.add(c.user_id); });
+
+  const userNames: Record<string, string> = {};
+  if (userIdSet.size > 0) {
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, display_name')
+      .in('id', [...userIdSet]);
+    (users || []).forEach(u => { if (u.display_name) userNames[u.id] = u.display_name; });
+  }
+
   const reactionsByPost: Record<string, any[]> = {};
   (reactions || []).forEach(r => {
     (reactionsByPost[r.post_id] ||= []).push(r);
@@ -69,11 +84,15 @@ async function attachInteractions(rows: any[]): Promise<any[]> {
 
   const commentsByPost: Record<string, any[]> = {};
   (comments || []).forEach(c => {
-    (commentsByPost[c.post_id] ||= []).push(c);
+    (commentsByPost[c.post_id] ||= []).push({
+      ...c,
+      user_name: userNames[c.user_id] || 'Anônimo',
+    });
   });
 
   return rows.map(r => ({
     ...r,
+    user_name: userNames[r.user_id] || null,
     reactions: reactionsByPost[r.id] || [],
     comments: commentsByPost[r.id] || [],
   }));

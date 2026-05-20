@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Trophy, Users, Star, Briefcase, Globe, Instagram, MessageCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import type { EventData, PhotoData, AppUser } from '../../../types';
+import type { EventData, PhotoData, AppUser, Exhibitor, Sponsor } from '../../../types';
 import { useEventPhotos } from '../hooks/useEventPhotos';
 import { PhotoCard } from './PhotoCard/PhotoCard';
 import { PartnerSection } from './PartnerSection';
+import { getExhibitors } from '../../../services/exhibitorService';
+import { getSponsors } from '../../../services/sponsorService';
 
 interface PostEventViewProps {
   event: EventData;
@@ -15,6 +17,27 @@ interface PostEventViewProps {
 export const PostEventView = ({ event, user, onLogin }: PostEventViewProps) => {
   const { photos } = useEventPhotos(event.id);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [dbExhibitors, setDbExhibitors] = useState<Exhibitor[]>([]);
+  const [dbSponsors, setDbSponsors] = useState<Sponsor[]>([]);
+
+  useEffect(() => {
+    getExhibitors(event.id).then(setDbExhibitors).catch(() => {});
+    getSponsors(event.id).then(setDbSponsors).catch(() => {});
+  }, [event.id]);
+
+  const exhibitorItems = dbExhibitors.map(ex => ({
+    id: ex.id, name: ex.name,
+    logo: ex.logo_url ?? undefined, photo: ex.photo_url ?? undefined,
+    bio: ex.description ?? '',
+    message: ex.message ?? undefined, final_message: ex.final_message ?? undefined,
+    socials: { instagram: ex.instagram_url ?? undefined, whatsapp: ex.whatsapp ?? undefined, website: ex.website_url ?? undefined },
+  }));
+
+  const sponsorItems = dbSponsors.map(s => ({
+    id: s.id, name: s.name, bio: s.description ?? '',
+    photos: s.photos,
+    socials: { instagram: s.instagram_url ?? undefined, whatsapp: s.whatsapp ?? undefined, website: s.website_url ?? undefined },
+  }));
 
   const rankingData = useMemo(() => {
     const categories = [
@@ -142,16 +165,16 @@ export const PostEventView = ({ event, user, onLogin }: PostEventViewProps) => {
 
       {/* Expositores e Patrocinadores */}
       <div className="space-y-16 md:space-y-32 text-left pt-8">
-        <PartnerSection 
-          title="Expositores" 
-          items={event.exhibitors || []} 
-          icon={<Users className="w-5 h-5" />} 
+        <PartnerSection
+          title="Expositores"
+          items={exhibitorItems}
+          icon={<Users className="w-5 h-5" />}
           showMessages={true}
         />
-        <PartnerSection 
-          title="Patrocinadores" 
-          items={event.sponsors || []} 
-          icon={<Star className="w-5 h-5" />} 
+        <PartnerSection
+          title="Patrocinadores"
+          items={sponsorItems}
+          icon={<Star className="w-5 h-5" />}
           showMessages={true}
         />
         <PartnerSection 

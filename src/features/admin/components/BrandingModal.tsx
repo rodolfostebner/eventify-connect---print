@@ -337,12 +337,12 @@ export function BrandingModal({
                 </div>
               </section>
 
-              {/* Exhibitors / Sponsors / Services */}
-              {(['exhibitors', 'sponsors', 'services'] as const).map((type) => (
+              {/* Services */}
+              {(['services'] as const).map((type) => (
                 <section key={type} className="space-y-4">
                   <div className="flex items-center justify-between border-b border-neutral-100 pb-2">
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
-                      {type === 'exhibitors' ? 'Expositores' : type === 'sponsors' ? 'Patrocinadores' : 'Serviços'}
+                      Serviços
                     </h4>
                     <button
                       onClick={() => {

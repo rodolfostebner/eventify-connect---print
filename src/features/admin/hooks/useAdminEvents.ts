@@ -51,11 +51,6 @@ export function useAdminEvents(userId: string | undefined) {
         date: new Date().toISOString(),
         countdown_active: true,
         status: 'pre',
-        exhibitors: [
-          { id: 'exh_demo_1', name: 'Expositor Alpha', bio: 'Inovação em tecnologia', photo: 'https://picsum.photos/seed/alpha/200' },
-          { id: 'exh_demo_2', name: 'Beta Solutions', bio: 'Design e criatividade', photo: 'https://picsum.photos/seed/beta/200' },
-        ],
-        sponsors: [],
         services: [],
         admin_emails: newEventAdminEmail ? [newEventAdminEmail] : [],
       });

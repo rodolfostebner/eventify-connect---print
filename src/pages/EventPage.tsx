@@ -500,13 +500,13 @@ export default function EventPage({ user }: { user: AppUser | null }) {
                 <section className="space-y-6 px-2">
                   <PartnerSection
                     title="Expositores"
-                    items={dbExhibitors.length > 0 ? exhibitorItems : (event.exhibitors || [])}
+                    items={exhibitorItems}
                     icon={<Users className="w-4 h-4" />}
                     columns={1}
                   />
                   <PartnerSection
                     title="Patrocinadores"
-                    items={dbSponsors.length > 0 ? sponsorItems : (event.sponsors || [])}
+                    items={sponsorItems}
                     icon={<Star className="w-4 h-4" />}
                     columns={1}
                   />

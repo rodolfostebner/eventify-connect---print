@@ -29,8 +29,6 @@ export type BrandingFormState = {
   post_event_message: string;
   summary_file_url: string;
   has_official_photos: boolean;
-  exhibitors: ExhibitorSponsor[];
-  sponsors: ExhibitorSponsor[];
   services: ExhibitorSponsor[];
   date: string;
   custom_comments: string[];
@@ -68,8 +66,6 @@ const defaultBrandingForm: BrandingFormState = {
   post_event_message: '',
   summary_file_url: '',
   has_official_photos: false,
-  exhibitors: [],
-  sponsors: [],
   services: [],
   date: '',
   custom_comments: [],
@@ -118,8 +114,6 @@ export function useBrandingForm(
       post_event_message: event.post_event_message || '',
       summary_file_url: event.summary_file_url || '',
       has_official_photos: event.has_official_photos || false,
-      exhibitors: event.exhibitors || [],
-      sponsors: event.sponsors || [],
       services: event.services || [],
       date: event.date || '',
       custom_comments: event.custom_comments || [],
@@ -175,7 +169,7 @@ export function useBrandingForm(
     }
   };
 
-  const handleItemFileUpload = async (type: 'exhibitors' | 'sponsors' | 'services', index: number, field: 'logo' | 'photo', file: File) => {
+  const handleItemFileUpload = async (type: 'services', index: number, field: 'logo' | 'photo', file: File) => {
     setLoading(true);
     try {
       const url = await uploadImage(file);

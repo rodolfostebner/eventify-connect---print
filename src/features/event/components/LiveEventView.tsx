@@ -134,7 +134,7 @@ export const LiveEventView = ({
       <div className="space-y-12 md:space-y-24">
         <PartnerSection
           title="Expositores"
-          items={dbExhibitors.length > 0 ? exhibitorItems : (event.exhibitors || [])}
+          items={exhibitorItems}
           icon={<Users className="w-5 h-5" />}
           onViewCatalog={dbExhibitors.length > 0 ? (item) => {
             const found = dbExhibitors.find(ex => ex.id === item.id);
@@ -143,7 +143,7 @@ export const LiveEventView = ({
         />
         <PartnerSection
           title="Patrocinadores"
-          items={dbSponsors.length > 0 ? sponsorItems : (event.sponsors || [])}
+          items={sponsorItems}
           icon={<Star className="w-5 h-5" />}
         />
         <PartnerSection
