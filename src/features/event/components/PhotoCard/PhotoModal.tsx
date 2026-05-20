@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../../../lib/utils';
 import type { PhotoData, PhotoComment, EventData } from '../../../../types';
-import { User } from '../../../../services/authService';
+import type { AppUser } from '../../../../types';
 
 interface CommentItemProps {
   comment: PhotoComment;
@@ -47,7 +47,7 @@ interface PhotoModalProps {
   isOpen: boolean;
   onClose: () => void;
   photo: PhotoData | null | undefined;
-  user: User | null;
+  user: AppUser | null;
   isAdmin: boolean;
   onAddComment: (e: React.FormEvent) => void;
   onDeleteComment: (id: string) => void;
@@ -144,7 +144,7 @@ export const PhotoModal = ({
                     </div>
                   </div>
                   
-                  {(isAdmin || (user && (photo.user_id === user.uid || photo.firebase_uid === user.uid))) && onDeletePhoto && (
+                  {(isAdmin || (user && (photo.user_id === user.id || photo.firebase_uid === user.id))) && onDeletePhoto && (
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();
@@ -162,7 +162,7 @@ export const PhotoModal = ({
                 
                 <div className="flex flex-wrap items-center gap-3">
                   {['🔥', '😂', '❤️', '🎸'].map(emoji => {
-                    const hasReacted = user ? photo.reacted_users?.includes(`${user.uid}_${emoji}`) : false;
+                    const hasReacted = user ? photo.reacted_users?.includes(`${user.id}_${emoji}`) : false;
                     const count = photo.reaction_counts?.[emoji] || 0;
                     return (
                       <button
@@ -217,7 +217,7 @@ export const PhotoModal = ({
                       <CommentItem 
                         key={comment.id}
                         comment={comment}
-                        canDelete={user?.uid === comment.uid || isAdmin}
+                        canDelete={user?.id === comment.uid || isAdmin}
                         onDelete={onDeleteComment}
                         isAdmin={isAdmin}
                       />

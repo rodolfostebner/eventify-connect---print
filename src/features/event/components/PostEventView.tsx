@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Trophy, Users, Star, Briefcase, Globe, Instagram, MessageCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import type { EventData, PhotoData } from '../../../types';
-import { User } from '../../../services/authService';
+import type { EventData, PhotoData, AppUser } from '../../../types';
 import { useEventPhotos } from '../hooks/useEventPhotos';
 import { PhotoCard } from './PhotoCard/PhotoCard';
 import { PartnerSection } from './PartnerSection';
 
 interface PostEventViewProps {
   event: EventData;
-  user: User | null;
+  user: AppUser | null;
   onLogin: () => void;
 }
 

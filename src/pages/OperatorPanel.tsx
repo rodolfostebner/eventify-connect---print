@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
-import { logout } from '../services/authService';
-import type { User } from '../services/authService';
+import { useAuth } from '../hooks/useAuth';
+import type { AppUser } from '../types';
 import type { PrintOrder, PhotoData, EventData } from '../types';
 import { usePrintQueue } from '../features/operator/hooks/usePrintQueue';
 import { subscribeToEvent } from '../services/eventService';
@@ -165,7 +165,8 @@ function OrderCard({
   );
 }
 
-export default function OperatorPanel({ user }: { user: User | null }) {
+export default function OperatorPanel({ user }: { user: AppUser | null }) {
+  const { logout } = useAuth();
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [event, setEvent] = useState<EventData | null>(null);

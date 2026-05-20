@@ -17,10 +17,9 @@ function mapRowToPostData(row: any): PostData {
     reactedUsers.push(`${r.user_id}_${r.type}`);
   });
 
-  // Map comments
   const mappedComments = comments.map(c => ({
     ...c,
-    user_name: c.user?.display_name || 'Anônimo',
+    user_name: 'Anônimo',
     uid: c.user_id,
     timestamp: c.created_at,
   }));
@@ -35,7 +34,7 @@ function mapRowToPostData(row: any): PostData {
     printed: row.printed,
     created_at: row.created_at,
     
-    user: row.users,
+    user: undefined,
     reactions,
     comments: mappedComments,
     reaction_counts: reactionCounts,
@@ -44,7 +43,7 @@ function mapRowToPostData(row: any): PostData {
     url: row.image_url,
     eventId: row.event_id,
     firebase_uid: row.user_id,
-    user_name: row.users?.display_name || 'Anônimo',
+    user_name: 'Anônimo',
     likes: reactionCounts['🔥'] || 0,
     reacted_users: reactedUsers,
     timestamp: row.created_at
@@ -59,12 +58,7 @@ export async function fetchPosts(eventId: string): Promise<PostData[]> {
 
   const { data, error } = await supabase
     .from('posts')
-    .select(`
-      *,
-      users (*),
-      reactions (*),
-      comments (*, user:users(*))
-    `)
+    .select('*')
     .eq('event_id', eventId)
     .eq('status', 'approved')
     .order('created_at', { ascending: false });
@@ -85,12 +79,7 @@ export async function fetchAllPosts(eventId: string): Promise<PostData[]> {
 
   const { data, error } = await supabase
     .from('posts')
-    .select(`
-      *,
-      users (*),
-      reactions (*),
-      comments (*, user:users(*))
-    `)
+    .select('*')
     .eq('event_id', eventId)
     .order('created_at', { ascending: false });
 
@@ -116,7 +105,7 @@ export async function createPost(post: Partial<PostData>): Promise<PostData> {
   const { data, error } = await supabase
     .from('posts')
     .insert([row])
-    .select('*, users(*), reactions(*), comments(*, user:users(*))')
+    .select('*, reactions(*), comments(*)')
     .single();
 
   if (error) throw error;

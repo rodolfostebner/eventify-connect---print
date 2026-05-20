@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
-import { subscribeToAuth, User } from '../services/authService';
 import { subscribeToNotifications, markNotificationRead } from '../services/notificationService';
+import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
 
 export function NotificationsListener() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuth();
   const [pushEnabled, setPushEnabled] = useState(() => {
     return localStorage.getItem('push_notifications_enabled') === 'true';
   });
 
-  // Listen to preference changes
   useEffect(() => {
     const handleStorageChange = () => {
       setPushEnabled(localStorage.getItem('push_notifications_enabled') === 'true');
@@ -22,27 +21,15 @@ export function NotificationsListener() {
     };
   }, []);
 
-  // Listen to Auth
-  useEffect(() => {
-    return subscribeToAuth((currentUser) => {
-      setUser(currentUser);
-    });
-  }, []);
-
-  // Listen to Notifications
   useEffect(() => {
     if (!user || !pushEnabled) return;
 
-    // Request permission for browser notifications
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
 
-    // Use the central service instead of direct Firestore
-    return subscribeToNotifications(user.uid, (notifications) => {
-      // Loop through unread notifications
+    return subscribeToNotifications(user.id, (notifications) => {
       notifications.forEach((notif) => {
-        // Show in-app toast
         toast(notif.title, {
           description: notif.body,
           action: notif.link
@@ -50,12 +37,10 @@ export function NotificationsListener() {
             : undefined,
         });
 
-        // Show browser notification if permitted
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification(notif.title, { body: notif.body });
         }
 
-        // Mark as read so it doesn't pop up again
         markNotificationRead(notif.id).catch(console.error);
       });
     }, (error) => {

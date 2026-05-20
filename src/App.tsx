@@ -6,13 +6,15 @@ import ModerationPanel from "./pages/ModerationPanel"
 import TVView from "./pages/TVView"
 import OperatorPanel from "./pages/OperatorPanel"
 import ExhibitorPanelPage from "./pages/ExhibitorPanelPage"
-import ExhibitorLoginPage from "./pages/ExhibitorLoginPage"
 import ExhibitorPortalPage from "./pages/ExhibitorPortalPage"
 import SponsorPanelPage from "./pages/SponsorPanelPage"
+import EventAdminPortalPage from "./pages/EventAdminPortalPage"
+import AvaliadorPageComponent from "./pages/AvaliadorPage"
+import LoginPage from "./pages/LoginPage"
 import { Toaster } from "sonner"
 
 function App() {
-  const { user, login, loading } = useAuth()
+  const { user, loading } = useAuth()
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
@@ -23,25 +25,38 @@ function App() {
     </div>
   )
 
+  const isAdmin      = user?.role === 'admin';
+  const isEventAdmin = user?.role === 'event_admin';
+  const isAvaliador  = user?.role === 'avaliador';
+  const isExpositor  = user?.role === 'expositor';
+
   return (
     <BrowserRouter>
       <Toaster position="top-center" expand={true} richColors />
       <Routes>
-        {/* Public Routes */}
+        {/* Login unificado */}
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* Rotas públicas */}
         <Route path="/event/:slug" element={<EventPage user={user} />} />
         <Route path="/tv/:slug" element={<TVView />} />
 
-        {/* Exhibitor Routes (Supabase Auth) */}
-        <Route path="/expositor/login" element={<ExhibitorLoginPage />} />
-        <Route path="/expositor" element={<ExhibitorPortalPage />} />
+        {/* Portal Expositor */}
+        <Route path="/expositor" element={isExpositor ? <ExhibitorPortalPage /> : <Navigate to="/login" replace />} />
 
-        {/* Protected Admin Routes (Firebase Auth) */}
+        {/* Portal EventAdmin */}
+        <Route path="/eventadmin" element={isEventAdmin ? <EventAdminPortalPage /> : <Navigate to="/login" replace />} />
+
+        {/* Portal Avaliador */}
+        <Route path="/avaliador" element={isAvaliador ? <AvaliadorPageComponent /> : <Navigate to="/login" replace />} />
+
+        {/* Rotas Admin Geral */}
         <Route path="/" element={<AdminDashboard user={user} />} />
         <Route path="/admin" element={<Navigate to="/" replace />} />
-        <Route path="/moderation/:slug" element={user ? <ModerationPanel user={user} /> : <Navigate to="/" replace />} />
-        <Route path="/operator/:slug" element={user ? <OperatorPanel user={user} /> : <Navigate to="/" replace />} />
-        <Route path="/expositores/:slug" element={user ? <ExhibitorPanelPage /> : <Navigate to="/" replace />} />
-        <Route path="/patrocinadores/:slug" element={user ? <SponsorPanelPage /> : <Navigate to="/" replace />} />
+        <Route path="/moderation/:slug" element={isAdmin ? <ModerationPanel user={user} /> : <Navigate to="/login" replace />} />
+        <Route path="/operator/:slug" element={isAdmin ? <OperatorPanel user={user} /> : <Navigate to="/login" replace />} />
+        <Route path="/expositores/:slug" element={isAdmin ? <ExhibitorPanelPage /> : <Navigate to="/login" replace />} />
+        <Route path="/patrocinadores/:slug" element={isAdmin ? <SponsorPanelPage /> : <Navigate to="/login" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

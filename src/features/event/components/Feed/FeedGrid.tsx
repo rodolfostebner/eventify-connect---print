@@ -2,13 +2,12 @@ import React from 'react';
 import { Star, Camera, Image as ImageIcon, Check } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { cn } from '../../../../lib/utils';
-import type { EventData, PhotoData } from '../../../../types';
-import { User } from '../../../../services/authService';
+import type { EventData, PhotoData, AppUser } from '../../../../types';
 import { PhotoCard } from '../PhotoCard/PhotoCard';
 
 interface FeedGridProps {
   event: EventData;
-  user: User | null;
+  user: AppUser | null;
   onLogin: () => void;
   officialPhotos: PhotoData[];
   galleryPhotos: PhotoData[];

@@ -211,6 +211,30 @@ export interface Lead {
   product?: { name: string };
 }
 
+// ─── Auth / Usuários ─────────────────────────────────────────────────────────
+
+export type UserRole = 'admin' | 'event_admin' | 'avaliador' | 'expositor' | 'participant';
+
+export interface AppUser {
+  id: string;
+  supabase_user_id: string | null;
+  email: string;
+  display_name: string | null;
+  photo_url: string | null;
+  role: UserRole;
+  event_id: string | null;
+  exhibitor_id: string | null;
+  created_at: string;
+}
+
+export interface UserEmailRole {
+  email: string;
+  role: UserRole;
+  event_id: string | null;
+  exhibitor_id: string | null;
+  created_at: string;
+}
+
 // ─── Notification ─────────────────────────────────────────────────────────────
 
 export interface NotificationData {

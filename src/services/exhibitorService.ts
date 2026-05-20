@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase/client';
-import type { Exhibitor, ExhibitorUser } from '../types';
+import type { Exhibitor } from '../types';
 
 export async function getExhibitors(eventId: string): Promise<Exhibitor[]> {
   if (!supabase) return [];
@@ -16,7 +16,7 @@ export async function getExhibitors(eventId: string): Promise<Exhibitor[]> {
 export async function getExhibitorByUserId(supabaseUserId: string): Promise<Exhibitor | null> {
   if (!supabase) return null;
   const { data, error } = await supabase
-    .from('exhibitor_users')
+    .from('users')
     .select('exhibitor_id')
     .eq('supabase_user_id', supabaseUserId)
     .maybeSingle();
@@ -64,20 +64,24 @@ export async function deleteExhibitor(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function getExhibitorUsers(exhibitorId: string): Promise<ExhibitorUser[]> {
+export async function getExhibitorUsers(exhibitorId: string): Promise<import('./userService').ExhibitorLinkedUser[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
-    .from('exhibitor_users')
-    .select('*')
+    .from('users')
+    .select('id, email, display_name, photo_url, created_at')
     .eq('exhibitor_id', exhibitorId)
+    .eq('role', 'expositor')
     .order('created_at', { ascending: true });
   if (error) throw error;
-  return (data || []) as ExhibitorUser[];
+  return (data || []) as import('./userService').ExhibitorLinkedUser[];
 }
 
-export async function removeExhibitorUser(exhibitorUserId: string): Promise<void> {
+export async function removeExhibitorUser(userId: string): Promise<void> {
   if (!supabase) return;
-  const { error } = await supabase.from('exhibitor_users').delete().eq('id', exhibitorUserId);
+  const { error } = await supabase
+    .from('users')
+    .update({ exhibitor_id: null, role: 'participant' })
+    .eq('id', userId);
   if (error) throw error;
 }
 

@@ -2,11 +2,11 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { createPost } from '../../../services/posts';
 import type { EventData } from '../../../types';
-import { User } from '../../../services/authService';
+import type { AppUser } from '../../../types';
 import { supabase } from '../../../lib/supabase/client';
 import { uploadImage } from '../../../services/storageService';
 
-export const usePhotoUpload = (event: EventData, user: User | null) => {
+export const usePhotoUpload = (event: EventData, user: AppUser | null) => {
   const [uploading, setUploading] = useState(false);
 
   const handleDirectUpload = useCallback(async (file: File) => {
@@ -66,7 +66,7 @@ export const usePhotoUpload = (event: EventData, user: User | null) => {
       // 2. Upload to Cloudflare R2 via Edge Function
       const blob = await (await fetch(base64)).blob();
       const fileExt = blob.type === 'image/png' ? 'png' : 'jpg';
-      const fileToUpload = new File([blob], `${user?.uid || 'anon'}_${Date.now()}.${fileExt}`, { type: blob.type });
+      const fileToUpload = new File([blob], `${user?.id || 'anon'}_${Date.now()}.${fileExt}`, { type: blob.type });
 
       const publicUrl = await uploadImage(fileToUpload);
 
@@ -74,8 +74,8 @@ export const usePhotoUpload = (event: EventData, user: User | null) => {
       await createPost({
         eventId: event.id,
         url: publicUrl,
-        user_name: user?.displayName || 'Anônimo',
-        firebase_uid: user?.uid,
+        user_name: user?.display_name || 'Anônimo',
+        firebase_uid: user?.id,
         status: event.comment_moderation_enabled
           ? 'pending'
           : 'approved'

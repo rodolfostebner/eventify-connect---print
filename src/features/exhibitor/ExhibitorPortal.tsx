@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LogOut, Package, ShoppingBag, Phone, Save,
+  Package, ShoppingBag, Phone, Save,
   Upload, X, Plus, Trash2, AlertCircle,
 } from 'lucide-react';
+import { AppHeader } from '../../components/AppHeader';
 import { toast } from 'sonner';
-import { useExhibitorAuth } from '../../hooks/useExhibitorAuth';
+import { useAuth } from '../../hooks/useAuth';
+import { getExhibitorById } from '../../services/exhibitorService';
 import { updateExhibitor } from '../../services/exhibitorService';
 import { getProducts, createProduct, updateProduct, deactivateProduct } from '../../services/productService';
 import { getLeads, updateLeadStatus } from '../../services/leadService';
@@ -18,7 +20,7 @@ type Tab = 'perfil' | 'produtos' | 'leads';
 
 // ─── Perfil Tab ────────────────────────────────────────────────────────────────
 
-function PerfilTab({ exhibitor, onUpdated }: { exhibitor: NonNullable<ReturnType<typeof useExhibitorAuth>['exhibitor']>; onUpdated: () => void }) {
+function PerfilTab({ exhibitor, onUpdated }: { exhibitor: import('../../types').Exhibitor; onUpdated: () => void }) {
   const [form, setForm] = useState({
     name: exhibitor.name,
     description: exhibitor.description || '',
@@ -521,22 +523,27 @@ function LeadsTabExpositor({ exhibitorId, exhibitorName }: { exhibitorId: string
 
 export default function ExhibitorPortal() {
   const navigate = useNavigate();
-  const { exhibitorUser, exhibitor, loading, logout } = useExhibitorAuth();
+  const { user, loading, logout } = useAuth();
+  const [exhibitor, setExhibitor] = useState<import('../../types').Exhibitor | null>(null);
+  const [loadingExhibitor, setLoadingExhibitor] = useState(true);
   const [tab, setTab] = useState<Tab>('perfil');
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
-    if (!loading && !exhibitorUser) {
-      navigate('/expositor/login', { replace: true });
+    if (!loading && (!user || user.role !== 'expositor')) {
+      navigate('/login', { replace: true });
     }
-  }, [exhibitorUser, loading, navigate]);
+  }, [user, loading, navigate]);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/expositor/login', { replace: true });
-  };
+  useEffect(() => {
+    if (!user?.exhibitor_id) { setLoadingExhibitor(false); return; }
+    getExhibitorById(user.exhibitor_id)
+      .then(setExhibitor)
+      .catch(() => setExhibitor(null))
+      .finally(() => setLoadingExhibitor(false));
+  }, [user?.exhibitor_id, refreshKey]);
 
-  if (loading) {
+  if (loading || loadingExhibitor) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-50">
         <div className="w-8 h-8 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
@@ -556,7 +563,7 @@ export default function ExhibitorPortal() {
             Seu usuário não está vinculado a nenhum expositor. Entre em contato com a administração do evento.
           </p>
           <button
-            onClick={handleLogout}
+            onClick={async () => { await logout(); navigate('/login', { replace: true }); }}
             className="px-4 py-2 rounded-xl bg-neutral-900 text-white text-sm font-bold hover:bg-neutral-700 transition-colors"
           >
             Sair
@@ -574,28 +581,7 @@ export default function ExhibitorPortal() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      {/* Header */}
-      <header className="bg-white border-b border-neutral-100 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {exhibitor.logo_url ? (
-            <img src={exhibitor.logo_url} className="w-8 h-8 rounded-lg object-contain bg-neutral-50 border border-neutral-100 p-0.5" />
-          ) : (
-            <div className="w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center">
-              <Package className="w-4 h-4 text-neutral-400" />
-            </div>
-          )}
-          <div>
-            <p className="font-bold text-sm text-neutral-900 leading-tight">{exhibitor.name}</p>
-            <p className="text-[10px] text-neutral-400">Área do Expositor</p>
-          </div>
-        </div>
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold transition-colors"
-        >
-          <LogOut className="w-3.5 h-3.5" /> Sair
-        </button>
-      </header>
+      <AppHeader title="Área do Expositor" />
 
       {/* Tabs */}
       <div className="bg-white border-b border-neutral-100 px-4">

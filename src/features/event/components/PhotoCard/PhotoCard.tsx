@@ -1,15 +1,14 @@
 import React, { useState, memo, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
-import { User } from '../../../../services/authService';
-import type { EventData, PhotoData } from '../../../../types';
+import type { EventData, PhotoData, AppUser } from '../../../../types';
 import { likePost, commentOnPost, reactToPost, deletePost, deleteComment } from '../../../../services/posts';
 import { InteractionBar } from './InteractionBar';
 import { PhotoModal } from './PhotoModal';
 
 interface PhotoCardProps {
   photo: PhotoData;
-  user: User | null;
+  user: AppUser | null;
   event: EventData;
   onLogin: () => void;
   onDelete?: () => void;
@@ -21,7 +20,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isAdmin = (user as any)?.role === 'admin' || (event.admin_emails?.includes(user?.email || '') ?? false);
-  const hasLiked = user ? photo.reacted_users?.includes(`${user.uid}_🔥`) : false;
+  const hasLiked = user ? photo.reacted_users?.includes(`${user.id}_🔥`) : false;
 
   const handleLike = useCallback(async (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -35,14 +34,14 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
     }
 
     // Limits check (dna.json: max_emojis_per_photo = 2)
-    const userReactions = photo.reacted_users?.filter(r => r.startsWith(`${user.uid}_`)) || [];
+    const userReactions = photo.reacted_users?.filter(r => r.startsWith(`${user.id}_`)) || [];
     if (!hasLiked && userReactions.length >= 2 && !isAdmin) {
       toast.error('Limite de 2 reações por foto atingido.');
       return;
     }
 
     try {
-      await likePost(photo.id, user.uid, hasLiked ? -1 : 1);
+      await likePost(photo.id, user.id, hasLiked ? -1 : 1);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao curtir foto.');
@@ -59,18 +58,18 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
       return;
     }
 
-    const reactKey = `${user.uid}_${emoji}`;
+    const reactKey = `${user.id}_${emoji}`;
     const hasReacted = photo.reacted_users?.includes(reactKey);
 
     // Limits check (dna.json: max_emojis_per_photo = 2)
-    const userReactions = photo.reacted_users?.filter(r => r.startsWith(`${user.uid}_`)) || [];
+    const userReactions = photo.reacted_users?.filter(r => r.startsWith(`${user.id}_`)) || [];
     if (!hasReacted && userReactions.length >= 2 && !isAdmin) {
       toast.error('Limite de 2 reações por foto atingido.');
       return;
     }
     
     try {
-      await reactToPost(photo.id, emoji, user.uid, hasReacted ? -1 : 1);
+      await reactToPost(photo.id, emoji, user.id, hasReacted ? -1 : 1);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao reagir.');
@@ -82,7 +81,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
     if (!user || !newComment.trim() || isSubmitting) return;
 
     // Limits check (dna.json: max_comments_per_photo = 2)
-    const userComments = photo.comments?.filter(c => c.uid === user.uid || (c as any).user_id === user.uid) || [];
+    const userComments = photo.comments?.filter(c => c.uid === user.id || (c as any).user_id === user.id) || [];
     if (userComments.length >= 2 && !isAdmin) {
       toast.error('Limite de 2 comentários por foto atingido.');
       return;
@@ -94,7 +93,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
       const isQuickComment = event.custom_comments?.includes(trimmedText);
       
       await commentOnPost(photo.id, {
-        uid: user.uid,
+        uid: user.id,
         text: trimmedText,
         status: (event.comment_moderation_enabled === false || isQuickComment) ? 'approved' : 'pending'
       });
@@ -111,7 +110,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
 
   const handleDeleteComment = useCallback(async (commentId: string) => {
     const comment = photo.comments?.find(c => c.id === commentId);
-    if (!user || !comment || (comment.uid !== user.uid && !isAdmin)) return;
+    if (!user || !comment || (comment.uid !== user.id && !isAdmin)) return;
 
     try {
       await deleteComment(commentId);

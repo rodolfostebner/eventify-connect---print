@@ -1,4 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Users, Star, Briefcase } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
 import { useEventPhotos } from '../hooks/useEventPhotos';
 import { useCategoryGroups } from '../hooks/useCategoryGroups';
 import { useSlideshow } from '../hooks/useSlideshow';
@@ -7,12 +9,15 @@ import { FeaturedSlideshow } from './Feed/FeaturedSlideshow';
 import { FeedGrid } from './Feed/FeedGrid';
 import { UploadFAB } from './Feed/UploadFAB';
 import { LoginBanner } from './Feed/LoginBanner';
-import type { EventData } from '../../../types';
-import { User } from '../../../services/authService';
+import { PartnerSection } from './PartnerSection';
+import { ExhibitorCatalogModal } from './ExhibitorCatalogModal';
+import { getExhibitors } from '../../../services/exhibitorService';
+import { getSponsors } from '../../../services/sponsorService';
+import type { EventData, AppUser, Exhibitor, Sponsor } from '../../../types';
 
 interface LiveEventViewProps {
   event: EventData;
-  user: User | null;
+  user: AppUser | null;
   onLogin: () => void;
   isSelectingForPrint: boolean;
   selectedPrintPhotos: string[];
@@ -38,6 +43,42 @@ export const LiveEventView = ({
 
   const { uploading, handleDirectUpload } = usePhotoUpload(event, user);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [dbExhibitors, setDbExhibitors] = useState<Exhibitor[]>([]);
+  const [dbSponsors, setDbSponsors] = useState<Sponsor[]>([]);
+  const [selectedExhibitor, setSelectedExhibitor] = useState<Exhibitor | null>(null);
+
+  useEffect(() => {
+    getExhibitors(event.id).then(setDbExhibitors).catch(() => {});
+    getSponsors(event.id).then(setDbSponsors).catch(() => {});
+  }, [event.id]);
+
+  const exhibitorItems = dbExhibitors.map(ex => ({
+    id: ex.id,
+    name: ex.name,
+    logo: ex.logo_url ?? undefined,
+    photo: ex.photo_url ?? undefined,
+    bio: ex.description ?? '',
+    message: ex.message ?? undefined,
+    final_message: ex.final_message ?? undefined,
+    socials: {
+      instagram: ex.instagram_url ?? undefined,
+      whatsapp: ex.whatsapp ?? undefined,
+      website: ex.website_url ?? undefined,
+    },
+  }));
+
+  const sponsorItems = dbSponsors.map(s => ({
+    id: s.id,
+    name: s.name,
+    bio: s.description ?? '',
+    photos: s.photos,
+    socials: {
+      instagram: s.instagram_url ?? undefined,
+      whatsapp: s.whatsapp ?? undefined,
+      website: s.website_url ?? undefined,
+    },
+  }));
 
   const handleFabClick = () => {
     if (!user) {
@@ -89,6 +130,29 @@ export const LiveEventView = ({
         togglePhotoSelection={togglePhotoSelection}
       />
 
+      {/* Expositores & Patrocinadores */}
+      <div className="space-y-12 md:space-y-24">
+        <PartnerSection
+          title="Expositores"
+          items={dbExhibitors.length > 0 ? exhibitorItems : (event.exhibitors || [])}
+          icon={<Users className="w-5 h-5" />}
+          onViewCatalog={dbExhibitors.length > 0 ? (item) => {
+            const found = dbExhibitors.find(ex => ex.id === item.id);
+            if (found) setSelectedExhibitor(found);
+          } : undefined}
+        />
+        <PartnerSection
+          title="Patrocinadores"
+          items={dbSponsors.length > 0 ? sponsorItems : (event.sponsors || [])}
+          icon={<Star className="w-5 h-5" />}
+        />
+        <PartnerSection
+          title="Serviços"
+          items={event.services || []}
+          icon={<Briefcase className="w-5 h-5" />}
+        />
+      </div>
+
       <UploadFAB
         event={event}
         uploading={uploading}
@@ -98,6 +162,17 @@ export const LiveEventView = ({
       />
 
       {!user && <LoginBanner onLogin={onLogin} />}
+
+      <AnimatePresence>
+        {selectedExhibitor && (
+          <ExhibitorCatalogModal
+            exhibitor={selectedExhibitor}
+            eventStatus={event.status}
+            primaryColor={event.primary_color || '#171717'}
+            onClose={() => setSelectedExhibitor(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

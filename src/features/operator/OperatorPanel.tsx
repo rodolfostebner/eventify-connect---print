@@ -1,10 +1,11 @@
-import { User } from '../../services/authService';
-import { logout } from '../../services/authService';
+import type { AppUser } from '../../types';
+import { useAuth } from '../../hooks/useAuth';
 import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export default function OperatorPanel({ user }: { user: User | null }) {
+export default function OperatorPanel({ user }: { user: AppUser | null }) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -24,12 +25,12 @@ export default function OperatorPanel({ user }: { user: User | null }) {
         </div>
         {user && (
           <div className="flex items-center gap-3">
-            <img 
-              src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'A'}&background=random`} 
+            <img
+              src={user.photo_url || `https://ui-avatars.com/api/?name=${user.display_name || 'A'}&background=random`}
               className="w-10 h-10 rounded-full border border-neutral-200"
               referrerPolicy="no-referrer"
               onError={(e) => {
-                e.currentTarget.src = `https://ui-avatars.com/api/?name=${user.displayName || 'A'}&background=random`;
+                e.currentTarget.src = `https://ui-avatars.com/api/?name=${user.display_name || 'A'}&background=random`;
               }}
             />
             <button onClick={handleLogout} className="p-2 text-neutral-400 hover:text-red-500 transition-colors" title="Sair">

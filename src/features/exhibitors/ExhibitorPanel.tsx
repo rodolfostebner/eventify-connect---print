@@ -1,69 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Plus, Trash2, Save, Eye, EyeOff, RefreshCw,
-  Package, Users, ShoppingBag, Phone, Copy, CheckCircle,
+  ArrowLeft, Plus, Trash2, Save, Eye, EyeOff,
+  Package, Users, ShoppingBag, Phone,
   Upload, X, Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Exhibitor, ExhibitorUser, Product, Lead, LeadStatus } from '../../types';
+import type { Exhibitor, Product, Lead, LeadStatus, UserEmailRole } from '../../types';
 import {
   subscribeToExhibitors, createExhibitor, updateExhibitor, deleteExhibitor,
   getExhibitorUsers, removeExhibitorUser, getNextExhibitorNumber,
 } from '../../services/exhibitorService';
 import { getProducts, createProduct, updateProduct, deactivateProduct } from '../../services/productService';
 import { getLeads, updateLeadStatus } from '../../services/leadService';
-import {
-  createExhibitorUser, resetExhibitorPassword,
-  generatePassword, generateUsername,
-} from '../../services/exhibitorAuthService';
+import { addEmailRole, removeEmailRole, listEmailRoles } from '../../services/userService';
+import type { ExhibitorLinkedUser } from '../../services/userService';
 import { subscribeToEvent } from '../../services/eventService';
 import { uploadImage } from '../../services/storageService';
 import type { EventData } from '../../types';
 
 const MAX_PRODUCT_PHOTOS = 3;
-
-// ─── Credential Display ────────────────────────────────────────────────────────
-
-function CredentialDisplay({ username, password, onDismiss }: {
-  username: string; password: string; onDismiss: () => void;
-}) {
-  const [copied, setCopied] = useState(false);
-  const text = `Login: ${username}\nSenha: ${password}`;
-
-  const copyAll = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
-      <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">
-        Credenciais geradas — salve agora, não serão exibidas novamente
-      </p>
-      <div className="font-mono text-sm bg-white border border-amber-200 rounded-lg p-3 space-y-1">
-        <div><span className="text-neutral-400">Login:</span> <span className="font-bold">{username}</span></div>
-        <div><span className="text-neutral-400">Senha:</span> <span className="font-bold">{password}</span></div>
-      </div>
-      <div className="flex gap-2">
-        <button
-          onClick={copyAll}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-200 hover:bg-amber-300 text-amber-900 text-xs font-bold transition-colors"
-        >
-          {copied ? <CheckCircle className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-          {copied ? 'Copiado!' : 'Copiar'}
-        </button>
-        <button
-          onClick={onDismiss}
-          className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold transition-colors"
-        >
-          Ok, já salvei
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
@@ -272,129 +228,102 @@ function ProductsTab({ exhibitorId }: { exhibitorId: string }) {
 
 // ─── Users Tab ────────────────────────────────────────────────────────────────
 
-function UsersTab({ exhibitorId, exhibitorNumber, eventSlug }: {
-  exhibitorId: string; exhibitorNumber: number; eventSlug: string;
-}) {
-  const [users, setUsers] = useState<ExhibitorUser[]>([]);
+function UsersTab({ exhibitorId }: { exhibitorId: string }) {
+  const [linked, setLinked] = useState<ExhibitorLinkedUser[]>([]);
+  const [pending, setPending] = useState<UserEmailRole[]>([]);
   const [loading, setLoading] = useState(true);
-  const [addingUser, setAddingUser] = useState(false);
-  const [newUserName, setNewUserName] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [generatedCreds, setGeneratedCreds] = useState<{ username: string; password: string } | null>(null);
-  const [resetCreds, setResetCreds] = useState<{ userId: string; username: string; password: string } | null>(null);
-  const [resettingId, setResettingId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const load = () =>
-    getExhibitorUsers(exhibitorId).then(setUsers).catch(() => {}).finally(() => setLoading(false));
+  const load = async () => {
+    setLoading(true);
+    const [linkedData, allPending] = await Promise.all([
+      getExhibitorUsers(exhibitorId),
+      listEmailRoles(),
+    ]);
+    setLinked(linkedData);
+    setPending(allPending.filter(r => r.exhibitor_id === exhibitorId));
+    setLoading(false);
+  };
 
   useEffect(() => { load(); }, [exhibitorId]);
 
-  const handleCreate = async () => {
-    if (!newUserName.trim()) return;
-    const username = generateUsername(exhibitorNumber, eventSlug, newUserName.trim());
-    const password = generatePassword();
-    setCreating(true);
+  const handleAdd = async () => {
+    if (!newEmail.trim()) return;
+    setSaving(true);
     try {
-      await createExhibitorUser({ username, password, exhibitorId });
-      setGeneratedCreds({ username, password });
-      setAddingUser(false);
-      setNewUserName('');
+      await addEmailRole({ email: newEmail.trim().toLowerCase(), role: 'expositor', event_id: null, exhibitor_id: exhibitorId });
+      toast.success('E-mail cadastrado — o expositor poderá entrar com Google ou link mágico.');
+      setNewEmail('');
+      setAdding(false);
       load();
-    } catch (err: any) {
-      if (err.message === 'USERNAME_TAKEN') {
-        toast.error('Login já existe. Altere o nome para gerar um login único.');
-      } else {
-        toast.error('Erro ao criar usuário');
-      }
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleReset = async (user: ExhibitorUser) => {
-    const newPassword = generatePassword();
-    setResettingId(user.id);
-    try {
-      await resetExhibitorPassword({ supabaseUserId: user.supabase_user_id, newPassword });
-      setResetCreds({ userId: user.id, username: user.username, password: newPassword });
     } catch {
-      toast.error('Erro ao resetar senha');
+      toast.error('Erro ao cadastrar e-mail');
     } finally {
-      setResettingId(null);
+      setSaving(false);
     }
   };
 
-  const handleRemove = async (user: ExhibitorUser) => {
-    if (!confirm(`Remover usuário ${user.username}?`)) return;
+  const handleRemoveLinked = async (user: ExhibitorLinkedUser) => {
+    if (!confirm(`Remover acesso de ${user.email}?`)) return;
     try {
       await removeExhibitorUser(user.id);
-      setUsers(us => us.filter(u => u.id !== user.id));
-      toast.success('Usuário removido');
+      setLinked(ls => ls.filter(l => l.id !== user.id));
+      toast.success('Acesso removido');
     } catch {
-      toast.error('Erro ao remover usuário');
+      toast.error('Erro ao remover acesso');
+    }
+  };
+
+  const handleRemovePending = async (email: string) => {
+    if (!confirm(`Cancelar convite para ${email}?`)) return;
+    try {
+      await removeEmailRole(email);
+      setPending(ps => ps.filter(p => p.email !== email));
+      toast.success('Convite cancelado');
+    } catch {
+      toast.error('Erro ao cancelar convite');
     }
   };
 
   if (loading) return <div className="flex justify-center py-12"><div className="w-6 h-6 border-2 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" /></div>;
 
-  const previewUsername = newUserName.trim()
-    ? generateUsername(exhibitorNumber, eventSlug, newUserName.trim())
-    : null;
-
   return (
     <div className="space-y-4">
-      {generatedCreds && (
-        <CredentialDisplay
-          username={generatedCreds.username}
-          password={generatedCreds.password}
-          onDismiss={() => setGeneratedCreds(null)}
-        />
-      )}
-      {resetCreds && (
-        <CredentialDisplay
-          username={resetCreds.username}
-          password={resetCreds.password}
-          onDismiss={() => setResetCreds(null)}
-        />
-      )}
-
       <div className="flex items-center justify-between">
-        <p className="text-sm text-neutral-500">{users.length} usuário{users.length !== 1 ? 's' : ''}</p>
-        {!addingUser && (
+        <p className="text-sm text-neutral-500">{linked.length} ativo{linked.length !== 1 ? 's' : ''} · {pending.length} pendente{pending.length !== 1 ? 's' : ''}</p>
+        {!adding && (
           <button
-            onClick={() => setAddingUser(true)}
+            onClick={() => setAdding(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-700 transition-colors"
           >
-            <Plus className="w-3.5 h-3.5" /> Adicionar usuário
+            <Plus className="w-3.5 h-3.5" /> Cadastrar e-mail
           </button>
         )}
       </div>
 
-      {addingUser && (
+      {adding && (
         <div className="border border-neutral-200 rounded-xl p-4 space-y-3 bg-neutral-50">
-          <p className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Novo usuário expositor</p>
+          <p className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Novo acesso expositor</p>
           <input
-            type="text"
-            placeholder="Nome do responsável (ex: Denis)"
-            value={newUserName}
-            onChange={e => setNewUserName(e.target.value)}
+            type="email"
+            placeholder="email@expositor.com"
+            value={newEmail}
+            onChange={e => setNewEmail(e.target.value)}
             className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
           />
-          {previewUsername && (
-            <p className="text-xs text-neutral-500">
-              Login gerado: <span className="font-mono font-semibold text-neutral-700">{previewUsername}</span>
-            </p>
-          )}
+          <p className="text-xs text-neutral-400">O expositor entrará com este e-mail via Google ou link mágico.</p>
           <div className="flex gap-2">
             <button
-              onClick={handleCreate}
-              disabled={creating || !newUserName.trim()}
+              onClick={handleAdd}
+              disabled={saving || !newEmail.trim()}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-700 disabled:opacity-50 transition-colors"
             >
-              {creating ? 'Criando...' : 'Criar e gerar credenciais'}
+              {saving ? 'Salvando...' : 'Cadastrar'}
             </button>
             <button
-              onClick={() => { setAddingUser(false); setNewUserName(''); }}
+              onClick={() => { setAdding(false); setNewEmail(''); }}
               className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold transition-colors"
             >
               Cancelar
@@ -403,36 +332,65 @@ function UsersTab({ exhibitorId, exhibitorNumber, eventSlug }: {
         </div>
       )}
 
-      {users.map(user => (
-        <div key={user.id} className="flex items-center gap-3 p-3 border border-neutral-100 rounded-xl bg-white shadow-sm">
-          <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
-            <Users className="w-4 h-4 text-neutral-400" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-mono text-sm font-semibold text-neutral-900 truncate">{user.username}</p>
-            <p className="text-[10px] text-neutral-400">
-              Criado em {new Date(user.created_at).toLocaleDateString('pt-BR')}
-            </p>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            <button
-              onClick={() => handleReset(user)}
-              disabled={resettingId === user.id}
-              title="Resetar senha"
-              className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-500 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${resettingId === user.id ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              onClick={() => handleRemove(user)}
-              title="Remover usuário"
-              className="p-1.5 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+      {linked.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Acessos ativos</p>
+          {linked.map(user => (
+            <div key={user.id} className="flex items-center gap-3 p-3 border border-neutral-100 rounded-xl bg-white shadow-sm">
+              {user.photo_url ? (
+                <img src={user.photo_url} className="w-8 h-8 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
+                  <Users className="w-4 h-4 text-neutral-400" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-neutral-900 truncate">{user.display_name ?? user.email}</p>
+                <p className="text-[10px] text-neutral-400 truncate">{user.email}</p>
+              </div>
+              <button
+                onClick={() => handleRemoveLinked(user)}
+                title="Remover acesso"
+                className="p-1.5 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors shrink-0"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
+
+      {pending.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Aguardando primeiro login</p>
+          {pending.map(p => (
+            <div key={p.email} className="flex items-center gap-3 p-3 border border-dashed border-neutral-200 rounded-xl bg-neutral-50">
+              <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4 text-neutral-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-neutral-600 truncate">{p.email}</p>
+                <p className="text-[10px] text-neutral-400">Pendente — não fez login ainda</p>
+              </div>
+              <button
+                onClick={() => handleRemovePending(p.email)}
+                title="Cancelar convite"
+                className="p-1.5 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors shrink-0"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {linked.length === 0 && pending.length === 0 && (
+        <div className="text-center py-8 text-neutral-400">
+          <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+          <p className="text-sm">Nenhum usuário cadastrado</p>
+          <p className="text-xs mt-1">Cadastre o e-mail do expositor para liberar acesso</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -770,11 +728,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, onUpdated }: {
 
         {tab === 'produtos' && <ProductsTab exhibitorId={exhibitor.id} />}
         {tab === 'usuarios' && (
-          <UsersTab
-            exhibitorId={exhibitor.id}
-            exhibitorNumber={exhibitor.number}
-            eventSlug={eventSlug}
-          />
+          <UsersTab exhibitorId={exhibitor.id} />
         )}
         {tab === 'leads' && <LeadsTab exhibitorId={exhibitor.id} exhibitorName={exhibitor.name} />}
       </div>

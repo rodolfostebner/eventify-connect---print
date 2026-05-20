@@ -200,6 +200,21 @@ Exemplos:
 | [D4] Música de fundo | **Descartar** — autoplay de áudio é bloqueado por padrão em todos os browsers modernos |
 | [D5] Tela de sorteio | Manter aberto — depende de [PD1][PD2] |
 
+## Configuração de Auth (pendente — com o outro desenvolvedor)
+
+| Item | Status | Responsável |
+|------|--------|-------------|
+| Habilitar Google OAuth no Supabase (Authentication → Providers → Google) | ⏳ Pendente | Outro dev |
+| Criar credenciais OAuth no Google Cloud Console e vincular ao Supabase | ⏳ Pendente | Outro dev |
+| Adicionar `VITE_BETA_MODE=false` em `.env.local` de produção ao ativar OAuth | ⏳ Pendente | Outro dev |
+| Aplicar migration `20260520000000_unified_auth.sql` no banco | ⏳ Pendente | — |
+| Seed do primeiro admin: INSERT em `user_email_roles` com role='admin' e email do admin geral | ⏳ Pendente | — |
+
+> **Enquanto OAuth não está configurado:** use `VITE_BETA_MODE=true` em `.env.local`.
+> O modo beta aceita qualquer e-mail, verifica se o usuário existe em `users`, aplica a role cadastrada em `user_email_roles` ou cria com role `participant`. Nenhuma senha ou verificação de e-mail é necessária.
+
+---
+
 ## Ajuste de Schema Necessário (antes de ir para produção)
 
 - ~~Tabela `leads`: adicionar campo `status ENUM('novo','atendido','pago','retirado') DEFAULT 'novo'`~~ ✅ Feito (migration 20260518000000_leads_status.sql)

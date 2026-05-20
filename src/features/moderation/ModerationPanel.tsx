@@ -10,9 +10,11 @@ import { fetchAllPosts, subscribeToAllPosts, updatePostStatus, approveComment, d
 import { subscribeToPrintOrders, completePrintOrder, deletePrintOrder } from '../../services/printService';
 import { createNotification } from '../../services/notificationService';
 import { updateEvent } from '../../services/eventService';
-import { User, logout } from '../../services/authService';
+import { useAuth } from '../../hooks/useAuth';
+import type { AppUser } from '../../types';
 
-export default function ModerationPanel({ user }: { user: User | null }) {
+export default function ModerationPanel({ user }: { user: AppUser | null }) {
+  const { logout } = useAuth();
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [photos, setPhotos] = useState<PhotoData[]>([]);
@@ -282,10 +284,10 @@ export default function ModerationPanel({ user }: { user: User | null }) {
           {user && (
             <div className="flex items-center gap-3">
               <img
-                src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'A'}&background=random`}
+                src={user.photo_url || `https://ui-avatars.com/api/?name=${user.display_name || 'A'}&background=random`}
                 className="w-10 h-10 rounded-full border border-neutral-200"
                 referrerPolicy="no-referrer"
-                onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${user.displayName || 'A'}&background=random`; }}
+                onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${user.display_name || 'A'}&background=random`; }}
               />
               <button onClick={handleLogout} className="p-2 text-neutral-400 hover:text-red-500 transition-colors" title="Sair">
                 <LogOut className="w-6 h-6" />

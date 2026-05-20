@@ -3,11 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, ShieldCheck, LogOut } from 'lucide-react';
 
-import type { EventData, PhotoData, PrintOrder, PostComment } from '../types';
+import type { EventData, PhotoData, PrintOrder, PostComment, AppUser } from '../types';
 import { subscribeToEvent, updateEvent } from '../services/eventService';
 import { fetchAllPosts, subscribeToAllPosts, updatePostStatus, deletePost, commentOnPost, approveComment, deleteComment } from '../services/posts';
 import { completePrintOrder, deletePrintOrder } from '../services/printService';
-import { User, logout } from '../services/authService';
+import { useAuth } from '../hooks/useAuth';
 import { cn } from '../lib/utils';
 
 // Modular Hooks
@@ -22,7 +22,8 @@ import { PrintOrderModeration } from '../features/moderation/components/PrintOrd
 import { ModerationControls } from '../features/moderation/components/ModerationControls';
 import { PrintOrderModal } from '../features/moderation/components/PrintOrderModal';
 
-export default function ModerationPanel({ user }: { user: User | null }) {
+export default function ModerationPanel({ user }: { user: AppUser | null }) {
+  const { logout } = useAuth();
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [event, setEvent] = useState<EventData | null>(null);
@@ -179,12 +180,12 @@ export default function ModerationPanel({ user }: { user: User | null }) {
             {user && (
               <div className="flex items-center gap-4 bg-white p-2 pr-4 rounded-full border border-neutral-100 shadow-sm">
                 <img
-                  src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'A'}&background=random`}
+                  src={user.photo_url || `https://ui-avatars.com/api/?name=${user.display_name || 'A'}&background=random`}
                   className="w-10 h-10 rounded-full border-2 border-neutral-50"
                   referrerPolicy="no-referrer"
                 />
                 <div className="hidden sm:block">
-                   <p className="text-[10px] font-black uppercase tracking-widest text-neutral-900">{user.displayName || 'Admin'}</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest text-neutral-900">{user.display_name || 'Admin'}</p>
                    <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-tighter">Nível 3 Acesso</p>
                 </div>
               </div>

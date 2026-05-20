@@ -15,7 +15,7 @@ export const useAdminActions = (event: EventData | null) => {
       toast.success('Foto aprovada!');
       
       // Notify user if possible (requires user_id or firebase_uid)
-      const userId = photo.firebase_uid || (photo as any).user_id;
+      const userId = (photo as any).user_id || photo.firebase_uid;
       if (userId && event) {
         await createNotification({
           userId: userId,
