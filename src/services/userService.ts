@@ -13,11 +13,17 @@ import type { AppUser, UserRole, UserEmailRole } from '../types';
 export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | null> {
   if (!supabase) return null;
 
-  const { data: existing } = await supabase
+  const { data: existing, error: lookupError } = await supabase
     .from('users')
     .select('*')
     .eq('supabase_user_id', authUser.id)
     .maybeSingle();
+
+  // Migration not yet applied — supabase_user_id column missing
+  if (lookupError) {
+    console.warn('[UserService] Fallback to email lookup (migration pending):', lookupError.message);
+    return findOrCreateUserByEmail(authUser.email!);
+  }
 
   if (existing) {
     await supabase.from('users').update({
@@ -25,6 +31,22 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
       photo_url: authUser.user_metadata?.avatar_url ?? existing.photo_url,
     }).eq('supabase_user_id', authUser.id);
     return existing as AppUser;
+  }
+
+  // Check for existing user by email to avoid duplicates
+  const { data: byEmail } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', authUser.email!)
+    .maybeSingle();
+
+  if (byEmail) {
+    await supabase.from('users').update({
+      supabase_user_id: authUser.id,
+      display_name: authUser.user_metadata?.full_name ?? byEmail.display_name,
+      photo_url: authUser.user_metadata?.avatar_url ?? byEmail.photo_url,
+    }).eq('email', authUser.email!);
+    return { ...byEmail, supabase_user_id: authUser.id } as AppUser;
   }
 
   const { data: preReg } = await supabase
