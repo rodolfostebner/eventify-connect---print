@@ -178,8 +178,14 @@ supabase/
 - **`posts`** — ✅ Tabela principal normalizada (substitui `photos`)
 - **`reactions`** — ✅ Tabela normalizada de reações
 - **`comments`** — ✅ Tabela normalizada de comentários
-- **`print_orders`** — usa `photo_ids` (array texto) — estrutura legada parcial
+- **`print_orders`** — usa `photo_ids` (array texto) — estrutura legada parcial (**INATIVO nesta versão**)
 - **`print_order_items`** — ✅ Estrutura pronta (FK: print_order_id + post_id) — implementação pendente nos services
+- **`evaluation_categories`** — ✅ Categorias de avaliação técnica por evento (name, weight, order_index)
+- **`evaluations`** — ✅ Avaliações do público (1-5 estrelas + comentário), UNIQUE(exhibitor_id, user_id)
+- **`juror_evaluations`** — ✅ Notas dos jurados por categoria, UNIQUE(exhibitor_id, user_id, category_id)
+- **`raffle_tickets`** — ✅ Tickets de sorteio (1 por participante por evento), UNIQUE(event_id, user_id)
+- **`visits`** — ✅ Analytics de visitas/cliques (relatório pós-evento, não afeta ranking)
+- **`view_exhibitor_rankings`** — ✅ View SQL: ranking ponderado público×peso + jurado×peso em tempo real
 
 ---
 
@@ -189,11 +195,14 @@ supabase/
 |---|---|---|
 | `eventService.ts` | `events` | ✅ Ativo |
 | `posts.ts` | `posts`, `reactions`, `comments` | ✅ Ativo e normalizado |
-| `printService.ts` | `print_orders` | ⚠️ Usa `photo_ids` array (legado) |
+| `printService.ts` | `print_orders` | ⛔ Inativo (impressão desativada nesta versão) |
 | `notificationService.ts` | `notifications` | ✅ Ativo |
 | `userService.ts` | `users` | ✅ Ativo (Firebase→Supabase sync) |
 | `storageService.ts` | Cloudflare R2 | ✅ Ativo |
 | `authService.ts` | Firebase Auth | ✅ Ativo |
+| `evaluationService.ts` | `evaluations`, `juror_evaluations`, `evaluation_categories`, `view_exhibitor_rankings` | ✅ Ativo |
+| `raffleService.ts` | `raffle_tickets` | ✅ Ativo |
+| `visitService.ts` | `visits` | ✅ Ativo |
 
 ---
 
