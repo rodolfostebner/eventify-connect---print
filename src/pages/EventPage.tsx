@@ -10,9 +10,9 @@ import type { EventData } from '../types';
 import { subscribeToEvent } from '../services/eventService';
 import { createPrintOrder } from '../services/printService';
 import { getExhibitors } from '../services/exhibitorService';
-import { getSponsors } from '../services/sponsorService';
+import { getPartners } from '../services/partnerService';
 import { cn } from '../lib/utils';
-import type { Exhibitor, Sponsor } from '../types';
+import type { Exhibitor, Partner } from '../types';
 
 // Modular Components
 import { LiveEventView } from '../features/event/components/LiveEventView';
@@ -170,7 +170,7 @@ export default function EventPage({ user }: { user: AppUser | null }) {
   const [isSubmittingPrint, setIsSubmittingPrint] = useState(false);
 
   const [dbExhibitors, setDbExhibitors] = useState<Exhibitor[]>([]);
-  const [dbSponsors, setDbSponsors] = useState<Sponsor[]>([]);
+  const [dbSponsors, setDbSponsors] = useState<Partner[]>([]);
 
   const [pushEnabled, setPushEnabled] = useState(() => {
     return localStorage.getItem('push_notifications_enabled') === 'true';
@@ -256,7 +256,7 @@ export default function EventPage({ user }: { user: AppUser | null }) {
   useEffect(() => {
     if (!event?.id) return;
     getExhibitors(event.id).then(setDbExhibitors).catch(() => {});
-    getSponsors(event.id).then(setDbSponsors).catch(() => {});
+    getPartners(event.id).then(setDbSponsors).catch(() => {});
   }, [event?.id]);
 
   const exhibitorItems = dbExhibitors.map(ex => ({

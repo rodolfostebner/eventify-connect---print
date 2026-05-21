@@ -119,20 +119,21 @@ Exemplos:
 
 # REGRAS DE NEGOCIO
 
-- [RN1] ~~Participantes da feira só poderão comentar e avaliar o mesmo expositor uma quantidade x (definida no painel de administração do evento)~~ ✅ **Resolvido** — UNIQUE(exhibitor_id, user_id) na tabela `evaluations` garante 1 avaliação por participante por expositor
-- [RN2] ~~Avaliações terão diferentes pesos e categorias, a ser definidas via Administração do Evento~~ ✅ **Resolvido** — 6 categorias definidas (Atendimento, Criatividade, Organização, Produto, Decoração, Apresentação), pesos configuráveis por evento (`evaluation_categories.weight` + `events.public/juror_evaluation_weight`)
-- [RN3] Participantes que registram avaliação são registrados em uma tabela para concorrer aos sorteios
+- [RN1] ~~Participantes da feira só poderão comentar e avaliar o mesmo expositor uma quantidade x (definida no painel de administração do evento)~~ ✅ **Backend resolvido** — UNIQUE(exhibitor_id, user_id) na tabela `evaluations` garante 1 avaliação por participante por expositor. ⏳ **UI pendente** — tela de avaliação não implementada
+- [RN2] ~~Avaliações terão diferentes pesos e categorias, a ser definidas via Administração do Evento~~ ✅ **Backend resolvido** — `evaluation_categories.weight` + `events.public/juror_evaluation_weight`; CRUD em `evaluationService`. ⏳ **UI pendente** — cadastro de categorias/pesos no Admin do Evento não implementado
+- [RN3] Participantes que registram avaliação são registrados em uma tabela para concorrer aos sorteios — ⚠️ **Não conectado** — tabela `raffle_tickets` e `raffleService.ensureRaffleTicket()` existem, mas nenhum código chama `ensureRaffleTicket` após `submitEvaluation`. O vínculo avaliação→ticket ainda não está implementado
 
 # PENDENCIA DE VIABILIDADE TECNICA
 
 - [PVT1] ~~Identificar logins unicos na plataforma para evitar flood de comentarios e curtidas, descaracterizando ranking enviado pelos participantes da feira~~ ✅ **Resolvido** — Supabase Auth unificado (Google OAuth + Magic Link) com validação por email; UNIQUE constraints no banco impedem duplicatas
 - [PVT2] Registrar visitas aos expositores e seus produtos, estilo google analytics, registrar no banco e permitir consulta por expositores e possibilidade de gerar rank baseado nesse indicador de visitas
-  > ✅ **Solução definida** — ver `docs/analytics-visitas.md` para modelo completo: tabelas, eventos rastreados, sistema de tickets para sorteio e plano de implementação. **Implementar após conclusão das páginas pendentes (modal patrocinador, modal serviço, botão de share).**
+  > ✅ **Backend resolvido** — tabela `visits` + `visitService` (trackVisit, resumo por ação, top produtos, contagem por expositor) + RPC `get_exhibitor_visit_summary`. ⏳ **UI pendente** — chamadas de `trackVisit()` nos cliques do feed e tela de relatório do expositor não implementadas. Modelo completo em `docs/analytics-visitas.md`.
+- [PVT3] **Analytics de Parceiros** — a aba "Visualização" do painel de Parceiros não tem fonte de dados: a tabela `visits` só rastreia `exhibitor_id`/`product_id`, não parceiros. Para popular a aba é preciso estender `visits` (ex.: `partner_id` + ações de clique) e instrumentar os cliques nos parceiros do feed. ❌ Não implementado (aba exibe placeholder)
 
 # PENDENTE DE DEFINIÇÃO
 
-- [PD1] Tela de sorteios
-- [PD2] ~~Regra para sorteios~~ ✅ **Resolvido** — Modelo simplificado: 1 único ticket por participante por evento. UNIQUE(event_id, user_id) na tabela `raffle_tickets`. Sorteio automático com resultado no telão.
+- [PD1] Tela de sorteios — ⚠️ **Backend pronto, UI pendente** — `raffleService.drawRandomTicket()` sorteia no backend; tela de sorteio e exibição no telão não implementadas
+- [PD2] ~~Regra para sorteios~~ ✅ **Backend resolvido** — Modelo simplificado: 1 único ticket por participante por evento. UNIQUE(event_id, user_id) na tabela `raffle_tickets`.
 - [PD3] Administradores poderão registrar fotos para enriquecer feed?
 - [PD4] Criaremos uma tela para marketing da escola? 
 
@@ -148,27 +149,35 @@ Exemplos:
 | Feed — Fotos dos participantes | ✅ Implementado | Ainda na tabela `photos` legada |
 | Feed — Patrocinadores | ✅ Implementado | Tabela dedicada `sponsors`, carrossel de fotos, dados do banco |
 | Feed — Contador pré-evento responsivo | ✅ Implementado | Ajustado para mobile |
-| Feed — Registro de clicks/visitas | ⏳ Aguardando páginas pendentes | [PVT2] — solução definida em `docs/analytics-visitas.md` |
-| Feed — Sorteios | ❌ Não implementado | Aguarda definição [PD1][PD2] |
+| Feed — Registro de clicks/visitas | 🔶 Backend pronto, UI pendente | [PVT2] — `visits` + `visitService` ok; falta chamar `trackVisit()` nos cliques |
+| Feed — Sorteios | 🔶 Backend pronto, UI pendente | `raffle_tickets` + `raffleService` ok; falta tela e vínculo [RN3] |
 | Expositores — CRUD + produtos + usuários | ✅ Implementado | Painel admin `/expositores/:slug` |
 | Expositores — Foto do stand (photo_url) | ✅ Implementado | Upload no painel admin e portal do expositor |
 | Expositores — Leads de pré-venda | ✅ Implementado | Status (novo/atendido/pago/retirado) + exportação CSV/Excel |
-| Patrocinadores — Painel de cadastro | ✅ Implementado | `/patrocinadores/:slug`, CRUD completo, até 3 fotos |
-| Apoiadores - Parceiros que não pagam |❌ Não implementado | Seguir mesmo padrão de Patrocinador ou aproveitar mesma tela e adicionar flag? |
+| Expositores — Categoria | ✅ Implementado | Campo `exhibitors.category` (texto livre). Categorias configuráveis por evento em `events.exhibitor_categories`, editáveis na aba Configurações do EventAdmin. Combobox no cadastro admin e no portal do expositor |
+| Parceiros — Painel unificado | ✅ Implementado | `/parceiros/:slug` (ex-`/patrocinadores`). Unifica Patrocinador/Apoiador/Serviço via campo `type`. Abas Dados/Fotos/Contatos Marketing/Visualização. Tabela `partners` (ex-`sponsors`). Campos internos: contato, valor do patrocínio. Flags MostraTelão/MostraFeed |
+| Apoiadores - Parceiros que não pagam | ✅ Implementado | Absorvido pela tela de Parceiros (tipo `apoiador`) |
+| Serviços | ✅ Implementado | Absorvido pela tela de Parceiros (tipo `servico`) |
+| Parceiros — filtro MostraFeed no feed público | ❌ Não implementado | Flag `show_on_feed` é salva mas o feed (Pre/Live/Post) ainda exibe todos; falta aplicar o filtro |
+| Parceiros — Analytics (aba Visualização) | ❌ Não implementado | Ver [PVT3] — sem fonte de dados (visits não rastreia parceiros) |
+| Relatório financeiro do evento (valor de patrocínio) | ❌ Não implementado | `partners.sponsorship_value` já é capturado; falta tela/exportação do relatório financeiro |
 | Perfil Expositor (portal dedicado) | ✅ Implementado | `/expositor` com Supabase Auth |
-| Perfil EventAdmin | ✅ implementado | Hoje o Admin acumula tudo |
+| Perfil EventAdmin | ✅ Implementado | Portal `/eventadmin` dedicado (substitui acúmulo no Admin) |
 | Perfil Avaliador | ✅ implementado | via cadastro de usuarios |
-| Sistema de Avaliação | ❌ Não implementado | Aguarda definição [RN2] |
-| Painel TV — Fotos + Rankings | ✅ Implementado | |
+| Sistema de Avaliação | 🔶 Backend pronto, UI pendente | Tabelas + `evaluationService` + view de ranking ok; falta módulo `src/features/evaluation/` |
+| Painel TV — Fotos + Rankings | ✅ Implementado | Ranking por curtidas; ranking ponderado (`view_exhibitor_rankings`) ainda não exibido na TV |
 | Painel TV — Carrossel expositores | ❌ Não implementado | |
-| Painel TV — Sorteios | ❌ Não implementado | Contador regressivo (som?)|
+| Painel TV — Sorteios | 🔶 Backend pronto, UI pendente | `drawRandomTicket()` ok; falta tela/contador regressivo (som?)|
 | Painel TV — Avisos | ❌ Não implementado | Som seguido de mensagem com destaque |
-| Painel TV — Parceiros | ❌ Não implementado | Patrocinadores, apoiadores e serviços |
+| Painel TV — Parceiros | ❌ Não implementado | Cadastro unificado pronto (`partners` + flag `show_on_tv`); falta o carrossel na TV consumir a flag |
 | Administração Geral — Dashboard redesenhado | ✅ Implementado | Full-width, botão '+' inline, EventCard com ícones |
 | Administração do Evento — base | ✅ Implementado | |
-| Administração do Evento — Avaliadores/Categorias/Pesos | ❌ Não implementado | |
-| Sistema de Sorteios | ❌ Não implementado | |
-| Sistema de Avaliação | ❌ Não implementado | Aguarda definição [RN2] |
+| Tela de Administração do Evento (`/eventadmin`) | ✅ Implementado | Seção fixa de controles + acordeons (Dashboard, Configurações com 8 abas). Acesso: admin geral (engrenagem do card → `/eventadmin/:slug`) e event_admin (tela de entrada). Abas Dados/Aparência/Configurações funcionais; Avaliação/Sorteio/Relatórios/Marketing em branco |
+| Auditoria de alterações do evento | ✅ Implementado | Tabela `audit_logs` + `auditService`; registra autor e diff (antes/depois) de edições e mudanças de fase. Visível na aba Auditoria com modal de detalhes |
+| Dashboard de métricas do evento (expositores, produtos, etc.) | ❌ Não implementado | Seção 2 da tela `/eventadmin` com placeholders; falta popular contagens |
+| Administração do Evento — Avaliadores/Categorias/Pesos | 🔶 Backend pronto, UI pendente | CRUD de categorias/pesos em `evaluationService`; falta tela de cadastro |
+| Sistema de Sorteios | 🔶 Backend pronto, UI pendente | `raffleService` ok; falta tela e vínculo avaliação→ticket [RN3] |
+| Sistema de Avaliação | 🔶 Backend pronto, UI pendente | Duplicado da linha acima; backend ok, UI pendente |
 | Cadastro de Avisos | ❌ Não implementado | |
 | Moderação fotos e comentários | ✅ Implementado | |
 

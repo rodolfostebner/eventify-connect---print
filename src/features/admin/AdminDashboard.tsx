@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import {
   LayoutDashboard, Plus, LogOut, Calendar, Settings, Eye, Trash2,
@@ -66,6 +67,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: () => void }) {
 
 export default function AdminDashboard({ user }: { user: AppUser | null }) {
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<EventData[]>([]);
   const [editingEvent, setEditingEvent] = useState<EventData | null>(null);
@@ -144,6 +146,8 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
     }
   };
 
+  // DESATIVADO: o modal de configuração foi substituído pela tela /eventadmin/:slug.
+  // Mantido para referência — não é mais acionado pela engrenagem do card.
   const openBrandingModal = (event: EventData) => {
     setEditingEvent(event);
     setOpenSection('dados');
@@ -367,7 +371,7 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                 event={event}
                 onUpdateStatus={updateStatus}
                 onShare={setSharingEvent}
-                onEdit={openBrandingModal}
+                onEdit={(ev) => navigate(`/eventadmin/${ev.slug}`)}
                 onDelete={handleDeleteEvent}
               />
             ))}

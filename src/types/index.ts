@@ -55,6 +55,7 @@ export interface EventData {
   services?: ExhibitorSponsor[];
   custom_comments?: string[];
   upload_source?: 'camera' | 'gallery' | 'both';
+  exhibitor_categories?: string[];
   app_description?: string;
   app_whatsapp?: string;
   app_instagram?: string;
@@ -145,6 +146,8 @@ export interface Exhibitor {
   event_id: string;
   number: number;
   name: string;
+  // Texto livre — opções vêm de events.exhibitor_categories (configurável por evento)
+  category: string;
   description?: string | null;
   logo_url?: string | null;
   photo_url?: string | null;
@@ -172,12 +175,21 @@ export interface Product {
 
 // ─── Sponsors ─────────────────────────────────────────────────────────────────
 
-export interface Sponsor {
+export type PartnerType = 'patrocinador' | 'apoiador' | 'servico';
+
+export interface Partner {
   id: string;
   event_id: string;
   name: string;
+  type: PartnerType;
   description?: string | null;
   photos: string[];
+  // Uso interno — não exibido no app
+  internal_contact?: string | null;
+  // Valor do patrocínio — uso interno / relatório financeiro (só tipo patrocinador)
+  sponsorship_value?: number | null;
+  show_on_tv: boolean;
+  show_on_feed: boolean;
   instagram_url?: string | null;
   whatsapp?: string | null;
   website_url?: string | null;
@@ -221,6 +233,24 @@ export interface UserEmailRole {
   role: UserRole;
   event_id: string | null;
   exhibitor_id: string | null;
+  created_at: string;
+}
+
+// ─── Audit Log (Auditoria de alterações) ─────────────────────────────────────
+
+export interface AuditChange {
+  before: unknown;
+  after: unknown;
+}
+
+export interface AuditLog {
+  id: string;
+  event_id: string;
+  user_id: string | null;
+  user_name: string | null;
+  user_email: string | null;
+  action: string;
+  changes: Record<string, AuditChange>;
   created_at: string;
 }
 

@@ -7,7 +7,7 @@ import TVView from "./pages/TVView"
 import OperatorPanel from "./pages/OperatorPanel"
 import ExhibitorPanelPage from "./pages/ExhibitorPanelPage"
 import ExhibitorPortalPage from "./pages/ExhibitorPortalPage"
-import SponsorPanelPage from "./pages/SponsorPanelPage"
+import PartnerPanelPage from "./pages/PartnerPanelPage"
 import EventAdminPortalPage from "./pages/EventAdminPortalPage"
 import AvaliadorPageComponent from "./pages/AvaliadorPage"
 import LoginPage from "./pages/LoginPage"
@@ -44,8 +44,9 @@ function App() {
         {/* Portal Expositor */}
         <Route path="/expositor" element={isExpositor ? <ExhibitorPortalPage /> : <Navigate to="/login" replace />} />
 
-        {/* Portal EventAdmin */}
-        <Route path="/eventadmin" element={isEventAdmin ? <EventAdminPortalPage /> : <Navigate to="/login" replace />} />
+        {/* Portal EventAdmin — event_admin (próprio evento) e admin geral (por slug) */}
+        <Route path="/eventadmin" element={(isEventAdmin || isAdmin) ? <EventAdminPortalPage /> : <Navigate to="/login" replace />} />
+        <Route path="/eventadmin/:slug" element={(isEventAdmin || isAdmin) ? <EventAdminPortalPage /> : <Navigate to="/login" replace />} />
 
         {/* Portal Avaliador */}
         <Route path="/avaliador" element={isAvaliador ? <AvaliadorPageComponent /> : <Navigate to="/login" replace />} />
@@ -56,7 +57,7 @@ function App() {
         <Route path="/moderation/:slug" element={isAdmin ? <ModerationPanel user={user} /> : <Navigate to="/login" replace />} />
         <Route path="/operator/:slug" element={isAdmin ? <OperatorPanel user={user} /> : <Navigate to="/login" replace />} />
         <Route path="/expositores/:slug" element={isAdmin ? <ExhibitorPanelPage /> : <Navigate to="/login" replace />} />
-        <Route path="/patrocinadores/:slug" element={isAdmin ? <SponsorPanelPage /> : <Navigate to="/login" replace />} />
+        <Route path="/parceiros/:slug" element={isAdmin ? <PartnerPanelPage /> : <Navigate to="/login" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Star, Briefcase } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
-import type { EventData, Exhibitor, Sponsor } from '../../../types';
+import type { EventData, Exhibitor, Partner } from '../../../types';
 import { PartnerSection } from './PartnerSection';
 import { ExhibitorCatalogModal } from './ExhibitorCatalogModal';
 import { getExhibitors } from '../../../services/exhibitorService';
-import { getSponsors } from '../../../services/sponsorService';
+import { getPartners } from '../../../services/partnerService';
 
 export const PreEventView = ({ event }: { event: EventData }) => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
   const [dbExhibitors, setDbExhibitors] = useState<Exhibitor[]>([]);
-  const [dbSponsors, setDbSponsors] = useState<Sponsor[]>([]);
+  const [dbSponsors, setDbSponsors] = useState<Partner[]>([]);
   const [selectedExhibitor, setSelectedExhibitor] = useState<Exhibitor | null>(null);
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export const PreEventView = ({ event }: { event: EventData }) => {
 
   useEffect(() => {
     getExhibitors(event.id).then(setDbExhibitors).catch(() => {});
-    getSponsors(event.id).then(setDbSponsors).catch(() => {});
+    getPartners(event.id).then(setDbSponsors).catch(() => {});
   }, [event.id]);
 
   // Mapeia Exhibitor (tabela) para o formato PartnerItem

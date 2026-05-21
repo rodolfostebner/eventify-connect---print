@@ -12,8 +12,8 @@ import { LoginBanner } from './Feed/LoginBanner';
 import { PartnerSection } from './PartnerSection';
 import { ExhibitorCatalogModal } from './ExhibitorCatalogModal';
 import { getExhibitors } from '../../../services/exhibitorService';
-import { getSponsors } from '../../../services/sponsorService';
-import type { EventData, AppUser, Exhibitor, Sponsor } from '../../../types';
+import { getPartners } from '../../../services/partnerService';
+import type { EventData, AppUser, Exhibitor, Partner } from '../../../types';
 
 interface LiveEventViewProps {
   event: EventData;
@@ -45,12 +45,12 @@ export const LiveEventView = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [dbExhibitors, setDbExhibitors] = useState<Exhibitor[]>([]);
-  const [dbSponsors, setDbSponsors] = useState<Sponsor[]>([]);
+  const [dbSponsors, setDbSponsors] = useState<Partner[]>([]);
   const [selectedExhibitor, setSelectedExhibitor] = useState<Exhibitor | null>(null);
 
   useEffect(() => {
     getExhibitors(event.id).then(setDbExhibitors).catch(() => {});
-    getSponsors(event.id).then(setDbSponsors).catch(() => {});
+    getPartners(event.id).then(setDbSponsors).catch(() => {});
   }, [event.id]);
 
   const exhibitorItems = dbExhibitors.map(ex => ({

@@ -9,10 +9,18 @@ import { toast } from 'sonner';
 import { useAuth } from '../../hooks/useAuth';
 import { getExhibitorById } from '../../services/exhibitorService';
 import { updateExhibitor } from '../../services/exhibitorService';
+import { getEventById } from '../../services/eventService';
 import { getProducts, createProduct, updateProduct, deactivateProduct } from '../../services/productService';
 import { getLeads, updateLeadStatus } from '../../services/leadService';
 import { uploadImage } from '../../services/storageService';
 import type { Product, Lead, LeadStatus } from '../../types';
+import { DEFAULT_EXHIBITOR_CATEGORIES } from '../../constants';
+
+// Garante que o valor atual apareça na lista mesmo se a categoria tiver sido removida do evento
+function mergeCategoryOptions(categories: string[], current?: string): string[] {
+  const base = categories.length ? categories : DEFAULT_EXHIBITOR_CATEGORIES;
+  return current && !base.includes(current) ? [...base, current] : base;
+}
 
 const MAX_PRODUCT_PHOTOS = 3;
 
@@ -20,9 +28,10 @@ type Tab = 'perfil' | 'produtos' | 'leads';
 
 // ─── Perfil Tab ────────────────────────────────────────────────────────────────
 
-function PerfilTab({ exhibitor, onUpdated }: { exhibitor: import('../../types').Exhibitor; onUpdated: () => void }) {
+function PerfilTab({ exhibitor, categories, onUpdated }: { exhibitor: import('../../types').Exhibitor; categories: string[]; onUpdated: () => void }) {
   const [form, setForm] = useState({
     name: exhibitor.name,
+    category: exhibitor.category || 'Outros',
     description: exhibitor.description || '',
     instagram_url: exhibitor.instagram_url || '',
     whatsapp: exhibitor.whatsapp || '',
@@ -70,6 +79,7 @@ function PerfilTab({ exhibitor, onUpdated }: { exhibitor: import('../../types').
     try {
       await updateExhibitor(exhibitor.id, {
         name: form.name.trim(),
+        category: form.category,
         description: form.description.trim() || null,
         logo_url: logo || null,
         photo_url: photo || null,
@@ -138,6 +148,18 @@ function PerfilTab({ exhibitor, onUpdated }: { exhibitor: import('../../types').
           onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
           className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
         />
+      </div>
+      <div>
+        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider block mb-1.5">Categoria</label>
+        <select
+          value={form.category}
+          onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+          className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900/20 bg-white"
+        >
+          {mergeCategoryOptions(categories, form.category).map(c => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
       </div>
       <div>
         <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider block mb-1.5">Descrição</label>
@@ -525,6 +547,7 @@ export default function ExhibitorPortal() {
   const navigate = useNavigate();
   const { user, loading, logout } = useAuth();
   const [exhibitor, setExhibitor] = useState<import('../../types').Exhibitor | null>(null);
+  const [categories, setCategories] = useState<string[]>(DEFAULT_EXHIBITOR_CATEGORIES);
   const [loadingExhibitor, setLoadingExhibitor] = useState(true);
   const [tab, setTab] = useState<Tab>('perfil');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -538,7 +561,14 @@ export default function ExhibitorPortal() {
   useEffect(() => {
     if (!user?.exhibitor_id) { setLoadingExhibitor(false); return; }
     getExhibitorById(user.exhibitor_id)
-      .then(setExhibitor)
+      .then(ex => {
+        setExhibitor(ex);
+        if (ex?.event_id) {
+          getEventById(ex.event_id)
+            .then(ev => { if (ev?.exhibitor_categories?.length) setCategories(ev.exhibitor_categories); })
+            .catch(() => {});
+        }
+      })
       .catch(() => setExhibitor(null))
       .finally(() => setLoadingExhibitor(false));
   }, [user?.exhibitor_id, refreshKey]);
@@ -605,7 +635,7 @@ export default function ExhibitorPortal() {
       {/* Content */}
       <div className="max-w-2xl mx-auto p-4 pb-12">
         {tab === 'perfil' && (
-          <PerfilTab exhibitor={exhibitor} onUpdated={() => setRefreshKey(k => k + 1)} />
+          <PerfilTab exhibitor={exhibitor} categories={categories} onUpdated={() => setRefreshKey(k => k + 1)} />
         )}
         {tab === 'produtos' && <ProdutosTab key={refreshKey} exhibitorId={exhibitor.id} />}
         {tab === 'leads' && <LeadsTabExpositor exhibitorId={exhibitor.id} exhibitorName={exhibitor.name} />}

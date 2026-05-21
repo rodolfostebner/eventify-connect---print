@@ -69,7 +69,8 @@ src/
     index.ts               # Todos os tipos TS
                            # ExhibitorSponsor — tipo legado (JSON em events.services[])
                            # Exhibitor, AppUser, UserRole, UserEmailRole — schema normalizado
-                           # EventData, PostData, PhotoData, PrintOrder, Product, Lead, Sponsor
+                           # EventData, PostData, PhotoData, PrintOrder, Product, Lead, Partner (type patrocinador/apoiador/servico)
+                           # AuditLog — auditoria de alteracoes do evento
                            # EvaluationCategory, Evaluation, JurorEvaluation — avaliações
                            # RaffleTicket — sorteio
                            # Visit, VisitAction — analytics
@@ -90,10 +91,11 @@ src/
     exhibitorService.ts    # CRUD expositores + subscription realtime (tabela exhibitors)
     productService.ts      # CRUD produtos do expositor (tabela products)
     leadService.ts         # Criar/listar leads de pre-venda (tabela leads)
-    sponsorService.ts      # CRUD patrocinadores (tabela sponsors)
+    partnerService.ts      # CRUD parceiros - patrocinador/apoiador/servico (tabela partners)
     evaluationService.ts   # CRUD avaliacoes publico + jurados, categorias, ranking (view)
     raffleService.ts       # Criacao de ticket, listagem, sorteio aleatorio
     visitService.ts        # Registro silencioso de visitas/cliques, relatorios por expositor
+    auditService.ts        # Log de auditoria de alteracoes do evento (diff + autor)
 
   contexts/
     AuthContext.tsx         # AuthProvider + useAuth + BETA_MODE — re-exportado em hooks/useAuth.ts
@@ -113,8 +115,8 @@ src/
     TVView.tsx
     ExhibitorPanelPage.tsx   # Admin: gestao de expositores do evento
     ExhibitorPortalPage.tsx  # Expositor: portal pos-login
-    SponsorPanelPage.tsx     # Admin: gestao de patrocinadores
-    EventAdminPortalPage.tsx # EventAdmin: portal de administracao do evento (stub)
+    PartnerPanelPage.tsx     # Admin: gestao de parceiros (patrocinadores/apoiadores/servicos)
+    EventAdminPortalPage.tsx # EventAdmin: portal de administracao do evento
     AvaliadorPage.tsx        # Avaliador: painel de avaliacao (stub)
 
   features/
@@ -168,13 +170,13 @@ src/
       ExhibitorPortal.tsx  # Portal do expositor (tabs: perfil/produtos/leads)
 
     eventAdmin/
-      EventAdminPortal.tsx # Portal do EventAdmin (stub — a implementar)
+      EventAdminPortal.tsx # Portal do EventAdmin: controles + dashboard + config (abas) + auditoria. Acesso admin e event_admin
 
     avaliador/
       AvaliadorPage.tsx    # Painel do avaliador (stub — a implementar)
 
-    sponsors/
-      SponsorPanel.tsx     # Admin: CRUD patrocinadores do evento
+    partners/
+      PartnerPanel.tsx     # Admin: CRUD parceiros (abas Dados/Fotos/Contatos/Visualizacao); tipo patrocinador/apoiador/servico
 
     moderation/
       ModerationPanel.tsx  # Painel de curadoria
@@ -235,9 +237,10 @@ docs/
 | `/moderation/:slug` | Admin | ModerationPanel | Ativo |
 | `/operator/:slug` | Admin | OperatorPanel | UI incompleta |
 | `/expositores/:slug` | Admin | ExhibitorPanelPage | Ativo |
-| `/patrocinadores/:slug` | Admin | SponsorPanelPage | Ativo |
+| `/parceiros/:slug` | Admin | PartnerPanelPage | Ativo |
 | `/expositor` | Expositor | ExhibitorPortalPage | Ativo |
-| `/eventadmin` | EventAdmin | EventAdminPortalPage | Stub |
+| `/eventadmin` | EventAdmin | EventAdminPortalPage | Ativo |
+| `/eventadmin/:slug` | Admin | EventAdminPortalPage (admin geral via engrenagem do card) | Ativo |
 | `/avaliador` | Avaliador | AvaliadorPage | Stub |
 | `*` | — | Redireciona para `/` | — |
 
@@ -300,7 +303,7 @@ Canais ativos:
 
 | Tabela | Descricao | Status |
 |--------|-----------|--------|
-| `events` | Config completa do evento (~40 campos): status, branding, admin_emails[], TV config, social, flags | Ativo |
+| `events` | Config completa do evento (~40 campos): status, branding, admin_emails[], TV config, social, flags, exhibitor_categories[] (categorias configuraveis por evento) | Ativo |
 | `users` | Perfil unificado: supabase_user_id, email, display_name, photo_url, role, event_id, exhibitor_id | Ativo |
 | `user_email_roles` | Pre-cadastro de email com role antes do primeiro login | Ativo |
 | `posts` | Fotos normalizadas (id, event_id, user_id, image_url, status, is_official, printed) | Ativo |
@@ -309,10 +312,11 @@ Canais ativos:
 | `print_orders` | Pedidos de impressao (option, photo_ids[] texto, status) | Legado parcial |
 | `print_order_items` | FK: print_order_id + post_id (normalizado) | Ativo |
 | `notifications` | Notificacoes por usuario (title, body, read, link) | Ativo |
-| `exhibitors` | Stand virtual: name, description, logo_url, photo_url, contatos, status, number | Ativo |
+| `exhibitors` | Stand virtual: name, category (texto livre, opcoes vem de events.exhibitor_categories), description, logo_url, photo_url, contatos, status, number | Ativo |
 | `products` | Produtos do expositor (name, description, price, photos[], active) | Ativo |
 | `leads` | Interesse de pre-venda (product_id, exhibitor_id, customer_name, customer_phone, status) | Ativo |
-| `sponsors` | Patrocinadores do evento (name, description, photos[], contatos, order_index, active) | Ativo |
+| `partners` | Parceiros do evento (type patrocinador/apoiador/servico, name, description, photos[], contato interno, valor patrocinio, show_on_tv, show_on_feed, contatos, order_index, active) — ex-`sponsors` | Ativo |
+| `audit_logs` | Auditoria de alteracoes do evento (event_id, autor + snapshot nome/email, action, changes jsonb) | Ativo |
 | `evaluation_categories` | Categorias de avaliacao tecnica por evento (name, weight, order_index) | Ativo |
 | `evaluations` | Avaliacoes do publico: 1-5 estrelas + comentario, UNIQUE(exhibitor_id, user_id) | Ativo |
 | `juror_evaluations` | Notas dos jurados por categoria, UNIQUE(exhibitor_id, user_id, category_id) | Ativo |
@@ -333,13 +337,14 @@ Canais ativos:
 | `exhibitorService.ts` | `exhibitors`, `users` | Ativo |
 | `productService.ts` | `products` | Ativo |
 | `leadService.ts` | `leads` | Ativo |
-| `sponsorService.ts` | `sponsors` | Ativo |
+| `partnerService.ts` | `partners` | Ativo |
 | `storageService.ts` | Cloudflare R2 | Ativo |
 | `notificationService.ts` | `notifications` | Ativo |
 | `printService.ts` | `print_orders` | Inativo (impressao desativada nesta versao) |
 | `evaluationService.ts` | `evaluations`, `juror_evaluations`, `evaluation_categories`, `view_exhibitor_rankings` | Ativo |
 | `raffleService.ts` | `raffle_tickets` | Ativo |
 | `visitService.ts` | `visits` | Ativo |
+| `auditService.ts` | `audit_logs` | Ativo |
 
 ---
 
@@ -352,6 +357,8 @@ Canais ativos:
 | 3 | Duplicatas em `features/event/` (raiz vs `components/`) | Baixo — confusao de estrutura | Baixa |
 | 4 | `ExhibitorSponsor` (tipo legado em types/index.ts) coexiste com `Exhibitor` (tabela dedicada) | Baixo — confusao conceitual | Baixa |
 | 5 | `@google/genai` no package.json sem uso | Baixo — dependencia desnecessaria | Baixa |
+| 6 | Flags `partners.show_on_tv`/`show_on_feed` armazenadas mas nao consumidas (feed mostra todos, TV nao mostra parceiros) | Medio — flags sem efeito ate o consumo ser implementado | Media |
+| 7 | Aba "Visualizacao" do PartnerPanel sem fonte de dados — `visits` nao rastreia parceiros (so expositores/produtos) | Medio — analytics de parceiro inexistente | Media |
 
 ---
 

@@ -98,12 +98,29 @@ CREATE INDEX IF NOT EXISTS visits_product_idx    ON visits(product_id);
 CREATE INDEX IF NOT EXISTS visits_action_idx     ON visits(action);
 CREATE INDEX IF NOT EXISTS visits_created_at_idx ON visits(created_at);
 
+-- 6b. RPC: resumo de visitas por ação para um expositor (agrega no banco)
+-- Usada por visitService.getExhibitorVisitSummary(); há fallback no cliente.
+CREATE OR REPLACE FUNCTION get_exhibitor_visit_summary(p_exhibitor_id uuid)
+RETURNS TABLE(action text, count bigint)
+LANGUAGE sql STABLE AS $$
+  SELECT action, COUNT(*) AS count
+  FROM visits
+  WHERE exhibitor_id = p_exhibitor_id
+  GROUP BY action;
+$$;
+
 -- 7. RLS — mesmo padrão permissivo das tabelas existentes
 ALTER TABLE evaluation_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE evaluations           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE juror_evaluations     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE raffle_tickets        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE visits                ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "eval_categories_all" ON evaluation_categories;
+DROP POLICY IF EXISTS "evaluations_all"     ON evaluations;
+DROP POLICY IF EXISTS "juror_evals_all"     ON juror_evaluations;
+DROP POLICY IF EXISTS "raffle_tickets_all"  ON raffle_tickets;
+DROP POLICY IF EXISTS "visits_all"          ON visits;
 
 CREATE POLICY "eval_categories_all" ON evaluation_categories FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "evaluations_all"     ON evaluations           FOR ALL USING (true) WITH CHECK (true);

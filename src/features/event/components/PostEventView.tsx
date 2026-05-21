@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Trophy, Users, Star, Briefcase, Globe, Instagram, MessageCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import type { EventData, PhotoData, AppUser, Exhibitor, Sponsor } from '../../../types';
+import type { EventData, PhotoData, AppUser, Exhibitor, Partner } from '../../../types';
 import { useEventPhotos } from '../hooks/useEventPhotos';
 import { PhotoCard } from './PhotoCard/PhotoCard';
 import { PartnerSection } from './PartnerSection';
 import { getExhibitors } from '../../../services/exhibitorService';
-import { getSponsors } from '../../../services/sponsorService';
+import { getPartners } from '../../../services/partnerService';
 
 interface PostEventViewProps {
   event: EventData;
@@ -18,11 +18,11 @@ export const PostEventView = ({ event, user, onLogin }: PostEventViewProps) => {
   const { photos } = useEventPhotos(event.id);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [dbExhibitors, setDbExhibitors] = useState<Exhibitor[]>([]);
-  const [dbSponsors, setDbSponsors] = useState<Sponsor[]>([]);
+  const [dbSponsors, setDbSponsors] = useState<Partner[]>([]);
 
   useEffect(() => {
     getExhibitors(event.id).then(setDbExhibitors).catch(() => {});
-    getSponsors(event.id).then(setDbSponsors).catch(() => {});
+    getPartners(event.id).then(setDbSponsors).catch(() => {});
   }, [event.id]);
 
   const exhibitorItems = dbExhibitors.map(ex => ({

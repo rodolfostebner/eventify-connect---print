@@ -112,10 +112,10 @@ export function EventCard({ event, onUpdateStatus, onShare, onEdit, onDelete }: 
             <Store className="w-4 h-4" /> EXPOSITORES
           </button>
           <button
-            onClick={() => window.open(`/patrocinadores/${event.slug}`, '_blank')}
+            onClick={() => window.open(`/parceiros/${event.slug}`, '_blank')}
             className="py-2.5 bg-yellow-50 border border-yellow-100 rounded-xl text-[9px] font-bold text-yellow-600 flex flex-col items-center gap-1 hover:bg-yellow-100 transition-colors"
           >
-            <Star className="w-4 h-4" /> PATROC.
+            <Star className="w-4 h-4" /> PARCEIROS
           </button>
         </div>
       </div>

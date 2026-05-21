@@ -97,6 +97,34 @@ export function subscribeToEvent(
 }
 
 /**
+ * Fetch a single event by id (used pelo portal do EventAdmin).
+ */
+export async function getEventById(id: string): Promise<EventData | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as EventData | null;
+}
+
+/**
+ * Fetch a single event by slug (used pelo Admin Geral ao abrir o portal do evento).
+ */
+export async function getEventBySlug(slug: string): Promise<EventData | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .eq('slug', slug.trim().toLowerCase())
+    .maybeSingle();
+  if (error) throw error;
+  return data as EventData | null;
+}
+
+/**
  * Create a new event.
  */
 export async function createEvent(data: Omit<EventData, 'id'>): Promise<string> {

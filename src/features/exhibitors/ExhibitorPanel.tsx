@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Exhibitor, Product, Lead, LeadStatus, UserEmailRole } from '../../types';
+import { DEFAULT_EXHIBITOR_CATEGORIES } from '../../constants';
 import {
   subscribeToExhibitors, createExhibitor, updateExhibitor, deleteExhibitor,
   getExhibitorUsers, removeExhibitorUser, getNextExhibitorNumber,
@@ -20,6 +21,12 @@ import { uploadImage } from '../../services/storageService';
 import type { EventData } from '../../types';
 
 const MAX_PRODUCT_PHOTOS = 3;
+
+// Garante que o valor atual apareça na lista mesmo se a categoria tiver sido removida do evento
+function mergeCategoryOptions(categories: string[], current?: string): string[] {
+  const base = categories.length ? categories : DEFAULT_EXHIBITOR_CATEGORIES;
+  return current && !base.includes(current) ? [...base, current] : base;
+}
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
@@ -507,12 +514,13 @@ function LeadsTab({ exhibitorId, exhibitorName }: { exhibitorId: string; exhibit
 
 // ─── Exhibitor Detail ─────────────────────────────────────────────────────────
 
-function ExhibitorDetail({ exhibitor, eventSlug, onUpdated }: {
-  exhibitor: Exhibitor; eventSlug: string; onUpdated: () => void;
+function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
+  exhibitor: Exhibitor; eventSlug: string; categories: string[]; onUpdated: () => void;
 }) {
   const [tab, setTab] = useState<Tab>('dados');
   const [form, setForm] = useState({
     name: exhibitor.name,
+    category: exhibitor.category || 'Outros',
     description: exhibitor.description || '',
     instagram_url: exhibitor.instagram_url || '',
     whatsapp: exhibitor.whatsapp || '',
@@ -527,6 +535,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, onUpdated }: {
   useEffect(() => {
     setForm({
       name: exhibitor.name,
+      category: exhibitor.category || 'Outros',
       description: exhibitor.description || '',
       instagram_url: exhibitor.instagram_url || '',
       whatsapp: exhibitor.whatsapp || '',
@@ -572,6 +581,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, onUpdated }: {
     try {
       await updateExhibitor(exhibitor.id, {
         name: form.name.trim(),
+        category: form.category,
         description: form.description.trim() || null,
         logo_url: logo || null,
         photo_url: photo || null,
@@ -678,6 +688,18 @@ function ExhibitorDetail({ exhibitor, eventSlug, onUpdated }: {
               />
             </div>
             <div>
+              <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Categoria</label>
+              <select
+                value={form.category}
+                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20 bg-white"
+              >
+                {mergeCategoryOptions(categories, form.category).map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Descrição</label>
               <textarea
                 value={form.description}
@@ -774,6 +796,7 @@ export default function ExhibitorPanel() {
         event_id: event.id,
         number,
         name: newName.trim(),
+        category: 'Outros',
         status: 'active',
       });
       setNewName('');
@@ -883,6 +906,7 @@ export default function ExhibitorPanel() {
               <ExhibitorDetail
                 exhibitor={selected}
                 eventSlug={slug || ''}
+                categories={event?.exhibitor_categories ?? DEFAULT_EXHIBITOR_CATEGORIES}
                 onUpdated={() => {}}
               />
             </div>
