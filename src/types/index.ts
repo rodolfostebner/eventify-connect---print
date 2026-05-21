@@ -56,6 +56,9 @@ export interface EventData {
   custom_comments?: string[];
   upload_source?: 'camera' | 'gallery' | 'both';
   exhibitor_categories?: string[];
+  exhibitors_estimation?: number;
+  public_evaluation_weight?: number;
+  juror_evaluation_weight?: number;
   app_description?: string;
   app_whatsapp?: string;
   app_instagram?: string;
@@ -313,6 +316,7 @@ export interface Visit {
   user_id?: string | null;
   session_id?: string | null;
   action: VisitAction;
+  event_status?: 'pre' | 'live' | 'post' | null;
   created_at: string;
 }
 

@@ -30,7 +30,7 @@ function mergeCategoryOptions(categories: string[], current?: string): string[] 
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'dados' | 'produtos' | 'usuarios' | 'leads';
+type Tab = 'dados' | 'fotos' | 'contatos' | 'produtos' | 'usuarios' | 'leads';
 
 // ─── Products Tab ─────────────────────────────────────────────────────────────
 
@@ -598,11 +598,13 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
     }
   };
 
-  const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
-    { key: 'dados', label: 'Dados', icon: <Package className="w-3.5 h-3.5" /> },
-    { key: 'produtos', label: 'Produtos', icon: <ShoppingBag className="w-3.5 h-3.5" /> },
-    { key: 'usuarios', label: 'Usuários', icon: <Users className="w-3.5 h-3.5" /> },
-    { key: 'leads', label: 'Leads', icon: <Phone className="w-3.5 h-3.5" /> },
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'dados', label: 'Dados' },
+    { key: 'fotos', label: 'Fotos' },
+    { key: 'contatos', label: 'Contatos' },
+    { key: 'produtos', label: 'Produtos' },
+    { key: 'usuarios', label: 'Usuários' },
+    { key: 'leads', label: 'Leads' },
   ];
 
   return (
@@ -623,61 +625,27 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-neutral-100 p-1 rounded-xl">
+      <div className="flex gap-1 border-b border-neutral-100 mb-4 overflow-x-auto">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`px-3.5 py-2.5 text-[11px] font-bold whitespace-nowrap border-b-2 transition-all ${
               tab === t.key
-                ? 'bg-white text-neutral-900 shadow-sm'
-                : 'text-neutral-500 hover:text-neutral-700'
+                ? 'border-neutral-900 text-neutral-900'
+                : 'border-transparent text-neutral-400 hover:text-neutral-700'
             }`}
           >
-            {t.icon} {t.label}
+            {t.label}
           </button>
         ))}
       </div>
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto">
+        {/* ── Aba Dados ── */}
         {tab === 'dados' && (
           <div className="space-y-3">
-            {/* Logo */}
-            <div>
-              <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Logo</label>
-              <div className="flex items-center gap-3">
-                {logo && <img src={logo} className="w-16 h-16 rounded-xl object-contain bg-neutral-50 border border-neutral-100 p-1" />}
-                <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold cursor-pointer transition-colors">
-                  {uploadingLogo ? <div className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-700 rounded-full animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                  {uploadingLogo ? 'Enviando...' : 'Alterar logo'}
-                  <input type="file" accept="image/*" className="sr-only" onChange={handleLogoUpload} disabled={uploadingLogo} />
-                </label>
-              </div>
-            </div>
-
-            {/* Foto do stand */}
-            <div>
-              <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Foto do stand</label>
-              <p className="text-[10px] text-neutral-400 mb-2">Exibida como banner no card do expositor no feed</p>
-              {photo && (
-                <div className="relative mb-2 rounded-xl overflow-hidden aspect-video bg-neutral-100 border border-neutral-100">
-                  <img src={photo} className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => setPhoto('')}
-                    className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              )}
-              <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold cursor-pointer transition-colors w-fit">
-                {uploadingPhoto ? <div className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-700 rounded-full animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                {uploadingPhoto ? 'Enviando...' : photo ? 'Alterar foto' : 'Adicionar foto'}
-                <input type="file" accept="image/*" className="sr-only" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
-              </label>
-            </div>
-
             <div>
               <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Nome *</label>
               <input
@@ -708,6 +676,52 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
                 className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20 resize-none"
               />
             </div>
+          </div>
+        )}
+
+        {/* ── Aba Fotos ── */}
+        {tab === 'fotos' && (
+          <div className="space-y-4">
+            {/* Logo */}
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Logo</label>
+              <div className="flex items-center gap-3">
+                {logo && <img src={logo} className="w-16 h-16 rounded-xl object-contain bg-neutral-50 border border-neutral-100 p-1" />}
+                <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold cursor-pointer transition-colors">
+                  {uploadingLogo ? <div className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-700 rounded-full animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  {uploadingLogo ? 'Enviando...' : 'Alterar logo'}
+                  <input type="file" accept="image/*" className="sr-only" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                </label>
+              </div>
+            </div>
+
+            {/* Foto do stand */}
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Foto do stand</label>
+              <p className="text-[10px] text-neutral-400 mb-2">Exibida como banner no card do expositor no feed</p>
+              {photo && (
+                <div className="relative mb-2 rounded-xl overflow-hidden aspect-video bg-neutral-100 border border-neutral-100 max-w-xs">
+                  <img src={photo} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setPhoto('')}
+                    className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+              <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold cursor-pointer transition-colors w-fit">
+                {uploadingPhoto ? <div className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-700 rounded-full animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                {uploadingPhoto ? 'Enviando...' : photo ? 'Alterar foto' : 'Adicionar foto'}
+                <input type="file" accept="image/*" className="sr-only" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* ── Aba Contatos ── */}
+        {tab === 'contatos' && (
+          <div className="space-y-3">
             <div>
               <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Instagram</label>
               <input
@@ -738,6 +752,12 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
                 className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
               />
             </div>
+          </div>
+        )}
+
+        {/* Salvar — abas de dados do expositor */}
+        {(tab === 'dados' || tab === 'fotos' || tab === 'contatos') && (
+          <div className="pt-4 mt-2 border-t border-neutral-100">
             <button
               onClick={handleSave}
               disabled={saving}
@@ -902,7 +922,7 @@ export default function ExhibitorPanel() {
         {/* Main Detail Area */}
         <main className="flex-1 overflow-hidden p-6">
           {selected ? (
-            <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 h-full overflow-hidden flex flex-col">
+            <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 h-full overflow-hidden flex flex-col max-w-3xl">
               <ExhibitorDetail
                 exhibitor={selected}
                 eventSlug={slug || ''}

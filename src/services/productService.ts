@@ -13,6 +13,18 @@ export async function getProducts(exhibitorId: string): Promise<Product[]> {
   return (data || []) as Product[];
 }
 
+/** Todos os produtos ativos dos expositores informados (para métricas do evento). */
+export async function getProductsByExhibitorIds(exhibitorIds: string[]): Promise<Product[]> {
+  if (!supabase || exhibitorIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .in('exhibitor_id', exhibitorIds)
+    .eq('active', true);
+  if (error) throw error;
+  return (data || []) as Product[];
+}
+
 export async function createProduct(
   data: Omit<Product, 'id' | 'created_at' | 'updated_at'>,
 ): Promise<Product> {

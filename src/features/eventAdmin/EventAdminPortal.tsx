@@ -13,6 +13,8 @@ import { cn } from '../../lib/utils';
 import type { AuditLog, EventData } from '../../types';
 import { getEventById, getEventBySlug, updateEvent } from '../../services/eventService';
 import { diffObjects, getEventAuditLogs, logChange } from '../../services/auditService';
+import { getEventDashboard, type DashboardData } from '../../services/dashboardService';
+import { HBarChart, PieChart } from './components/DashboardCharts';
 
 // ─── Helpers de UI ─────────────────────────────────────────────────────────────
 
@@ -60,6 +62,24 @@ function Label({ children }: { children: ReactNode }) {
   return <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2 tracking-wider">{children}</label>;
 }
 
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="bg-neutral-50 border border-neutral-100 rounded-2xl p-4">
+      <p className="text-xl font-black text-neutral-900 tabular-nums">{value}</p>
+      <p className="text-[10px] font-bold uppercase text-neutral-400 mt-1 tracking-wider leading-tight">{label}</p>
+    </div>
+  );
+}
+
+function ChartCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="border border-neutral-100 rounded-2xl p-4">
+      <p className="text-[11px] font-bold text-neutral-700 mb-3">{title}</p>
+      {children}
+    </div>
+  );
+}
+
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
@@ -80,7 +100,8 @@ type EventForm = Pick<EventData,
   | 'tv_bg_type' | 'tv_bg_value' | 'tv_primary_color' | 'tv_secondary_color'
   | 'app_logo'
   | 'comment_moderation_enabled' | 'custom_comments' | 'upload_source' | 'has_official_photos'
-  | 'exhibitor_categories'
+  | 'exhibitor_categories' | 'exhibitors_estimation'
+  | 'public_evaluation_weight' | 'juror_evaluation_weight'
 >;
 
 function buildForm(e: EventData): EventForm {
@@ -108,6 +129,9 @@ function buildForm(e: EventData): EventForm {
     upload_source: e.upload_source || 'both',
     has_official_photos: e.has_official_photos || false,
     exhibitor_categories: e.exhibitor_categories || [],
+    exhibitors_estimation: e.exhibitors_estimation ?? 0,
+    public_evaluation_weight: e.public_evaluation_weight ?? 0.40,
+    juror_evaluation_weight: e.juror_evaluation_weight ?? 0.60,
   };
 }
 
@@ -144,6 +168,8 @@ export default function EventAdminPortal() {
   const [activeTab, setActiveTab] = useState<TabId>('dados');
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
 
   const set = <K extends keyof EventForm>(key: K, value: EventForm[K]) =>
     setForm((f) => (f ? { ...f, [key]: value } : f));
@@ -192,6 +218,18 @@ export default function EventAdminPortal() {
     if (event && activeTab === 'auditoria') loadAudit(event.id);
   }, [event, activeTab, loadAudit]);
 
+  // Carrega métricas do dashboard ao abrir a seção (recarrega quando o evento muda)
+  useEffect(() => {
+    if (!event || openSection !== 'dashboard') return;
+    let active = true;
+    setDashboardLoading(true);
+    getEventDashboard(event)
+      .then(d => { if (active) setDashboard(d); })
+      .catch(err => { console.error(err); if (active) toast.error('Erro ao carregar métricas.'); })
+      .finally(() => { if (active) setDashboardLoading(false); });
+    return () => { active = false; };
+  }, [event, openSection]);
+
   const toggleSection = (id: string) => setOpenSection((s) => (s === id ? null : id));
 
   const handleStatus = async (status: 'pre' | 'live' | 'post') => {
@@ -214,6 +252,11 @@ export default function EventAdminPortal() {
 
   const handleSave = async () => {
     if (!event || !form) return;
+    const weightSum = (form.public_evaluation_weight ?? 0) + (form.juror_evaluation_weight ?? 0);
+    if (weightSum > 1) {
+      toast.error('A soma dos pesos de avaliação não pode ser maior que 1.');
+      return;
+    }
     const changes = diffObjects(
       event as unknown as Record<string, unknown>,
       form as unknown as Record<string, unknown>,
@@ -324,21 +367,49 @@ export default function EventAdminPortal() {
 
         {/* ── SEÇÃO 2 (ACORDEON): Dashboard ── */}
         <AccordionSection id="dashboard" title="Dashboard" icon={<LayoutDashboard className="w-4 h-4 text-neutral-400" />} openId={openSection} onToggle={toggleSection}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-4">
-            {[
-              { label: 'Expositores', key: 'exhibitors' },
-              { label: 'Produtos', key: 'products' },
-              { label: 'Usuários', key: 'users' },
-              { label: 'Visitantes', key: 'visitors' },
-              { label: 'Acessos', key: 'visits' },
-            ].map(({ label, key }) => (
-              <div key={key} className="bg-neutral-50 border border-neutral-100 rounded-2xl p-4 text-center">
-                <p className="text-2xl font-black text-neutral-300">—</p>
-                <p className="text-[10px] font-bold uppercase text-neutral-400 mt-1 tracking-wider">{label}</p>
+          {dashboardLoading || !dashboard ? (
+            <div className="flex justify-center py-10 pt-6">
+              <div className="w-6 h-6 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
+            </div>
+          ) : (
+            <div className="pt-4 space-y-6">
+              {/* ── Métricas Gerais ── */}
+              <div>
+                <h3 className="text-xs font-black uppercase text-neutral-500 tracking-wider mb-3">Métricas Gerais</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  <MetricCard label="Expositores (previstos vs cadastrados)" value={`${dashboard.cadastrados} / ${dashboard.previstos}`} />
+                  <MetricCard label="Média de produtos por expositor" value={dashboard.avgProductsPerExhibitor.toFixed(1)} />
+                  <MetricCard label="Média de valor por produto" value={dashboard.avgProductValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
+                  <MetricCard label="Completos / Incompletos / Previstos" value={`${dashboard.completos} / ${dashboard.incompletos} / ${dashboard.previstos}`} />
+                  <MetricCard label="Visitas Pré (únicos vs total)" value={`${dashboard.visitsPre.unique} / ${dashboard.visitsPre.total}`} />
+                  <MetricCard label="Visitas Live (únicos vs total)" value={`${dashboard.visitsLive.unique} / ${dashboard.visitsLive.total}`} />
+                  <MetricCard label="Visitas Pós (únicos vs total)" value={`${dashboard.visitsPost.unique} / ${dashboard.visitsPost.total}`} />
+                </div>
               </div>
-            ))}
-          </div>
-          <p className="text-[10px] text-neutral-400 mt-3">Métricas serão exibidas aqui em breve.</p>
+
+              {/* ── Visitas ── */}
+              <div>
+                <h3 className="text-xs font-black uppercase text-neutral-500 tracking-wider mb-3">Visitas</h3>
+                <div className="grid lg:grid-cols-2 gap-5">
+                  <ChartCard title="Top 10 Expositores — mais visitas">
+                    <HBarChart data={dashboard.topExhibitors} color="#16a34a" />
+                  </ChartCard>
+                  <ChartCard title="Top 10 Expositores — menos visitas">
+                    <HBarChart data={dashboard.bottomExhibitors} color="#dc2626" />
+                  </ChartCard>
+                  <ChartCard title="Top 10 Produtos — mais visitas">
+                    <HBarChart data={dashboard.topProducts} color="#16a34a" />
+                  </ChartCard>
+                  <ChartCard title="Top 10 Produtos — menos visitas">
+                    <HBarChart data={dashboard.bottomProducts} color="#dc2626" />
+                  </ChartCard>
+                  <ChartCard title="Visitantes únicos por categoria">
+                    <PieChart data={dashboard.uniqueByCategory} />
+                  </ChartCard>
+                </div>
+              </div>
+            </div>
+          )}
         </AccordionSection>
 
         {/* ── SEÇÃO 3 (ACORDEON): Configurações do Evento (abas) ── */}
@@ -491,6 +562,43 @@ export default function EventAdminPortal() {
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
                   />
                   <p className="text-[10px] text-neutral-400 mt-1">Usadas no combobox de categoria do cadastro de expositores.</p>
+                </div>
+                <div>
+                  <Label>Expositores Previstos</Label>
+                  <input
+                    type="number" min="0" step="1"
+                    value={form.exhibitors_estimation ?? 0}
+                    onChange={(e) => set('exhibitors_estimation', Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Peso Avaliação Visitantes</Label>
+                    <input
+                      type="number" min="0" max="1" step="0.01"
+                      value={form.public_evaluation_weight ?? 0}
+                      onChange={(e) => set('public_evaluation_weight', Number(e.target.value) || 0)}
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label>Peso Avaliação Jurados</Label>
+                    <input
+                      type="number" min="0" max="1" step="0.01"
+                      value={form.juror_evaluation_weight ?? 0}
+                      onChange={(e) => set('juror_evaluation_weight', Number(e.target.value) || 0)}
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
+                    />
+                  </div>
+                  {(() => {
+                    const sum = (form.public_evaluation_weight ?? 0) + (form.juror_evaluation_weight ?? 0);
+                    return (
+                      <p className={cn('col-span-2 text-[10px] mt-1', sum > 1 ? 'text-red-500 font-bold' : 'text-neutral-400')}>
+                        Soma dos pesos: {sum.toFixed(2)} {sum > 1 ? '— não pode ultrapassar 1.00' : '(máx. 1.00)'}
+                      </p>
+                    );
+                  })()}
                 </div>
                 <div>
                   <Label>Origem de Upload (Live)</Label>

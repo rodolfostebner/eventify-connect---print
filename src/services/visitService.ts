@@ -14,6 +14,7 @@ export async function trackVisit(params: {
   userId?: string;
   sessionId?: string;
   action: VisitAction;
+  eventStatus?: 'pre' | 'live' | 'post';
 }): Promise<void> {
   if (!supabase) return;
   try {
@@ -24,6 +25,7 @@ export async function trackVisit(params: {
       user_id: params.userId ?? null,
       session_id: params.sessionId ?? null,
       action: params.action,
+      event_status: params.eventStatus ?? null,
     }]);
   } catch (err) {
     // Silencioso — analytics nunca deve bloquear o fluxo do usuário

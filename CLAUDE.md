@@ -96,6 +96,7 @@ src/
     raffleService.ts       # Criacao de ticket, listagem, sorteio aleatorio
     visitService.ts        # Registro silencioso de visitas/cliques, relatorios por expositor
     auditService.ts        # Log de auditoria de alteracoes do evento (diff + autor)
+    dashboardService.ts    # Agrega metricas do evento (expositores, produtos, visitas) p/ o dashboard
 
   contexts/
     AuthContext.tsx         # AuthProvider + useAuth + BETA_MODE — re-exportado em hooks/useAuth.ts
@@ -303,7 +304,7 @@ Canais ativos:
 
 | Tabela | Descricao | Status |
 |--------|-----------|--------|
-| `events` | Config completa do evento (~40 campos): status, branding, admin_emails[], TV config, social, flags, exhibitor_categories[] (categorias configuraveis por evento) | Ativo |
+| `events` | Config completa do evento (~40 campos): status, branding, admin_emails[], TV config, social, flags, exhibitor_categories[], exhibitors_estimation (previstos), public/juror_evaluation_weight (pesos de ranking) | Ativo |
 | `users` | Perfil unificado: supabase_user_id, email, display_name, photo_url, role, event_id, exhibitor_id | Ativo |
 | `user_email_roles` | Pre-cadastro de email com role antes do primeiro login | Ativo |
 | `posts` | Fotos normalizadas (id, event_id, user_id, image_url, status, is_official, printed) | Ativo |
@@ -321,7 +322,7 @@ Canais ativos:
 | `evaluations` | Avaliacoes do publico: 1-5 estrelas + comentario, UNIQUE(exhibitor_id, user_id) | Ativo |
 | `juror_evaluations` | Notas dos jurados por categoria, UNIQUE(exhibitor_id, user_id, category_id) | Ativo |
 | `raffle_tickets` | Tickets de sorteio: 1 por participante por evento, UNIQUE(event_id, user_id) | Ativo |
-| `visits` | Analytics de visitas/cliques (relatorio pos-evento, nao afeta ranking) | Ativo |
+| `visits` | Analytics de visitas/cliques (event_status pre/live/post no momento da visita; relatorio pos-evento, nao afeta ranking) | Ativo |
 | `view_exhibitor_rankings` | View SQL: ranking ponderado (publico × peso + jurado × peso) em tempo real | Ativo |
 
 ---
@@ -345,6 +346,7 @@ Canais ativos:
 | `raffleService.ts` | `raffle_tickets` | Ativo |
 | `visitService.ts` | `visits` | Ativo |
 | `auditService.ts` | `audit_logs` | Ativo |
+| `dashboardService.ts` | `exhibitors`, `products`, `visits` (agregacao client-side p/ o dashboard do EventAdmin) | Ativo |
 
 ---
 
