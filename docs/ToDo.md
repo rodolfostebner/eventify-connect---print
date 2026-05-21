@@ -155,16 +155,21 @@ Exemplos:
 | Expositores — Foto do stand (photo_url) | ✅ Implementado | Upload no painel admin e portal do expositor |
 | Expositores — Leads de pré-venda | ✅ Implementado | Status (novo/atendido/pago/retirado) + exportação CSV/Excel |
 | Patrocinadores — Painel de cadastro | ✅ Implementado | `/patrocinadores/:slug`, CRUD completo, até 3 fotos |
+| Apoiadores - Parceiros que não pagam |❌ Não implementado | Seguir mesmo padrão de Patrocinador ou aproveitar mesma tela e adicionar flag? |
 | Perfil Expositor (portal dedicado) | ✅ Implementado | `/expositor` com Supabase Auth |
-| Perfil EventAdmin | ❌ Não implementado | Hoje o Admin acumula tudo |
-| Perfil Avaliador | ❌ Não implementado | |
+| Perfil EventAdmin | ✅ implementado | Hoje o Admin acumula tudo |
+| Perfil Avaliador | ✅ implementado | via cadastro de usuarios |
 | Sistema de Avaliação | ❌ Não implementado | Aguarda definição [RN2] |
-| Painel TV — Slideshow + Rankings | ✅ Implementado | |
-| Painel TV — Carrossel expositores por rank | ❌ Não implementado | |
-| Painel TV — Sorteios / Avisos | ❌ Não implementado | |
+| Painel TV — Fotos + Rankings | ✅ Implementado | |
+| Painel TV — Carrossel expositores | ❌ Não implementado | |
+| Painel TV — Sorteios | ❌ Não implementado | Contador regressivo (som?)|
+| Painel TV — Avisos | ❌ Não implementado | Som seguido de mensagem com destaque |
+| Painel TV — Parceiros | ❌ Não implementado | Patrocinadores, apoiadores e serviços |
 | Administração Geral — Dashboard redesenhado | ✅ Implementado | Full-width, botão '+' inline, EventCard com ícones |
 | Administração do Evento — base | ✅ Implementado | |
 | Administração do Evento — Avaliadores/Categorias/Pesos | ❌ Não implementado | |
+| Sistema de Sorteios | ❌ Não implementado | |
+| Sistema de Avaliação | ❌ Não implementado | Aguarda definição [RN2] |
 | Cadastro de Avisos | ❌ Não implementado | |
 | Moderação fotos e comentários | ✅ Implementado | |
 
