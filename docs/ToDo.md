@@ -119,21 +119,20 @@ Exemplos:
 
 # REGRAS DE NEGOCIO
 
-- [RN1] Participantes da feira só poderão comentar e avaliar o mesmo expositor uma quantidade x (definida no painel de administração do evento)
-- [RN2] Avaliações terão diferentes pesos e categorias, a ser definidas via Administração do Evento
+- [RN1] ~~Participantes da feira só poderão comentar e avaliar o mesmo expositor uma quantidade x (definida no painel de administração do evento)~~ ✅ **Resolvido** — UNIQUE(exhibitor_id, user_id) na tabela `evaluations` garante 1 avaliação por participante por expositor
+- [RN2] ~~Avaliações terão diferentes pesos e categorias, a ser definidas via Administração do Evento~~ ✅ **Resolvido** — 6 categorias definidas (Atendimento, Criatividade, Organização, Produto, Decoração, Apresentação), pesos configuráveis por evento (`evaluation_categories.weight` + `events.public/juror_evaluation_weight`)
 - [RN3] Participantes que registram avaliação são registrados em uma tabela para concorrer aos sorteios
 
 # PENDENCIA DE VIABILIDADE TECNICA
 
-- [PVT1] Identificar logins unicos na plataforma para evitar flood de comentarios e curtidas, descaracterizando ranking enviado pelos participantes da feira
+- [PVT1] ~~Identificar logins unicos na plataforma para evitar flood de comentarios e curtidas, descaracterizando ranking enviado pelos participantes da feira~~ ✅ **Resolvido** — Supabase Auth unificado (Google OAuth + Magic Link) com validação por email; UNIQUE constraints no banco impedem duplicatas
 - [PVT2] Registrar visitas aos expositores e seus produtos, estilo google analytics, registrar no banco e permitir consulta por expositores e possibilidade de gerar rank baseado nesse indicador de visitas
   > ✅ **Solução definida** — ver `docs/analytics-visitas.md` para modelo completo: tabelas, eventos rastreados, sistema de tickets para sorteio e plano de implementação. **Implementar após conclusão das páginas pendentes (modal patrocinador, modal serviço, botão de share).**
 
 # PENDENTE DE DEFINIÇÃO
 
 - [PD1] Tela de sorteios
-- [PD2] Regra para sorteios - mesmo participantes receberão tickets para sorteio com base em avaliação por expositor? Ex. Se Fulano avaliou todos os expositores ele receberá 1 ticket para cada avaliação ou sera unico por participante?
-  > ✅ **Parcialmente definido** — ver `docs/analytics-visitas.md` (seções "Sorteios" e "Sistema de Tickets"). Modelo adotado: até 6 tickets por visitante, 1 por tipo de ação (check-in em stand, foto postada, lead, link clicado, compartilhamento, reação). Contagem binária — repetir a mesma ação não acumula.
+- [PD2] ~~Regra para sorteios~~ ✅ **Resolvido** — Modelo simplificado: 1 único ticket por participante por evento. UNIQUE(event_id, user_id) na tabela `raffle_tickets`. Sorteio automático com resultado no telão.
 - [PD3] Administradores poderão registrar fotos para enriquecer feed?
 - [PD4] Criaremos uma tela para marketing da escola? 
 
@@ -223,8 +222,9 @@ Exemplos:
 ## Ajuste de Schema Necessário (antes de ir para produção)
 
 - ~~Tabela `leads`: adicionar campo `status ENUM('novo','atendido','pago','retirado') DEFAULT 'novo'`~~ ✅ Feito (migration 20260518000000_leads_status.sql)
-- Tabela `sponsors`: ✅ Criada (migration 20260519000000_sponsors.sql)
-- Decisões de [PD2] e [RN2] impactam criação das tabelas `evaluation_categories`, `evaluation_weights`, `raffle_tickets` — definir antes de desenvolver
+- ~~Tabela `sponsors`~~: ✅ Criada (migration 20260519000000_sponsors.sql)
+- ~~Tabelas de avaliação e sorteio~~: ✅ Criadas (migration 20260522000000_evaluations_and_analytics.sql) — `evaluation_categories`, `evaluations`, `juror_evaluations`, `raffle_tickets`, `visits`, `view_exhibitor_rankings`
+- ~~Decisões de [PD2] e [RN2]~~: ✅ Definidas e implementadas
 
 ---
 

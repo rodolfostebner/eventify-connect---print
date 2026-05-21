@@ -70,6 +70,10 @@ src/
                            # ExhibitorSponsor — tipo legado (JSON em events.services[])
                            # Exhibitor, AppUser, UserRole, UserEmailRole — schema normalizado
                            # EventData, PostData, PhotoData, PrintOrder, Product, Lead, Sponsor
+                           # EvaluationCategory, Evaluation, JurorEvaluation — avaliações
+                           # RaffleTicket — sorteio
+                           # Visit, VisitAction — analytics
+                           # ExhibitorRanking — view de ranking ponderado
 
   lib/
     supabase/client.ts     # Supabase client (null-safe se sem .env)
@@ -80,13 +84,16 @@ src/
     userService.ts         # syncUser, findOrCreateUserByEmail, CRUD users, pré-cadastro email roles
     eventService.ts        # CRUD eventos + subscriptions realtime
     posts.ts               # CRUD posts + reactions + comments (tabelas posts, reactions, comments)
-    printService.ts        # Pedidos de impressao (usa photo_ids array — legado parcial)
+    printService.ts        # Pedidos de impressao (usa photo_ids array — legado parcial — INATIVO)
     storageService.ts      # Upload R2 via Edge Function get-r2-upload-url
     notificationService.ts # CRUD + subscribe notificacoes
     exhibitorService.ts    # CRUD expositores + subscription realtime (tabela exhibitors)
     productService.ts      # CRUD produtos do expositor (tabela products)
     leadService.ts         # Criar/listar leads de pre-venda (tabela leads)
     sponsorService.ts      # CRUD patrocinadores (tabela sponsors)
+    evaluationService.ts   # CRUD avaliacoes publico + jurados, categorias, ranking (view)
+    raffleService.ts       # Criacao de ticket, listagem, sorteio aleatorio
+    visitService.ts        # Registro silencioso de visitas/cliques, relatorios por expositor
 
   contexts/
     AuthContext.tsx         # AuthProvider + useAuth + BETA_MODE — re-exportado em hooks/useAuth.ts
@@ -306,6 +313,12 @@ Canais ativos:
 | `products` | Produtos do expositor (name, description, price, photos[], active) | Ativo |
 | `leads` | Interesse de pre-venda (product_id, exhibitor_id, customer_name, customer_phone, status) | Ativo |
 | `sponsors` | Patrocinadores do evento (name, description, photos[], contatos, order_index, active) | Ativo |
+| `evaluation_categories` | Categorias de avaliacao tecnica por evento (name, weight, order_index) | Ativo |
+| `evaluations` | Avaliacoes do publico: 1-5 estrelas + comentario, UNIQUE(exhibitor_id, user_id) | Ativo |
+| `juror_evaluations` | Notas dos jurados por categoria, UNIQUE(exhibitor_id, user_id, category_id) | Ativo |
+| `raffle_tickets` | Tickets de sorteio: 1 por participante por evento, UNIQUE(event_id, user_id) | Ativo |
+| `visits` | Analytics de visitas/cliques (relatorio pos-evento, nao afeta ranking) | Ativo |
+| `view_exhibitor_rankings` | View SQL: ranking ponderado (publico × peso + jurado × peso) em tempo real | Ativo |
 
 ---
 
@@ -323,7 +336,10 @@ Canais ativos:
 | `sponsorService.ts` | `sponsors` | Ativo |
 | `storageService.ts` | Cloudflare R2 | Ativo |
 | `notificationService.ts` | `notifications` | Ativo |
-| `printService.ts` | `print_orders` | Ativo (usa array legado) |
+| `printService.ts` | `print_orders` | Inativo (impressao desativada nesta versao) |
+| `evaluationService.ts` | `evaluations`, `juror_evaluations`, `evaluation_categories`, `view_exhibitor_rankings` | Ativo |
+| `raffleService.ts` | `raffle_tickets` | Ativo |
+| `visitService.ts` | `visits` | Ativo |
 
 ---
 

@@ -224,6 +224,82 @@ export interface UserEmailRole {
   created_at: string;
 }
 
+// ─── Evaluation (Avaliações) ──────────────────────────────────────────────────
+
+export interface EvaluationCategory {
+  id: string;
+  event_id: string;
+  name: string;
+  weight: number;
+  order_index: number;
+  created_at: string;
+}
+
+export interface Evaluation {
+  id: string;
+  event_id: string;
+  exhibitor_id: string;
+  user_id: string;
+  stars: number; // 1–5
+  comment?: string | null;
+  created_at: string;
+}
+
+export interface JurorEvaluation {
+  id: string;
+  event_id: string;
+  exhibitor_id: string;
+  user_id: string;
+  category_id: string;
+  score: number; // 0.00–5.00
+  created_at: string;
+}
+
+// ─── Raffle (Sorteio) ────────────────────────────────────────────────────────
+
+export interface RaffleTicket {
+  id: string;
+  event_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+// ─── Visits (Analytics) ──────────────────────────────────────────────────────
+
+export type VisitAction =
+  | 'view_stand'
+  | 'view_product'
+  | 'click_lead'
+  | 'click_instagram'
+  | 'click_whatsapp'
+  | 'click_website'
+  | 'share';
+
+export interface Visit {
+  id: string;
+  event_id: string;
+  exhibitor_id?: string | null;
+  product_id?: string | null;
+  user_id?: string | null;
+  session_id?: string | null;
+  action: VisitAction;
+  created_at: string;
+}
+
+// ─── Ranking (View — view_exhibitor_rankings) ────────────────────────────────
+
+export interface ExhibitorRanking {
+  exhibitor_id: string;
+  exhibitor_name: string;
+  exhibitor_number: number;
+  event_id: string;
+  public_score: number;
+  juror_score: number;
+  final_score: number;
+  public_votes_count: number;
+  jurors_voted_count: number;
+}
+
 // ─── Notification ─────────────────────────────────────────────────────────────
 
 export interface NotificationData {
