@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS evaluations (
   id           uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
   event_id     uuid        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   exhibitor_id uuid        NOT NULL REFERENCES exhibitors(id) ON DELETE CASCADE,
-  user_id      uuid        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id      text        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   stars        int         NOT NULL CHECK (stars >= 1 AND stars <= 5),
   comment      text,
   created_at   timestamptz DEFAULT now(),
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS juror_evaluations (
   id           uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
   event_id     uuid        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   exhibitor_id uuid        NOT NULL REFERENCES exhibitors(id) ON DELETE CASCADE,
-  user_id      uuid        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id      text        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   category_id  uuid        NOT NULL REFERENCES evaluation_categories(id) ON DELETE CASCADE,
   score        numeric(3,2) NOT NULL CHECK (score >= 0.00 AND score <= 5.00),
   created_at   timestamptz DEFAULT now(),
@@ -69,7 +69,7 @@ CREATE INDEX IF NOT EXISTS juror_evals_user_idx      ON juror_evaluations(user_i
 CREATE TABLE IF NOT EXISTS raffle_tickets (
   id         uuid        DEFAULT gen_random_uuid() PRIMARY KEY,
   event_id   uuid        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
-  user_id    uuid        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id    text        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   created_at timestamptz DEFAULT now(),
   UNIQUE(event_id, user_id)
 );
@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS visits (
   event_id     uuid        NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   exhibitor_id uuid        REFERENCES exhibitors(id) ON DELETE CASCADE,
   product_id   uuid        REFERENCES products(id) ON DELETE CASCADE,
-  user_id      uuid        REFERENCES users(id) ON DELETE SET NULL,
+  user_id      text        REFERENCES users(id) ON DELETE SET NULL,
   session_id   text,
   action       text        NOT NULL CHECK (action IN (
     'view_stand', 'view_product', 'click_lead', 'click_instagram',
