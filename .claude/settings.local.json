@@ -20,7 +20,15 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git config *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(dir C:\\\\code\\\\eventify\\\\eventify-connect---print\\\\.env*)",
+      "Bash(grep -rniB1 -A8 \"create table.*\\\\busers\\\\b\" supabase/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s \"http://localhost:3000/src/features/eventAdmin/EventAdminPortal.tsx\")",
+      "Bash(curl -s \"http://localhost:3000/src/services/auditService.ts\")",
+      "Bash(kill %1)",
+      "Bash(grep -nA14 \"interface Sponsor\" src/types/index.ts)",
+      "Bash(grep -nA20 \"export interface Exhibitor\\\\b\" src/types/index.ts)"
     ]
   }
 }

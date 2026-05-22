@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Package, ShoppingBag, Phone, Save,
   Upload, X, Plus, Trash2, AlertCircle,
+  BarChart2, Eye, Instagram, MessageCircle, Globe, Share2, ShoppingCart,
 } from 'lucide-react';
 import { AppHeader } from '../../components/AppHeader';
 import { toast } from 'sonner';
@@ -13,7 +14,8 @@ import { getEventById } from '../../services/eventService';
 import { getProducts, createProduct, updateProduct, deactivateProduct } from '../../services/productService';
 import { getLeads, updateLeadStatus } from '../../services/leadService';
 import { uploadImage } from '../../services/storageService';
-import type { Product, Lead, LeadStatus } from '../../types';
+import { getExhibitorVisitSummary, getTopProducts } from '../../services/visitService';
+import type { Product, Lead, LeadStatus, VisitAction } from '../../types';
 import { DEFAULT_EXHIBITOR_CATEGORIES } from '../../constants';
 
 // Garante que o valor atual apareça na lista mesmo se a categoria tiver sido removida do evento
@@ -24,7 +26,7 @@ function mergeCategoryOptions(categories: string[], current?: string): string[] 
 
 const MAX_PRODUCT_PHOTOS = 3;
 
-type Tab = 'perfil' | 'produtos' | 'leads';
+type Tab = 'perfil' | 'produtos' | 'leads' | 'visualizacoes';
 
 // ─── Perfil Tab ────────────────────────────────────────────────────────────────
 
@@ -541,6 +543,129 @@ function LeadsTabExpositor({ exhibitorId, exhibitorName }: { exhibitorId: string
   );
 }
 
+// ─── Visualizações Tab ────────────────────────────────────────────────────────
+
+const ACTION_META: Record<VisitAction, { label: string; icon: React.ReactNode; color: string }> = {
+  view_stand:       { label: 'Visitas ao stand',    icon: <Eye className="w-5 h-5" />,            color: 'bg-blue-50 text-blue-600' },
+  view_product:     { label: 'Visualizações de produto', icon: <Package className="w-5 h-5" />,    color: 'bg-purple-50 text-purple-600' },
+  click_lead:       { label: 'Interesses de compra', icon: <ShoppingCart className="w-5 h-5" />,   color: 'bg-green-50 text-green-600' },
+  click_instagram:  { label: 'Cliques no Instagram', icon: <Instagram className="w-5 h-5" />,      color: 'bg-pink-50 text-pink-600' },
+  click_whatsapp:   { label: 'Cliques no WhatsApp',  icon: <MessageCircle className="w-5 h-5" />,  color: 'bg-emerald-50 text-emerald-600' },
+  click_website:    { label: 'Cliques no site',      icon: <Globe className="w-5 h-5" />,          color: 'bg-sky-50 text-sky-600' },
+  share:            { label: 'Compartilhamentos',    icon: <Share2 className="w-5 h-5" />,         color: 'bg-amber-50 text-amber-600' },
+};
+
+function VisualizacoesTab({ exhibitorId }: { exhibitorId: string }) {
+  const [summary, setSummary] = useState<{ action: VisitAction; count: number }[]>([]);
+  const [topProducts, setTopProducts] = useState<{ product_id: string; count: number; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [visits, tops, prods] = await Promise.all([
+          getExhibitorVisitSummary(exhibitorId),
+          getTopProducts(exhibitorId, 5),
+          getProducts(exhibitorId),
+        ]);
+        setSummary(visits);
+        const nameById = new Map(prods.map(p => [p.id, p.name]));
+        setTopProducts(tops.map(t => ({ ...t, name: nameById.get(t.product_id) ?? 'Produto' })));
+      } catch {
+        // silencioso
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [exhibitorId]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-8 h-8 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const total = summary.reduce((s, r) => s + r.count, 0);
+  const countByAction = new Map(summary.map(r => [r.action, r.count]));
+
+  return (
+    <div className="space-y-6">
+      {/* Total geral */}
+      <div className="bg-neutral-900 text-white rounded-2xl p-5 flex items-center gap-4">
+        <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center shrink-0">
+          <BarChart2 className="w-6 h-6" />
+        </div>
+        <div>
+          <p className="text-3xl font-black">{total.toLocaleString('pt-BR')}</p>
+          <p className="text-sm text-white/60">interações totais no seu stand</p>
+        </div>
+      </div>
+
+      {/* Cards por ação */}
+      <div>
+        <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Detalhamento</p>
+        <div className="grid grid-cols-2 gap-2">
+          {(Object.keys(ACTION_META) as VisitAction[]).map(action => {
+            const meta = ACTION_META[action];
+            const count = countByAction.get(action) ?? 0;
+            return (
+              <div key={action} className="bg-white border border-neutral-100 rounded-2xl p-4 shadow-sm flex items-start gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${meta.color}`}>
+                  {meta.icon}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xl font-black text-neutral-900">{count.toLocaleString('pt-BR')}</p>
+                  <p className="text-[11px] text-neutral-500 leading-tight mt-0.5">{meta.label}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Produtos mais vistos */}
+      {topProducts.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">Produtos mais vistos</p>
+          <div className="space-y-2">
+            {topProducts.map((p, i) => {
+              const pct = topProducts[0].count > 0 ? (p.count / topProducts[0].count) * 100 : 0;
+              return (
+                <div key={p.product_id} className="bg-white border border-neutral-100 rounded-2xl p-3 shadow-sm">
+                  <div className="flex items-center justify-between mb-1.5 gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs font-black text-neutral-400 w-4 shrink-0">{i + 1}</span>
+                      <span className="text-sm font-semibold text-neutral-900 truncate">{p.name}</span>
+                    </div>
+                    <span className="text-sm font-black text-neutral-900 shrink-0">{p.count.toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div className="h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-neutral-900 rounded-full transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {total === 0 && (
+        <div className="text-center py-8 text-neutral-400">
+          <BarChart2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">Nenhuma visita registrada ainda</p>
+          <p className="text-xs mt-1">As interações dos participantes com o seu stand aparecerão aqui</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Portal ───────────────────────────────────────────────────────────────
 
 export default function ExhibitorPortal() {
@@ -607,6 +732,7 @@ export default function ExhibitorPortal() {
     { key: 'perfil', label: 'Perfil', icon: <Package className="w-4 h-4" /> },
     { key: 'produtos', label: 'Produtos', icon: <ShoppingBag className="w-4 h-4" /> },
     { key: 'leads', label: 'Leads', icon: <Phone className="w-4 h-4" /> },
+    { key: 'visualizacoes', label: 'Visitas', icon: <BarChart2 className="w-4 h-4" /> },
   ];
 
   return (
@@ -639,6 +765,7 @@ export default function ExhibitorPortal() {
         )}
         {tab === 'produtos' && <ProdutosTab key={refreshKey} exhibitorId={exhibitor.id} />}
         {tab === 'leads' && <LeadsTabExpositor exhibitorId={exhibitor.id} exhibitorName={exhibitor.name} />}
+        {tab === 'visualizacoes' && <VisualizacoesTab exhibitorId={exhibitor.id} />}
       </div>
     </div>
   );

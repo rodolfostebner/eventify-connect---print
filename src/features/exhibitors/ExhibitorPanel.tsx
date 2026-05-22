@@ -4,6 +4,7 @@ import {
   ArrowLeft, Plus, Trash2, Save, Eye, EyeOff,
   Package, Users, ShoppingBag, Phone,
   Upload, X, Pencil,
+  BarChart2, MessageCircle, Globe, Share2, ShoppingCart, Instagram,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Exhibitor, Product, Lead, LeadStatus, UserEmailRole } from '../../types';
@@ -14,11 +15,12 @@ import {
 } from '../../services/exhibitorService';
 import { getProducts, createProduct, updateProduct, deactivateProduct } from '../../services/productService';
 import { getLeads, updateLeadStatus } from '../../services/leadService';
+import { getExhibitorVisitSummary, getTopProducts } from '../../services/visitService';
 import { addEmailRole, removeEmailRole, listEmailRoles } from '../../services/userService';
 import type { ExhibitorLinkedUser } from '../../services/userService';
 import { subscribeToEvent } from '../../services/eventService';
 import { uploadImage } from '../../services/storageService';
-import type { EventData } from '../../types';
+import type { EventData, VisitAction } from '../../types';
 
 const MAX_PRODUCT_PHOTOS = 3;
 
@@ -30,7 +32,7 @@ function mergeCategoryOptions(categories: string[], current?: string): string[] 
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'dados' | 'fotos' | 'contatos' | 'produtos' | 'usuarios' | 'leads';
+type Tab = 'dados' | 'fotos' | 'contatos' | 'produtos' | 'usuarios' | 'leads' | 'visualizacoes';
 
 // ─── Products Tab ─────────────────────────────────────────────────────────────
 
@@ -512,6 +514,125 @@ function LeadsTab({ exhibitorId, exhibitorName }: { exhibitorId: string; exhibit
   );
 }
 
+// ─── Visualizações Tab ────────────────────────────────────────────────────────
+
+const ACTION_META: Record<VisitAction, { label: string; icon: React.ReactNode; color: string }> = {
+  view_stand:      { label: 'Visitas ao stand',      icon: <Eye className="w-4 h-4" />,            color: 'bg-blue-50 text-blue-600' },
+  view_product:    { label: 'Views de produto',       icon: <Package className="w-4 h-4" />,         color: 'bg-purple-50 text-purple-600' },
+  click_lead:      { label: 'Interesses de compra',   icon: <ShoppingCart className="w-4 h-4" />,    color: 'bg-green-50 text-green-600' },
+  click_instagram: { label: 'Cliques no Instagram',   icon: <Instagram className="w-4 h-4" />,       color: 'bg-pink-50 text-pink-600' },
+  click_whatsapp:  { label: 'Cliques no WhatsApp',    icon: <MessageCircle className="w-4 h-4" />,   color: 'bg-emerald-50 text-emerald-600' },
+  click_website:   { label: 'Cliques no site',        icon: <Globe className="w-4 h-4" />,           color: 'bg-sky-50 text-sky-600' },
+  share:           { label: 'Compartilhamentos',      icon: <Share2 className="w-4 h-4" />,          color: 'bg-amber-50 text-amber-600' },
+};
+
+function VisualizacoesTab({ exhibitorId }: { exhibitorId: string }) {
+  const [summary, setSummary] = useState<{ action: VisitAction; count: number }[]>([]);
+  const [topProds, setTopProds] = useState<{ product_id: string; count: number; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [visits, tops, prods] = await Promise.all([
+          getExhibitorVisitSummary(exhibitorId),
+          getTopProducts(exhibitorId, 5),
+          getProducts(exhibitorId),
+        ]);
+        setSummary(visits);
+        const nameById = new Map(prods.map(p => [p.id, p.name]));
+        setTopProds(tops.map(t => ({ ...t, name: nameById.get(t.product_id) ?? 'Produto' })));
+      } catch {
+        // silencioso
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [exhibitorId]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-6 h-6 border-2 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const total = summary.reduce((s, r) => s + r.count, 0);
+  const countByAction = new Map(summary.map(r => [r.action, r.count]));
+
+  return (
+    <div className="space-y-5">
+      {/* Total */}
+      <div className="bg-neutral-900 text-white rounded-xl p-4 flex items-center gap-3">
+        <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center shrink-0">
+          <BarChart2 className="w-5 h-5" />
+        </div>
+        <div>
+          <p className="text-2xl font-black">{total.toLocaleString('pt-BR')}</p>
+          <p className="text-xs text-white/60">interações totais no stand</p>
+        </div>
+      </div>
+
+      {/* Grid de ações */}
+      <div>
+        <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-2">Detalhamento por ação</p>
+        <div className="grid grid-cols-2 gap-2">
+          {(Object.keys(ACTION_META) as VisitAction[]).map(action => {
+            const meta = ACTION_META[action];
+            const count = countByAction.get(action) ?? 0;
+            return (
+              <div key={action} className="bg-neutral-50 border border-neutral-100 rounded-xl p-3 flex items-start gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${meta.color}`}>
+                  {meta.icon}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-black text-neutral-900">{count.toLocaleString('pt-BR')}</p>
+                  <p className="text-[10px] text-neutral-500 leading-tight">{meta.label}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Top produtos */}
+      {topProds.length > 0 && (
+        <div>
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-2">Produtos mais vistos</p>
+          <div className="space-y-1.5">
+            {topProds.map((p, i) => {
+              const pct = topProds[0].count > 0 ? (p.count / topProds[0].count) * 100 : 0;
+              return (
+                <div key={p.product_id} className="bg-neutral-50 border border-neutral-100 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-1 gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[10px] font-black text-neutral-400 w-3 shrink-0">{i + 1}</span>
+                      <span className="text-sm font-semibold text-neutral-900 truncate">{p.name}</span>
+                    </div>
+                    <span className="text-sm font-black text-neutral-900 shrink-0">{p.count.toLocaleString('pt-BR')}</span>
+                  </div>
+                  <div className="h-1 bg-neutral-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-neutral-900 rounded-full" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {total === 0 && (
+        <div className="text-center py-8 text-neutral-400">
+          <BarChart2 className="w-8 h-8 mx-auto mb-2 opacity-30" />
+          <p className="text-sm">Nenhuma visita registrada ainda</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Exhibitor Detail ─────────────────────────────────────────────────────────
 
 function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
@@ -605,6 +726,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
     { key: 'produtos', label: 'Produtos' },
     { key: 'usuarios', label: 'Usuários' },
     { key: 'leads', label: 'Leads' },
+    { key: 'visualizacoes', label: 'Visitas' },
   ];
 
   return (
@@ -773,6 +895,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
           <UsersTab exhibitorId={exhibitor.id} />
         )}
         {tab === 'leads' && <LeadsTab exhibitorId={exhibitor.id} exhibitorName={exhibitor.name} />}
+        {tab === 'visualizacoes' && <VisualizacoesTab exhibitorId={exhibitor.id} />}
       </div>
     </div>
   );
