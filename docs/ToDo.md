@@ -126,8 +126,7 @@ Exemplos:
 # PENDENCIA DE VIABILIDADE TECNICA
 
 - [PVT1] ~~Identificar logins unicos na plataforma para evitar flood de comentarios e curtidas, descaracterizando ranking enviado pelos participantes da feira~~ ✅ **Resolvido** — Supabase Auth unificado (Google OAuth + Magic Link) com validação por email; UNIQUE constraints no banco impedem duplicatas
-- [PVT2] Registrar visitas aos expositores e seus produtos, estilo google analytics, registrar no banco e permitir consulta por expositores e possibilidade de gerar rank baseado nesse indicador de visitas
-  > ✅ **Backend resolvido** — tabela `visits` + `visitService` (trackVisit, resumo por ação, top produtos, contagem por expositor) + RPC `get_exhibitor_visit_summary`. ⏳ **UI pendente** — chamadas de `trackVisit()` nos cliques do feed e tela de relatório do expositor não implementadas. Modelo completo em `docs/analytics-visitas.md`.
+- ~~[PVT2] Registrar visitas aos expositores e seus produtos, estilo google analytics, registrar no banco e permitir consulta por expositores e possibilidade de gerar rank baseado nesse indicador de visitas~~ ✅ **Resolvido** — `trackVisit()` instrumentado nos cliques do feed (expositor, produto, instagram, whatsapp, site, lead, share). Aba "Visitas" com analytics disponível no painel admin e portal do expositor.
 - [PVT3] **Analytics de Parceiros** — a aba "Visualização" do painel de Parceiros não tem fonte de dados: a tabela `visits` só rastreia `exhibitor_id`/`product_id`, não parceiros. Para popular a aba é preciso estender `visits` (ex.: `partner_id` + ações de clique) e instrumentar os cliques nos parceiros do feed. ❌ Não implementado (aba exibe placeholder)
 
 # PENDENTE DE DEFINIÇÃO
@@ -149,7 +148,7 @@ Exemplos:
 | Feed — Fotos dos participantes | ✅ Implementado | Ainda na tabela `photos` legada |
 | Feed — Patrocinadores | ✅ Implementado | Tabela dedicada `sponsors`, carrossel de fotos, dados do banco |
 | Feed — Contador pré-evento responsivo | ✅ Implementado | Ajustado para mobile |
-| Feed — Registro de clicks/visitas | 🔶 Backend pronto, UI pendente | [PVT2] — `visits` + `visitService` ok; falta chamar `trackVisit()` nos cliques |
+| Feed — Registro de clicks/visitas | ✅ Implementado | `trackVisit()` instrumentado nos cliques do feed; aba Visitas no painel admin e portal do expositor |
 | Feed — Sorteios | 🔶 Backend pronto, UI pendente | `raffle_tickets` + `raffleService` ok; falta tela e vínculo [RN3] |
 | Expositores — CRUD + produtos + usuários | ✅ Implementado | Painel admin `/expositores/:slug` |
 | Expositores — Foto do stand (photo_url) | ✅ Implementado | Upload no painel admin e portal do expositor |
