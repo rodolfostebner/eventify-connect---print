@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Users, Star, Briefcase } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { useEventPhotos } from '../hooks/useEventPhotos';
@@ -11,8 +11,10 @@ import { UploadFAB } from './Feed/UploadFAB';
 import { LoginBanner } from './Feed/LoginBanner';
 import { PartnerSection } from './PartnerSection';
 import { ExhibitorCatalogModal } from './ExhibitorCatalogModal';
+import type { SocialLinkType } from './SocialLinks';
 import { getExhibitors } from '../../../services/exhibitorService';
 import { getPartners } from '../../../services/partnerService';
+import { trackVisit } from '../../../services/visitService';
 import type { EventData, AppUser, Exhibitor, Partner } from '../../../types';
 
 interface LiveEventViewProps {
@@ -80,6 +82,20 @@ export const LiveEventView = ({
     },
   }));
 
+  const handleExhibitorSocialClick = useCallback(
+    (item: { id?: string }, type: SocialLinkType) => {
+      if (!item.id) return;
+      void trackVisit({
+        eventId: event.id,
+        exhibitorId: item.id,
+        userId: user?.id,
+        action: `click_${type}` as const,
+        eventStatus: event.status,
+      });
+    },
+    [event.id, event.status, user?.id],
+  );
+
   const handleFabClick = () => {
     if (!user) {
       onLogin();
@@ -140,6 +156,7 @@ export const LiveEventView = ({
             const found = dbExhibitors.find(ex => ex.id === item.id);
             if (found) setSelectedExhibitor(found);
           } : undefined}
+          onItemSocialClick={handleExhibitorSocialClick}
         />
         <PartnerSection
           title="Patrocinadores"
@@ -168,6 +185,8 @@ export const LiveEventView = ({
           <ExhibitorCatalogModal
             exhibitor={selectedExhibitor}
             eventStatus={event.status}
+            eventId={event.id}
+            userId={user?.id}
             primaryColor={event.primary_color || '#171717'}
             onClose={() => setSelectedExhibitor(null)}
           />

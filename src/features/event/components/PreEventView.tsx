@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Users, Star, Briefcase } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
-import type { EventData, Exhibitor, Partner } from '../../../types';
+import type { EventData, Exhibitor, Partner, AppUser } from '../../../types';
 import { PartnerSection } from './PartnerSection';
 import { ExhibitorCatalogModal } from './ExhibitorCatalogModal';
 import { getExhibitors } from '../../../services/exhibitorService';
 import { getPartners } from '../../../services/partnerService';
+import { trackVisit } from '../../../services/visitService';
+import type { SocialLinkType } from './SocialLinks';
 
-export const PreEventView = ({ event }: { event: EventData }) => {
+interface PreEventViewProps {
+  event: EventData;
+  user?: AppUser | null;
+}
+
+export const PreEventView = ({ event, user }: PreEventViewProps) => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0 });
   const [dbExhibitors, setDbExhibitors] = useState<Exhibitor[]>([]);
   const [dbSponsors, setDbSponsors] = useState<Partner[]>([]);
@@ -73,6 +80,20 @@ export const PreEventView = ({ event }: { event: EventData }) => {
     if (found) setSelectedExhibitor(found);
   };
 
+  const handleExhibitorSocialClick = useCallback(
+    (item: { id?: string }, type: SocialLinkType) => {
+      if (!item.id) return;
+      void trackVisit({
+        eventId: event.id,
+        exhibitorId: item.id,
+        userId: user?.id,
+        action: `click_${type}` as const,
+        eventStatus: event.status,
+      });
+    },
+    [event.id, event.status, user?.id],
+  );
+
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-12 space-y-12 md:space-y-24">
       {/* Countdown Hero */}
@@ -123,6 +144,7 @@ export const PreEventView = ({ event }: { event: EventData }) => {
           items={exhibitorSource}
           icon={<Users className="w-5 h-5" />}
           onViewCatalog={dbExhibitors.length > 0 ? handleViewCatalog : undefined}
+          onItemSocialClick={handleExhibitorSocialClick}
         />
         <PartnerSection
           title="Patrocinadores"
@@ -148,6 +170,8 @@ export const PreEventView = ({ event }: { event: EventData }) => {
           <ExhibitorCatalogModal
             exhibitor={selectedExhibitor}
             eventStatus={event.status}
+            eventId={event.id}
+            userId={user?.id}
             primaryColor={event.primary_color || '#171717'}
             onClose={() => setSelectedExhibitor(null)}
           />

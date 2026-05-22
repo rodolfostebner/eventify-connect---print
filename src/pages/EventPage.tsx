@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { loginWithGoogle, loginWithMagicLink } from '../services/authService';
 import { useAuth, BETA_MODE } from '../hooks/useAuth';
@@ -11,6 +11,7 @@ import { subscribeToEvent } from '../services/eventService';
 import { createPrintOrder } from '../services/printService';
 import { getExhibitors } from '../services/exhibitorService';
 import { getPartners } from '../services/partnerService';
+import { trackVisit } from '../services/visitService';
 import { cn } from '../lib/utils';
 import type { Exhibitor, Partner } from '../types';
 
@@ -19,6 +20,7 @@ import { LiveEventView } from '../features/event/components/LiveEventView';
 import { PreEventView } from '../features/event/components/PreEventView';
 import { PostEventView } from '../features/event/components/PostEventView';
 import { PartnerSection } from '../features/event/components/PartnerSection';
+import type { SocialLinkType } from '../features/event/components/SocialLinks';
 
 function LoginModal({ onClose }: { onClose: () => void }) {
   const { loginBeta } = useAuth();
@@ -288,6 +290,20 @@ export default function EventPage({ user }: { user: AppUser | null }) {
 
   const handleLogin = () => setIsLoginViewOpen(true);
 
+  const handleSidebarExhibitorSocialClick = useCallback(
+    (item: { id?: string }, type: SocialLinkType) => {
+      if (!item.id || !event) return;
+      void trackVisit({
+        eventId: event.id,
+        exhibitorId: item.id,
+        userId: user?.id,
+        action: `click_${type}` as const,
+        eventStatus: event.status,
+      });
+    },
+    [event?.id, event?.status, user?.id],
+  );
+
   const getBackgroundStyle = () => {
     if (!event) return {};
     const type = event.bg_type || 'color';
@@ -503,6 +519,7 @@ export default function EventPage({ user }: { user: AppUser | null }) {
                     items={exhibitorItems}
                     icon={<Users className="w-4 h-4" />}
                     columns={1}
+                    onItemSocialClick={handleSidebarExhibitorSocialClick}
                   />
                   <PartnerSection
                     title="Patrocinadores"
@@ -540,7 +557,7 @@ export default function EventPage({ user }: { user: AppUser | null }) {
           </div>
         )}
 
-        {event.status === 'pre' && <PreEventView event={event} />}
+        {event.status === 'pre' && <PreEventView event={event} user={user} />}
         {event.status === 'live' && (
           <LiveEventView
             event={event}

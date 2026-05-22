@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Users, ChevronLeft, ChevronRight } from 'lucide-react';
-import { SocialLinks } from './SocialLinks';
+import { SocialLinks, type SocialLinkType } from './SocialLinks';
 import { cn } from '../../../lib/utils';
 
 interface PartnerItem {
@@ -67,9 +67,11 @@ interface PartnerSectionProps {
   showMessages?: boolean;
   columns?: number;
   onViewCatalog?: (item: PartnerItem) => void;
+  // Callback opcional para tracking de cliques em links sociais. Recebe o item e o tipo.
+  onItemSocialClick?: (item: PartnerItem, type: SocialLinkType) => void;
 }
 
-export function PartnerSection({ title, items, icon, showMessages = false, columns, onViewCatalog }: PartnerSectionProps) {
+export function PartnerSection({ title, items, icon, showMessages = false, columns, onViewCatalog, onItemSocialClick }: PartnerSectionProps) {
   if (!items || items.length === 0) return null;
 
   const gridCols = columns === 1 
@@ -117,6 +119,7 @@ export function PartnerSection({ title, items, icon, showMessages = false, colum
                   whatsapp={item.socials.whatsapp}
                   website={item.socials.website}
                   buttonClassName="p-1.5 md:p-2 bg-neutral-50 rounded-full text-neutral-600 transition-colors hover:bg-neutral-100"
+                  onLinkClick={onItemSocialClick ? (type) => onItemSocialClick(item, type) : undefined}
                 />
               </div>
             )}

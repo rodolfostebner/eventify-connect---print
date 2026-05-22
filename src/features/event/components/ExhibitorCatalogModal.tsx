@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import type { Exhibitor, Product } from '../../../types';
 import { getProducts } from '../../../services/productService';
 import { createLead } from '../../../services/leadService';
+import { trackVisit } from '../../../services/visitService';
 import { SocialLinks } from './SocialLinks';
 import { cn } from '../../../lib/utils';
 
@@ -66,9 +67,12 @@ interface PreSaleFormProps {
   product: Product;
   exhibitorId: string;
   primaryColor: string;
+  eventId: string;
+  userId?: string;
+  eventStatus: 'pre' | 'live' | 'post';
 }
 
-function PreSaleForm({ product, exhibitorId, primaryColor }: PreSaleFormProps) {
+function PreSaleForm({ product, exhibitorId, primaryColor, eventId, userId, eventStatus }: PreSaleFormProps) {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -86,6 +90,15 @@ function PreSaleForm({ product, exhibitorId, primaryColor }: PreSaleFormProps) {
         customer_phone: phone.trim(),
       });
       setDone(true);
+      // Analytics — fire-and-forget
+      void trackVisit({
+        eventId,
+        exhibitorId,
+        productId: product.id,
+        userId,
+        action: 'click_lead',
+        eventStatus,
+      });
     } catch {
       toast.error('Erro ao registrar interesse. Tente novamente.');
     } finally {
@@ -146,6 +159,8 @@ function PreSaleForm({ product, exhibitorId, primaryColor }: PreSaleFormProps) {
 interface ExhibitorCatalogModalProps {
   exhibitor: Exhibitor;
   eventStatus: 'pre' | 'live' | 'post';
+  eventId: string;
+  userId?: string;
   primaryColor?: string;
   onClose: () => void;
 }
@@ -153,6 +168,8 @@ interface ExhibitorCatalogModalProps {
 export function ExhibitorCatalogModal({
   exhibitor,
   eventStatus,
+  eventId,
+  userId,
   primaryColor = '#171717',
   onClose,
 }: ExhibitorCatalogModalProps) {
@@ -167,7 +184,43 @@ export function ExhibitorCatalogModal({
       .finally(() => setLoading(false));
   }, [exhibitor.id]);
 
+  // Analytics — registra abertura do stand uma única vez por montagem do modal.
+  // Fire-and-forget: nunca aguarda e não bloqueia a renderização.
+  useEffect(() => {
+    void trackVisit({
+      eventId,
+      exhibitorId: exhibitor.id,
+      userId,
+      action: 'view_stand',
+      eventStatus,
+    });
+    // Dispara apenas ao abrir o modal (mudança de expositor remonta o componente via key/AnimatePresence).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const canPreSale = eventStatus === 'pre';
+
+  const handleOpenPreSale = (product: Product) => {
+    setActivePreSaleId(product.id);
+    void trackVisit({
+      eventId,
+      exhibitorId: exhibitor.id,
+      productId: product.id,
+      userId,
+      action: 'view_product',
+      eventStatus,
+    });
+  };
+
+  const handleSocialClick = (type: 'instagram' | 'whatsapp' | 'website') => {
+    void trackVisit({
+      eventId,
+      exhibitorId: exhibitor.id,
+      userId,
+      action: `click_${type}` as const,
+      eventStatus,
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
@@ -225,6 +278,7 @@ export function ExhibitorCatalogModal({
               website={exhibitor.website_url ?? undefined}
               containerClassName="flex gap-2"
               buttonClassName="p-1.5 bg-neutral-50 rounded-full text-neutral-600 hover:bg-neutral-100 transition-colors"
+              onLinkClick={handleSocialClick}
             />
           </div>
         )}
@@ -275,10 +329,13 @@ export function ExhibitorCatalogModal({
                           product={product}
                           exhibitorId={exhibitor.id}
                           primaryColor={primaryColor}
+                          eventId={eventId}
+                          userId={userId}
+                          eventStatus={eventStatus}
                         />
                       ) : (
                         <button
-                          onClick={() => setActivePreSaleId(product.id)}
+                          onClick={() => handleOpenPreSale(product)}
                           className="w-full py-2 rounded-lg text-sm font-bold text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
                           style={{ backgroundColor: primaryColor }}
                         >

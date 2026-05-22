@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Trophy, Users, Star, Briefcase, Globe, Instagram, MessageCircle, ArrowLeft, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { EventData, PhotoData, AppUser, Exhibitor, Partner } from '../../../types';
 import { useEventPhotos } from '../hooks/useEventPhotos';
 import { PhotoCard } from './PhotoCard/PhotoCard';
 import { PartnerSection } from './PartnerSection';
+import type { SocialLinkType } from './SocialLinks';
 import { getExhibitors } from '../../../services/exhibitorService';
 import { getPartners } from '../../../services/partnerService';
+import { trackVisit } from '../../../services/visitService';
 
 interface PostEventViewProps {
   event: EventData;
@@ -38,6 +40,20 @@ export const PostEventView = ({ event, user, onLogin }: PostEventViewProps) => {
     photos: s.photos,
     socials: { instagram: s.instagram_url ?? undefined, whatsapp: s.whatsapp ?? undefined, website: s.website_url ?? undefined },
   }));
+
+  const handleExhibitorSocialClick = useCallback(
+    (item: { id?: string }, type: SocialLinkType) => {
+      if (!item.id) return;
+      void trackVisit({
+        eventId: event.id,
+        exhibitorId: item.id,
+        userId: user?.id,
+        action: `click_${type}` as const,
+        eventStatus: event.status,
+      });
+    },
+    [event.id, event.status, user?.id],
+  );
 
   const rankingData = useMemo(() => {
     const categories = [
@@ -170,6 +186,7 @@ export const PostEventView = ({ event, user, onLogin }: PostEventViewProps) => {
           items={exhibitorItems}
           icon={<Users className="w-5 h-5" />}
           showMessages={true}
+          onItemSocialClick={handleExhibitorSocialClick}
         />
         <PartnerSection
           title="Patrocinadores"

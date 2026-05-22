@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase/client';
+import { getSessionId } from '../utils/session';
 import type { Visit, VisitAction } from '../types';
 
 // ─── Registro de Visita/Clique ───────────────────────────────────────────────
@@ -6,6 +7,7 @@ import type { Visit, VisitAction } from '../types';
 /**
  * Registra uma ação de visita/clique silenciosamente.
  * Nunca lança erro para não impactar a experiência do usuário.
+ * Se sessionId não for informado, usa o ID de sessão anônima do browser.
  */
 export async function trackVisit(params: {
   eventId: string;
@@ -23,7 +25,7 @@ export async function trackVisit(params: {
       exhibitor_id: params.exhibitorId ?? null,
       product_id: params.productId ?? null,
       user_id: params.userId ?? null,
-      session_id: params.sessionId ?? null,
+      session_id: params.sessionId ?? getSessionId(),
       action: params.action,
       event_status: params.eventStatus ?? null,
     }]);
