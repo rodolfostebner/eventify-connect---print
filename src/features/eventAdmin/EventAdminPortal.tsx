@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Eye, LayoutDashboard, ShieldCheck, Printer, Store, Star, Play, Pause, CheckCircle2,
-  ChevronDown, Palette, Save, X as CloseIcon, FileClock, Info, Loader2,
+  ChevronDown, Palette, Save, X as CloseIcon, FileClock, Info, Loader2, Plus,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -10,11 +10,18 @@ import { toast } from 'sonner';
 import { AppHeader } from '../../components/AppHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
-import type { AuditLog, EventData } from '../../types';
+import type { AuditLog, EventData, EvaluationCategory, UserEmailRole } from '../../types';
 import { getEventById, getEventBySlug, updateEvent } from '../../services/eventService';
 import { diffObjects, getEventAuditLogs, logChange } from '../../services/auditService';
 import { getEventDashboard, type DashboardData } from '../../services/dashboardService';
 import { HBarChart, PieChart } from './components/DashboardCharts';
+import {
+  getEvaluationCategories, createEvaluationCategory, updateEvaluationCategory, deleteEvaluationCategory,
+} from '../../services/evaluationService';
+import {
+  listAvaliadores, addEmailRole, removeEmailRole, listEmailRoles, updateUserRole, updateUserDisplayName,
+} from '../../services/userService';
+import type { ExhibitorLinkedUser } from '../../services/userService';
 
 // ─── Helpers de UI ─────────────────────────────────────────────────────────────
 
@@ -152,6 +159,426 @@ const ACTION_LABELS: Record<string, string> = {
   update_event: 'Edição de dados',
   update_status: 'Mudança de fase',
 };
+
+// ─── Categorias de Avaliação ──────────────────────────────────────────────────
+
+function CategoriasAvaliacaoSection({ eventId }: { eventId: string }) {
+  const [categories, setCategories] = useState<EvaluationCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [newForm, setNewForm] = useState({ name: '', weight: '1' });
+  const [editForm, setEditForm] = useState({ name: '', weight: '' });
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try { setCategories(await getEvaluationCategories(eventId)); }
+    catch { toast.error('Erro ao carregar categorias'); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, [eventId]);
+
+  const totalWeight = categories.reduce((s, c) => s + c.weight, 0);
+
+  const handleAdd = async () => {
+    const w = parseFloat(newForm.weight);
+    if (!newForm.name.trim() || !w || w <= 0) return;
+    setSaving(true);
+    try {
+      await createEvaluationCategory({
+        event_id: eventId, name: newForm.name.trim(), weight: w, order_index: categories.length + 1,
+      });
+      setNewForm({ name: '', weight: '1' }); setAdding(false);
+      toast.success('Categoria criada'); load();
+    } catch { toast.error('Erro ao criar categoria'); }
+    finally { setSaving(false); }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId) return;
+    const w = parseFloat(editForm.weight);
+    if (!editForm.name.trim() || !w || w <= 0) return;
+    setSaving(true);
+    try {
+      await updateEvaluationCategory(editingId, { name: editForm.name.trim(), weight: w });
+      setEditingId(null); toast.success('Categoria atualizada'); load();
+    } catch { toast.error('Erro ao atualizar categoria'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (cat: EvaluationCategory) => {
+    if (!confirm(`Remover a categoria "${cat.name}"?`)) return;
+    try {
+      await deleteEvaluationCategory(cat.id);
+      setCategories(cs => cs.filter(c => c.id !== cat.id));
+      toast.success('Categoria removida');
+    } catch { toast.error('Erro ao remover categoria'); }
+  };
+
+  if (loading) return (
+    <div className="flex justify-center py-8">
+      <div className="w-6 h-6 border-2 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-neutral-800">Categorias de Avaliação</p>
+          <p className="text-[10px] text-neutral-400 mt-0.5">Critérios usados pelos avaliadores. O peso define a influência relativa de cada categoria no ranking.</p>
+        </div>
+        {!adding && (
+          <button
+            onClick={() => setAdding(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-700 transition-colors shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" /> Adicionar
+          </button>
+        )}
+      </div>
+
+      {adding && (
+        <div className="border border-neutral-200 rounded-xl p-4 space-y-3 bg-neutral-50">
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Nova categoria</p>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              placeholder="Nome da categoria (ex: Inovação)"
+              value={newForm.name}
+              onChange={e => setNewForm(f => ({ ...f, name: e.target.value }))}
+              className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+              autoFocus
+            />
+            <input
+              type="number" min="0.1" step="0.1"
+              placeholder="Peso"
+              value={newForm.weight}
+              onChange={e => setNewForm(f => ({ ...f, weight: e.target.value }))}
+              className="w-24 px-3 py-2 text-sm border border-neutral-200 rounded-lg bg-white text-right focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleAdd} disabled={saving || !newForm.name.trim()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-700 disabled:opacity-50 transition-colors">
+              {saving ? 'Salvando...' : 'Adicionar'}
+            </button>
+            <button onClick={() => { setAdding(false); setNewForm({ name: '', weight: '1' }); }} className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold transition-colors">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {categories.length === 0 && !adding && (
+        <div className="text-center py-8 text-neutral-400 border border-dashed border-neutral-200 rounded-xl">
+          <p className="text-sm">Nenhuma categoria cadastrada</p>
+          <p className="text-xs mt-1">Adicione categorias para que os avaliadores possam pontuar os expositores.</p>
+        </div>
+      )}
+
+      {categories.length > 0 && (
+        <div className="border border-neutral-100 rounded-xl overflow-hidden">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-neutral-50 text-[10px] uppercase text-neutral-400 font-bold tracking-wider">
+              <tr>
+                <th className="px-4 py-3">Categoria</th>
+                <th className="px-4 py-3 text-right w-20">Peso</th>
+                <th className="px-4 py-3 text-right w-16">%</th>
+                <th className="px-4 py-3 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {categories.map(cat => (
+                <tr key={cat.id} className="hover:bg-neutral-50">
+                  {editingId === cat.id ? (
+                    <>
+                      <td className="px-3 py-2">
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                          className="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg bg-white focus:outline-none"
+                          onKeyDown={e => e.key === 'Enter' && handleSaveEdit()}
+                          autoFocus
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number" min="0.1" step="0.1"
+                          value={editForm.weight}
+                          onChange={e => setEditForm(f => ({ ...f, weight: e.target.value }))}
+                          className="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg bg-white text-right focus:outline-none"
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right text-neutral-300 tabular-nums">—</td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={handleSaveEdit} disabled={saving} className="text-[11px] font-bold text-neutral-900 hover:underline disabled:opacity-50">Salvar</button>
+                          <button onClick={() => setEditingId(null)} className="text-[11px] font-bold text-neutral-400 hover:underline">Cancelar</button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 font-medium text-neutral-900">{cat.name}</td>
+                      <td className="px-4 py-3 text-right text-neutral-600 tabular-nums">{cat.weight}</td>
+                      <td className="px-4 py-3 text-right text-neutral-400 tabular-nums">
+                        {totalWeight > 0 ? Math.round((cat.weight / totalWeight) * 100) : 0}%
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-3">
+                          <button onClick={() => { setEditingId(cat.id); setEditForm({ name: cat.name, weight: String(cat.weight) }); }} className="text-[11px] font-bold text-blue-600 hover:underline">Editar</button>
+                          <button onClick={() => handleDelete(cat)} className="text-[11px] font-bold text-red-500 hover:underline">Remover</button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Avaliadores ──────────────────────────────────────────────────────────────
+
+function AvaliadorSection({ eventId }: { eventId: string }) {
+  const [linked, setLinked] = useState<ExhibitorLinkedUser[]>([]);
+  const [pending, setPending] = useState<UserEmailRole[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [editingActiveId, setEditingActiveId] = useState<string | null>(null);
+  const [editingPendingEmail, setEditingPendingEmail] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [linkedData, allPending] = await Promise.all([listAvaliadores(eventId), listEmailRoles()]);
+      setLinked(linkedData);
+      setPending(allPending.filter(r => r.role === 'avaliador' && r.event_id === eventId));
+    } catch { toast.error('Erro ao carregar avaliadores'); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { load(); }, [eventId]);
+
+  const handleAdd = async () => {
+    if (!newEmail.trim()) return;
+    setSaving(true);
+    try {
+      await addEmailRole({ email: newEmail.trim().toLowerCase(), role: 'avaliador', event_id: eventId, exhibitor_id: null });
+      toast.success('Avaliador cadastrado — poderá entrar com Google ou link mágico.');
+      setNewEmail(''); setAdding(false); load();
+    } catch { toast.error('Erro ao cadastrar avaliador'); }
+    finally { setSaving(false); }
+  };
+
+  const handleSaveActiveName = async () => {
+    if (!editingActiveId || !editName.trim()) return;
+    setSaving(true);
+    try {
+      await updateUserDisplayName(editingActiveId, editName.trim());
+      setEditingActiveId(null); toast.success('Nome atualizado'); load();
+    } catch { toast.error('Erro ao atualizar nome'); }
+    finally { setSaving(false); }
+  };
+
+  const handleSavePendingEmail = async (oldEmail: string) => {
+    const next = editEmail.trim().toLowerCase();
+    if (!next || next === oldEmail) { setEditingPendingEmail(null); return; }
+    setSaving(true);
+    try {
+      await removeEmailRole(oldEmail);
+      await addEmailRole({ email: next, role: 'avaliador', event_id: eventId, exhibitor_id: null });
+      setEditingPendingEmail(null); setEditEmail('');
+      toast.success('E-mail atualizado'); load();
+    } catch { toast.error('Erro ao atualizar e-mail'); }
+    finally { setSaving(false); }
+  };
+
+  const handleRemoveLinked = async (user: ExhibitorLinkedUser) => {
+    if (!confirm(`Remover acesso de ${user.email} como avaliador?`)) return;
+    try {
+      await updateUserRole(user.id, 'participant', null, null);
+      setLinked(ls => ls.filter(l => l.id !== user.id));
+      toast.success('Acesso removido');
+    } catch { toast.error('Erro ao remover acesso'); }
+  };
+
+  const handleRemovePending = async (email: string) => {
+    if (!confirm(`Cancelar convite para ${email}?`)) return;
+    try {
+      await removeEmailRole(email);
+      setPending(ps => ps.filter(p => p.email !== email));
+      toast.success('Convite cancelado');
+    } catch { toast.error('Erro ao cancelar convite'); }
+  };
+
+  const totalCount = linked.length + pending.length;
+
+  if (loading) return (
+    <div className="flex justify-center py-8">
+      <div className="w-6 h-6 border-2 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-neutral-800">Avaliadores</p>
+          <p className="text-[10px] text-neutral-400 mt-0.5">
+            {linked.length} ativo{linked.length !== 1 ? 's' : ''} · {pending.length} pendente{pending.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+        {!adding && (
+          <button
+            onClick={() => setAdding(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-700 transition-colors shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" /> Adicionar
+          </button>
+        )}
+      </div>
+
+      {adding && (
+        <div className="border border-neutral-200 rounded-xl p-4 space-y-3 bg-neutral-50">
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Novo avaliador</p>
+          <input
+            type="email"
+            placeholder="email@avaliador.com"
+            value={newEmail}
+            onChange={e => setNewEmail(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+            onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            autoFocus
+          />
+          <p className="text-xs text-neutral-400">O avaliador entrará com este e-mail via Google ou link mágico e terá acesso ao painel de avaliação.</p>
+          <div className="flex gap-2">
+            <button onClick={handleAdd} disabled={saving || !newEmail.trim()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-700 disabled:opacity-50 transition-colors">
+              {saving ? 'Salvando...' : 'Cadastrar'}
+            </button>
+            <button onClick={() => { setAdding(false); setNewEmail(''); }} className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold transition-colors">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {totalCount === 0 && !adding && (
+        <div className="text-center py-8 text-neutral-400 border border-dashed border-neutral-200 rounded-xl">
+          <p className="text-sm">Nenhum avaliador cadastrado</p>
+          <p className="text-xs mt-1">Adicione avaliadores para que possam pontuar os expositores por categoria.</p>
+        </div>
+      )}
+
+      {totalCount > 0 && (
+        <div className="border border-neutral-100 rounded-xl overflow-hidden">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-neutral-50 text-[10px] uppercase text-neutral-400 font-bold tracking-wider">
+              <tr>
+                <th className="px-4 py-3">Nome / E-mail</th>
+                <th className="px-4 py-3 text-center w-24">Status</th>
+                <th className="px-4 py-3 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-neutral-100">
+              {linked.map(user => (
+                <tr key={user.id} className="hover:bg-neutral-50">
+                  {editingActiveId === user.id ? (
+                    <>
+                      <td className="px-3 py-2" colSpan={2}>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          placeholder="Nome do avaliador"
+                          className="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg bg-white focus:outline-none"
+                          onKeyDown={e => e.key === 'Enter' && handleSaveActiveName()}
+                          autoFocus
+                        />
+                        <p className="text-[10px] text-neutral-400 mt-1">{user.email}</p>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={handleSaveActiveName} disabled={saving} className="text-[11px] font-bold text-neutral-900 hover:underline disabled:opacity-50">Salvar</button>
+                          <button onClick={() => setEditingActiveId(null)} className="text-[11px] font-bold text-neutral-400 hover:underline">Cancelar</button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-neutral-900">{user.display_name ?? user.email}</p>
+                        {user.display_name && <p className="text-neutral-400">{user.email}</p>}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-[10px] font-bold">Ativo</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-3">
+                          <button onClick={() => { setEditingActiveId(user.id); setEditName(user.display_name ?? ''); }} className="text-[11px] font-bold text-blue-600 hover:underline">Editar</button>
+                          <button onClick={() => handleRemoveLinked(user)} className="text-[11px] font-bold text-red-500 hover:underline">Remover</button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+              {pending.map(p => (
+                <tr key={p.email} className="hover:bg-neutral-50">
+                  {editingPendingEmail === p.email ? (
+                    <>
+                      <td className="px-3 py-2" colSpan={2}>
+                        <input
+                          type="email"
+                          value={editEmail}
+                          onChange={e => setEditEmail(e.target.value)}
+                          className="w-full px-2 py-1.5 text-xs border border-neutral-200 rounded-lg bg-white focus:outline-none"
+                          onKeyDown={e => e.key === 'Enter' && handleSavePendingEmail(p.email)}
+                          autoFocus
+                        />
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => handleSavePendingEmail(p.email)} disabled={saving} className="text-[11px] font-bold text-neutral-900 hover:underline disabled:opacity-50">Salvar</button>
+                          <button onClick={() => setEditingPendingEmail(null)} className="text-[11px] font-bold text-neutral-400 hover:underline">Cancelar</button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 text-neutral-600">{p.email}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[10px] font-bold">Pendente</span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-3">
+                          <button onClick={() => { setEditingPendingEmail(p.email); setEditEmail(p.email); }} className="text-[11px] font-bold text-blue-600 hover:underline">Editar</button>
+                          <button onClick={() => handleRemovePending(p.email)} className="text-[11px] font-bold text-red-500 hover:underline">Cancelar</button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Componente principal ────────────────────────────────────────────────────
 
@@ -618,8 +1045,17 @@ export default function EventAdminPortal() {
               </div>
             )}
 
-            {/* Abas 4–7 — placeholders */}
-            {(['avaliacao', 'sorteio', 'relatorios', 'marketing'] as const).includes(activeTab as any) && (
+            {/* Aba 4 — Config. Avaliação */}
+            {activeTab === 'avaliacao' && (
+              <div className="space-y-8 max-w-3xl">
+                <CategoriasAvaliacaoSection eventId={event.id} />
+                <div className="border-t border-neutral-100" />
+                <AvaliadorSection eventId={event.id} />
+              </div>
+            )}
+
+            {/* Abas 5–7 — placeholders */}
+            {(['sorteio', 'relatorios', 'marketing'] as const).includes(activeTab as any) && (
               <div className="flex flex-col items-center justify-center py-16 text-neutral-300">
                 <Info className="w-10 h-10 mb-3" />
                 <p className="text-sm font-bold text-neutral-400">Em definição</p>

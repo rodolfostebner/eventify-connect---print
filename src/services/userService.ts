@@ -132,6 +132,24 @@ export async function removeEmailRole(email: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function listAvaliadores(eventId: string): Promise<ExhibitorLinkedUser[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('users')
+    .select('id, email, display_name, photo_url, created_at')
+    .eq('event_id', eventId)
+    .eq('role', 'avaliador')
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return (data || []) as ExhibitorLinkedUser[];
+}
+
+export async function updateUserDisplayName(userId: string, displayName: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('users').update({ display_name: displayName }).eq('id', userId);
+  if (error) throw error;
+}
+
 // ─── Beta mode: lookup/create por email sem Supabase Auth ────────────────────
 
 export async function findOrCreateUserByEmail(email: string): Promise<AppUser | null> {
