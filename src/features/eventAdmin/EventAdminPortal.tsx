@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { AppHeader } from '../../components/AppHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
-import type { AuditLog, EventData, EvaluationCategory, UserEmailRole } from '../../types';
+import type { AuditLog, EventData, EvaluationCategory, UserEmailRole, Announcement } from '../../types';
 import { getEventById, getEventBySlug, updateEvent } from '../../services/eventService';
 import { diffObjects, getEventAuditLogs, logChange } from '../../services/auditService';
 import { getEventDashboard, type DashboardData } from '../../services/dashboardService';
@@ -146,6 +146,7 @@ const TABS = [
   { id: 'dados',      label: 'Dados do Evento' },
   { id: 'aparencia',  label: 'Aparência' },
   { id: 'config',     label: 'Configurações' },
+  { id: 'avisos',     label: 'Avisos' },
   { id: 'avaliacao',  label: 'Config. Avaliação' },
   { id: 'sorteio',    label: 'Config. Sorteio' },
   { id: 'relatorios', label: 'Relatórios' },
@@ -576,6 +577,638 @@ function AvaliadorSection({ eventId }: { eventId: string }) {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Aba de Avisos ─────────────────────────────────────────────────────────────
+import {
+  getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement, triggerAnnouncement
+} from '../../services/announcementService';
+import { uploadAudio } from '../../services/storageService';
+import { Megaphone, Bell, Tv, Smartphone, Trash2, Edit3, Sparkles, Music, Upload, Volume2 } from 'lucide-react';
+
+function AvisosSection({ event, onEventUpdate }: { event: EventData; onEventUpdate: (ev: EventData) => void }) {
+  const eventId = event.id;
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Audio uploading & preview state
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [previewingSoundId, setPreviewingSoundId] = useState<string | null>(null);
+  const [activeAudioElement, setActiveAudioElement] = useState<HTMLAudioElement | null>(null);
+  
+  // Form State
+  const [form, setForm] = useState({
+    title: '',
+    message: '',
+    bg_color: '#ef4444',
+    text_color: '#ffffff',
+    icon: 'megaphone',
+    show_duration_sec: 15,
+    target_tv: true,
+    target_app_popup: false,
+    target_push: false,
+    audio_url: 'synth_classic' as string | null
+  });
+
+  const load = async (isInitial = false) => {
+    if (isInitial) setLoading(true);
+    try {
+      setAnnouncements(await getAnnouncements(eventId));
+    } catch {
+      toast.error('Erro ao carregar avisos.');
+    } finally {
+      if (isInitial) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load(true);
+  }, [eventId]);
+
+  const handleCreateOrUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title.trim() || !form.message.trim()) {
+      toast.error('Preencha o título e a mensagem.');
+      return;
+    }
+    
+    if (!form.target_tv && !form.target_app_popup && !form.target_push) {
+      toast.error('Selecione pelo menos um canal de destino.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (editingId) {
+        await updateAnnouncement(editingId, form);
+        toast.success('Aviso atualizado com sucesso.');
+        setEditingId(null);
+      } else {
+        await createAnnouncement({
+          event_id: eventId,
+          ...form
+        });
+        toast.success('Aviso criado com sucesso.');
+      }
+      // Reset form
+      setForm({
+        title: '',
+        message: '',
+        bg_color: '#ef4444',
+        text_color: '#ffffff',
+        icon: 'megaphone',
+        show_duration_sec: 15,
+        target_tv: true,
+        target_app_popup: false,
+        target_push: false,
+        audio_url: 'synth_classic'
+      });
+      load();
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao salvar o aviso.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEdit = (ann: Announcement) => {
+    setEditingId(ann.id);
+    setForm({
+      title: ann.title,
+      message: ann.message,
+      bg_color: ann.bg_color || '#ef4444',
+      text_color: ann.text_color || '#ffffff',
+      icon: ann.icon || 'megaphone',
+      show_duration_sec: ann.show_duration_sec || 15,
+      target_tv: ann.target_tv,
+      target_app_popup: ann.target_app_popup,
+      target_push: ann.target_push,
+      audio_url: ann.audio_url || 'synth_classic'
+    });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja realmente remover este aviso?')) return;
+    try {
+      await deleteAnnouncement(id);
+      toast.success('Aviso removido.');
+      load();
+    } catch {
+      toast.error('Erro ao remover o aviso.');
+    }
+  };
+
+  const handleTrigger = async (annId: string) => {
+    try {
+      await triggerAnnouncement(eventId, annId);
+      toast.success('Aviso disparado em tempo real nos canais selecionados!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao disparar aviso.');
+    }
+  };
+
+  const handleClear = async () => {
+    try {
+      await triggerAnnouncement(eventId, null);
+      toast.success('Telão e Popups limpos com sucesso.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao limpar avisos.');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm({
+      title: '',
+      message: '',
+      bg_color: '#ef4444',
+      text_color: '#ffffff',
+      icon: 'megaphone',
+      show_duration_sec: 15,
+      target_tv: true,
+      target_app_popup: false,
+      target_push: false,
+      audio_url: 'synth_classic'
+    });
+  };
+
+  const handleUploadSound = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('O tamanho máximo permitido para o áudio é 2MB.');
+      return;
+    }
+
+    // Validate type
+    const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/x-wav'];
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|ogg)$/i)) {
+      toast.error('Formato de arquivo inválido. Use MP3, WAV ou OGG.');
+      return;
+    }
+
+    const currentSounds = event.custom_sounds || [];
+    if (currentSounds.length >= 3) {
+      toast.error('Você já atingiu o limite de 3 sons personalizados para este evento.');
+      return;
+    }
+
+    setUploadingAudio(true);
+    try {
+      const publicUrl = await uploadAudio(file);
+      const newSound = {
+        id: `sound-${Date.now()}`,
+        name: file.name.replace(/\.[^/.]+$/, ""), // remove extension
+        url: publicUrl
+      };
+
+      const updatedSounds = [...currentSounds, newSound];
+      await updateEvent(event.id, { custom_sounds: updatedSounds });
+      onEventUpdate({ ...event, custom_sounds: updatedSounds });
+      toast.success('Som personalizado adicionado com sucesso!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao fazer upload do som.');
+    } finally {
+      setUploadingAudio(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteSound = async (soundId: string) => {
+    if (!confirm('Deseja realmente excluir este som personalizado?')) return;
+
+    if (previewingSoundId === soundId && activeAudioElement) {
+      activeAudioElement.pause();
+      setPreviewingSoundId(null);
+      setActiveAudioElement(null);
+    }
+
+    const currentSounds = event.custom_sounds || [];
+    const updatedSounds = currentSounds.filter(s => s.id !== soundId);
+
+    try {
+      await updateEvent(event.id, { custom_sounds: updatedSounds });
+      onEventUpdate({ ...event, custom_sounds: updatedSounds });
+      toast.success('Som removido com sucesso.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao remover o som.');
+    }
+  };
+
+  const handlePlayPreview = (soundId: string, url: string) => {
+    if (previewingSoundId === soundId) {
+      if (activeAudioElement) {
+        activeAudioElement.pause();
+      }
+      setPreviewingSoundId(null);
+      setActiveAudioElement(null);
+      return;
+    }
+
+    if (activeAudioElement) {
+      activeAudioElement.pause();
+    }
+
+    const audio = new Audio(url);
+    audio.volume = 0.8;
+    audio.play().catch(err => {
+      console.error('Error playing audio preview:', err);
+      toast.error('Não foi possível reproduzir este som.');
+    });
+
+    setPreviewingSoundId(soundId);
+    setActiveAudioElement(audio);
+
+    audio.onended = () => {
+      setPreviewingSoundId(null);
+      setActiveAudioElement(null);
+    };
+  };
+
+  useEffect(() => {
+    return () => {
+      if (activeAudioElement) {
+        activeAudioElement.pause();
+      }
+    };
+  }, [activeAudioElement]);
+
+  const iconsList = [
+    { value: 'megaphone', label: 'Megafone' },
+    { value: 'bell', label: 'Sino' },
+    { value: 'info', label: 'Info' },
+    { value: 'alert-triangle', label: 'Alerta' },
+    { value: 'party-popper', label: 'Festa' }
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="w-6 h-6 border-2 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between border-b border-neutral-100 pb-4">
+        <div>
+          <h3 className="text-sm font-bold text-neutral-800">Módulo de Avisos Multicanal</h3>
+          <p className="text-[10px] text-neutral-400 mt-0.5">Cadastre, edite e dispare mensagens urgentes para TV, aplicativo ou via notificações push.</p>
+        </div>
+        <button
+          onClick={handleClear}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-bold transition-all shrink-0"
+        >
+          Limpar Todos os Canais
+        </button>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Formulário de Cadastro/Edição */}
+        <div className="lg:col-span-1 space-y-4">
+          <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-4 h-fit">
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-neutral-500" />
+            {editingId ? 'Editar Aviso' : 'Novo Aviso'}
+          </p>
+
+          <form onSubmit={handleCreateOrUpdate} className="space-y-3">
+            <div>
+              <Label>Título do Aviso</Label>
+              <input
+                type="text"
+                value={form.title}
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                placeholder="Ex: Últimos Minutos de Votação!"
+                className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+                maxLength={80}
+                required
+              />
+            </div>
+
+            <div>
+              <Label>Mensagem</Label>
+              <textarea
+                value={form.message}
+                onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+                placeholder="Ex: Vá ao stand central e dê o seu voto final antes do cronômetro zerar."
+                rows={3}
+                className="w-full bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900/20 resize-none"
+                maxLength={250}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Cor de Fundo</Label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="color"
+                    value={form.bg_color}
+                    onChange={e => setForm(f => ({ ...f, bg_color: e.target.value }))}
+                    className="w-8 h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={form.bg_color}
+                    onChange={e => setForm(f => ({ ...f, bg_color: e.target.value }))}
+                    className="flex-1 bg-white border border-neutral-200 rounded-lg px-2 text-[10px] w-full"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label>Cor do Texto</Label>
+                <div className="flex gap-1.5">
+                  <input
+                    type="color"
+                    value={form.text_color}
+                    onChange={e => setForm(f => ({ ...f, text_color: e.target.value }))}
+                    className="w-8 h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={form.text_color}
+                    onChange={e => setForm(f => ({ ...f, text_color: e.target.value }))}
+                    className="flex-1 bg-white border border-neutral-200 rounded-lg px-2 text-[10px] w-full"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Ícone</Label>
+                <select
+                  value={form.icon}
+                  onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}
+                  className="w-full bg-white border border-neutral-200 rounded-xl px-2 py-2 text-xs"
+                >
+                  {iconsList.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label>Duração (segundos)</Label>
+                <input
+                  type="number"
+                  min="5"
+                  max="120"
+                  value={form.show_duration_sec}
+                  onChange={e => setForm(f => ({ ...f, show_duration_sec: Number(e.target.value) || 15 }))}
+                  className="w-full bg-white border border-neutral-200 rounded-xl px-2 py-2 text-xs text-right"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Som de Notificação</Label>
+              <select
+                value={form.audio_url || 'synth_classic'}
+                onChange={e => setForm(f => ({ ...f, audio_url: e.target.value }))}
+                className="w-full bg-white border border-neutral-200 rounded-xl px-2 py-2 text-xs focus:outline-none"
+              >
+                <option value="silent">Silencioso (Sem som)</option>
+                <optgroup label="Sons Sintetizados (Padrão)">
+                  <option value="synth_classic">Sino Clássico</option>
+                  <option value="synth_scifi">Alerta Futurista (Sci-Fi)</option>
+                  <option value="synth_triumph">Festa / Sucesso Triunfal</option>
+                  <option value="synth_gentle">Atenção Suave</option>
+                  <option value="synth_retro">Beep Retrô 8-Bit</option>
+                </optgroup>
+                {(event.custom_sounds || []).length > 0 && (
+                  <optgroup label="Sons Personalizados">
+                    {(event.custom_sounds || []).map(sound => (
+                      <option key={sound.id} value={sound.url}>{sound.name}</option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+            </div>
+
+            {/* Checkboxes de Canais */}
+            <div className="bg-white p-3 rounded-xl border border-neutral-200 space-y-2">
+              <Label>Canais de Destino</Label>
+              
+              <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.target_tv}
+                  onChange={e => setForm(f => ({ ...f, target_tv: e.target.checked }))}
+                  className="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                />
+                <Tv className="w-3.5 h-3.5 text-neutral-500" />
+                <span>Telão / TV</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.target_app_popup}
+                  onChange={e => setForm(f => ({ ...f, target_app_popup: e.target.checked }))}
+                  className="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                />
+                <Smartphone className="w-3.5 h-3.5 text-neutral-500" />
+                <span>Popup no App</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.target_push}
+                  onChange={e => setForm(f => ({ ...f, target_push: e.target.checked }))}
+                  className="rounded border-neutral-300 text-neutral-900 focus:ring-neutral-900"
+                />
+                <Bell className="w-3.5 h-3.5 text-neutral-500" />
+                <span>Notificação Push</span>
+              </label>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 bg-neutral-900 hover:bg-neutral-800 text-white font-bold text-xs py-2 px-3 rounded-xl transition-all disabled:opacity-50"
+              >
+                {saving ? 'Salvando...' : editingId ? 'Atualizar Aviso' : 'Salvar Aviso'}
+              </button>
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-bold text-xs py-2 px-3 rounded-xl transition-all"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+
+        {/* Biblioteca de Sons Customizados */}
+        <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-3.5 h-fit shadow-xs">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Volume2 className="w-3.5 h-3.5 text-neutral-500" />
+              Sons do Evento ({(event.custom_sounds || []).length}/3)
+            </p>
+            {uploadingAudio && (
+              <div className="w-3.5 h-3.5 border-2 border-neutral-300 border-t-neutral-900 rounded-full animate-spin" />
+            )}
+          </div>
+
+          <div className="space-y-2">
+            {(event.custom_sounds || []).length === 0 ? (
+              <div className="text-center py-5 bg-white border border-dashed border-neutral-200 rounded-xl px-2">
+                <Music className="w-6 h-6 text-neutral-300 mx-auto mb-1.5" />
+                <p className="text-[10px] font-bold text-neutral-600">Nenhum som carregado</p>
+                <p className="text-[9px] text-neutral-400 mt-0.5">Suba até 3 arquivos MP3, WAV ou OGG para usar como toque nos avisos.</p>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                {(event.custom_sounds || []).map(sound => (
+                  <div key={sound.id} className="bg-white border border-neutral-100 rounded-xl p-2.5 flex items-center justify-between gap-3 shadow-xs hover:border-neutral-200 transition-all">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-neutral-700 truncate" title={sound.name}>{sound.name}</p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => handlePlayPreview(sound.id, sound.url)}
+                        type="button"
+                        className={cn(
+                          "w-7 h-7 rounded-lg flex items-center justify-center transition-all border",
+                          previewingSoundId === sound.id 
+                            ? "bg-red-50 text-red-600 border-red-200 hover:bg-red-100" 
+                            : "bg-neutral-50 text-neutral-600 border-neutral-100 hover:bg-neutral-100"
+                        )}
+                      >
+                        {previewingSoundId === sound.id ? (
+                          <div className="w-2.5 h-2.5 bg-red-600 rounded-xs" />
+                        ) : (
+                          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSound(sound.id)}
+                        type="button"
+                        className="w-7 h-7 rounded-lg flex items-center justify-center bg-neutral-50 text-neutral-400 hover:text-red-600 border border-neutral-100 hover:bg-red-50 hover:border-red-100 transition-all"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {(event.custom_sounds || []).length < 3 && (
+              <label className="flex items-center justify-center gap-1.5 border border-dashed border-neutral-300 hover:border-neutral-400 bg-white hover:bg-neutral-50 cursor-pointer py-2.5 rounded-xl text-neutral-600 hover:text-neutral-900 transition-all">
+                <Upload className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-[10px] font-bold">Upload de Som (Máx. 2MB)</span>
+                <input
+                  type="file"
+                  accept=".mp3,.wav,.ogg,audio/*"
+                  onChange={handleUploadSound}
+                  disabled={uploadingAudio}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Listagem de Avisos cadastrados */}
+        <div className="lg:col-span-2 space-y-3">
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Avisos Cadastrados</p>
+
+          {announcements.length === 0 ? (
+            <div className="text-center py-16 text-neutral-400 border border-dashed border-neutral-200 rounded-2xl bg-white">
+              <Megaphone className="w-8 h-8 text-neutral-300 mx-auto mb-2" />
+              <p className="text-sm font-bold">Nenhum aviso cadastrado</p>
+              <p className="text-xs mt-1">Utilize o formulário ao lado para criar o seu primeiro aviso.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {announcements.map(ann => (
+                <div
+                  key={ann.id}
+                  className="bg-white border border-neutral-200 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-neutral-300 transition-all shadow-sm"
+                >
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="px-2 py-0.5 rounded text-[9px] font-black uppercase flex items-center gap-1 shrink-0"
+                        style={{ backgroundColor: ann.bg_color, color: ann.text_color }}
+                      >
+                        <Megaphone className="w-2.5 h-2.5" />
+                        {ann.icon}
+                      </span>
+                      <h4 className="text-xs font-black text-neutral-900 truncate">{ann.title}</h4>
+                    </div>
+                    <p className="text-xs text-neutral-600 line-clamp-2 pr-4">{ann.message}</p>
+                    
+                    {/* Canais badge */}
+                    <div className="flex gap-2 pt-1">
+                      {ann.target_tv && (
+                        <span className="flex items-center gap-1 text-[9px] font-bold text-neutral-400 bg-neutral-50 border border-neutral-100 rounded-md px-1.5 py-0.5">
+                          <Tv className="w-2.5 h-2.5" /> TV ({ann.show_duration_sec}s)
+                        </span>
+                      )}
+                      {ann.target_app_popup && (
+                        <span className="flex items-center gap-1 text-[9px] font-bold text-neutral-400 bg-neutral-50 border border-neutral-100 rounded-md px-1.5 py-0.5">
+                          <Smartphone className="w-2.5 h-2.5" /> App Popup
+                        </span>
+                      )}
+                      {ann.target_push && (
+                        <span className="flex items-center gap-1 text-[9px] font-bold text-neutral-400 bg-neutral-50 border border-neutral-100 rounded-md px-1.5 py-0.5">
+                          <Bell className="w-2.5 h-2.5" /> Push
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 border-t border-neutral-100 pt-3 md:border-t-0 md:pt-0 shrink-0">
+                    <button
+                      onClick={() => handleTrigger(ann.id)}
+                      className="flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-sm"
+                    >
+                      <Megaphone className="w-3.5 h-3.5" /> Disparar
+                    </button>
+                    <button
+                      onClick={() => handleEdit(ann)}
+                      className="p-2 border border-neutral-200 rounded-xl text-neutral-600 hover:bg-neutral-50 transition-all"
+                      title="Editar aviso"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(ann.id)}
+                      className="p-2 border border-neutral-200 rounded-xl text-red-500 hover:bg-red-50 hover:border-red-200 transition-all"
+                      title="Remover aviso"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -1042,6 +1675,13 @@ export default function EventAdminPortal() {
                   </div>
                   <Toggle value={form.has_official_photos!} onChange={() => set('has_official_photos', !form.has_official_photos)} />
                 </div>
+              </div>
+            )}
+
+            {/* Aba Avisos */}
+            {activeTab === 'avisos' && (
+              <div className="max-w-4xl bg-white border border-neutral-100 rounded-2xl p-5 shadow-sm">
+                <AvisosSection event={event} onEventUpdate={(updatedEvent) => setEvent(updatedEvent)} />
               </div>
             )}
 

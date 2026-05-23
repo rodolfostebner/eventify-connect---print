@@ -304,7 +304,8 @@ Canais ativos:
 
 | Tabela | Descricao | Status |
 |--------|-----------|--------|
-| `events` | Config completa do evento (~40 campos): status, branding, admin_emails[], TV config, social, flags, exhibitor_categories[], exhibitors_estimation (previstos), public/juror_evaluation_weight (pesos de ranking) | Ativo |
+| `events` | Config completa do evento (~40 campos): status, branding, admin_emails[], TV config, social, flags, active_announcement_id, announcement_trigger_at, public/juror_evaluation_weight (pesos de ranking) | Ativo |
+| `announcements` | Avisos cadastrados pelo admin do evento (event_id, title, message, bg_color, text_color, icon, show_duration_sec, flags target_tv/target_app_popup/target_push) | Ativo |
 | `users` | Perfil unificado: supabase_user_id, email, display_name, photo_url, role, event_id, exhibitor_id | Ativo |
 | `user_email_roles` | Pre-cadastro de email com role antes do primeiro login | Ativo |
 | `posts` | Fotos normalizadas (id, event_id, user_id, image_url, status, is_official, printed) | Ativo |
@@ -347,6 +348,7 @@ Canais ativos:
 | `visitService.ts` | `visits` | Ativo |
 | `auditService.ts` | `audit_logs` | Ativo |
 | `dashboardService.ts` | `exhibitors`, `products`, `visits` (agregacao client-side p/ o dashboard do EventAdmin) | Ativo |
+| `announcementService.ts`| `announcements`, `events`, `notifications`, `users` | Ativo |
 
 ---
 
