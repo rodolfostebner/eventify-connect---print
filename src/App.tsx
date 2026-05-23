@@ -12,6 +12,7 @@ import EventAdminPortalPage from "./pages/EventAdminPortalPage"
 import AvaliadorPageComponent from "./pages/AvaliadorPage"
 import LoginPage from "./pages/LoginPage"
 import { Toaster } from "sonner"
+import { NotificationsListener } from "./components/NotificationsListener"
 
 function App() {
   const { user, loading } = useAuth()
@@ -33,6 +34,7 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-center" expand={true} richColors />
+      <NotificationsListener />
       <Routes>
         {/* Login unificado */}
         <Route path="/login" element={<LoginPage />} />

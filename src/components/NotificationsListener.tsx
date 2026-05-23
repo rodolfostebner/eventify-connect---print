@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { subscribeToNotifications, markNotificationRead } from '../services/notificationService';
+import { supabase } from '../lib/supabase/client';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
 
@@ -8,6 +8,10 @@ export function NotificationsListener() {
   const [pushEnabled, setPushEnabled] = useState(() => {
     return localStorage.getItem('push_notifications_enabled') === 'true';
   });
+
+  // Absolutely suppress all toast/push listeners on the TV Wall page
+  const isTvView = window.location.pathname.includes('/tv/');
+  if (isTvView) return null;
 
   useEffect(() => {
     const handleStorageChange = () => {
@@ -22,30 +26,55 @@ export function NotificationsListener() {
   }, []);
 
   useEffect(() => {
-    if (!user || !pushEnabled) return;
+    if (!user || !pushEnabled || !supabase) return;
 
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
 
-    return subscribeToNotifications(user.id, (notifications) => {
-      notifications.forEach((notif) => {
-        toast(notif.title, {
-          description: notif.body,
-          action: notif.link
-            ? { label: 'Ver', onClick: () => (window.location.href = notif.link!) }
-            : undefined,
-        });
+    // Subscribe ONLY to new real-time INSERT notifications
+    const channel = supabase
+      .channel(`public:notifications:user_id=eq.${user.id}:insert`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const notif = payload.new as any;
+          if (!notif) return;
 
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification(notif.title, { body: notif.body });
+          // DETERMINISTIC RULE: If the link contains #silent, a popup is also being shown.
+          // In that case, skip ALL visual alerts — the notification goes straight to history only.
+          const isSilent = notif.link && notif.link.includes('#silent');
+
+          if (isSilent) {
+            // Do nothing visually. The notification is already saved in the DB
+            // and will appear in the history drawer with the unread badge.
+            return;
+          }
+
+          // Push-only notification: show Toast and native push as normal
+          toast(notif.title, {
+            description: notif.body,
+            action: notif.link
+              ? { label: 'Ver', onClick: () => (window.location.href = notif.link!) }
+              : undefined,
+          });
+
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(notif.title, { body: notif.body });
+          }
         }
+      )
+      .subscribe();
 
-        markNotificationRead(notif.id).catch(console.error);
-      });
-    }, (error) => {
-      console.error('Error listening to notifications:', error);
-    });
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user, pushEnabled]);
 
   return null;

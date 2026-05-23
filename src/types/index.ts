@@ -67,6 +67,27 @@ export interface EventData {
   interactions_paused?: boolean;
   tv_show_ranking?: boolean;
   admin_emails?: string[];
+  active_announcement_id?: string | null;
+  announcement_trigger_at?: string | null;
+  custom_sounds?: { id: string; name: string; url: string; }[] | null;
+}
+
+export interface Announcement {
+  id: string;
+  event_id: string;
+  title: string;
+  message: string;
+  bg_color?: string;
+  text_color?: string;
+  icon?: string;
+  image_url?: string | null;
+  audio_url?: string | null;
+  show_duration_sec?: number;
+  target_tv: boolean;
+  target_app_popup: boolean;
+  target_push: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // ─── Post / Moderation ──────────────────────────────────────────────────────────

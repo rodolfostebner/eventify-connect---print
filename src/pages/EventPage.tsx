@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { loginWithGoogle, loginWithMagicLink } from '../services/authService';
 import { useAuth, BETA_MODE } from '../hooks/useAuth';
-import type { AppUser } from '../types';
-import { Loader2, X, LogOut, User as UserIcon, Menu, Instagram, Globe, Phone, Check, Bell, BellOff, Star, Users, Briefcase, Mail, CheckCircle2, Store, Settings2, LayoutDashboard, ClipboardList, ChevronRight } from 'lucide-react';
+import type { AppUser, Announcement } from '../types';
+import { Loader2, X, LogOut, User as UserIcon, Menu, Instagram, Globe, Phone, Check, Bell, BellOff, Star, Users, Briefcase, Mail, CheckCircle2, Store, Settings2, LayoutDashboard, ClipboardList, ChevronRight, Megaphone, AlertTriangle, Info, PartyPopper } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import type { EventData } from '../types';
@@ -14,6 +14,8 @@ import { getPartners } from '../services/partnerService';
 import { trackVisit } from '../services/visitService';
 import { cn } from '../lib/utils';
 import type { Exhibitor, Partner } from '../types';
+import { supabase } from '../lib/supabase/client';
+
 
 // Modular Components
 import { LiveEventView } from '../features/event/components/LiveEventView';
@@ -178,6 +180,10 @@ export default function EventPage({ user }: { user: AppUser | null }) {
     return localStorage.getItem('push_notifications_enabled') === 'true';
   });
 
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+
   const togglePushNotifications = () => {
     const newValue = !pushEnabled;
     setPushEnabled(newValue);
@@ -190,6 +196,82 @@ export default function EventPage({ user }: { user: AppUser | null }) {
     } else {
       toast.info('Notificações desativadas.');
     }
+  };
+
+  const [activeAnnouncement, setActiveAnnouncement] = useState<Announcement | null>(null);
+
+  useEffect(() => {
+    let timerId: NodeJS.Timeout | null = null;
+    let active = true;
+
+    if (!event?.active_announcement_id) {
+      setActiveAnnouncement(null);
+      return;
+    }
+
+    const dismissedStr = localStorage.getItem('dismissed_announcements') || '[]';
+    try {
+      const dismissedIds: string[] = JSON.parse(dismissedStr);
+      // Premium UX: check both ID and Trigger Time to allow re-triggering the same announcement
+      const dismissKey = `${event.active_announcement_id}_${event.announcement_trigger_at || ''}`;
+      if (dismissedIds.includes(dismissKey)) {
+        setActiveAnnouncement(null);
+        return;
+      }
+    } catch (e) {
+      console.error('Error parsing dismissed_announcements:', e);
+    }
+
+    import('../lib/supabase/client').then(({ supabase }) => {
+      if (!supabase) return;
+      supabase
+        .from('announcements')
+        .select('*')
+        .eq('id', event.active_announcement_id)
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Error fetching active announcement:', error);
+            return;
+          }
+          if (active && data) {
+            const ann = data as Announcement;
+            if (ann.target_app_popup) {
+              setActiveAnnouncement(ann);
+
+              const duration = (ann.show_duration_sec || 15) * 1000;
+              timerId = setTimeout(() => {
+                setActiveAnnouncement(null);
+              }, duration);
+            } else {
+              setActiveAnnouncement(null);
+            }
+          }
+        });
+    });
+
+    return () => {
+      active = false;
+      if (timerId) {
+        clearTimeout(timerId);
+      }
+    };
+  }, [event?.active_announcement_id, event?.announcement_trigger_at]);
+
+  const handleDismissAnnouncement = (annId: string) => {
+    const dismissedStr = localStorage.getItem('dismissed_announcements') || '[]';
+    try {
+      const dismissedIds: string[] = JSON.parse(dismissedStr);
+      // Dismiss for this specific trigger timestamp
+      const dismissKey = `${annId}_${event?.announcement_trigger_at || ''}`;
+      if (!dismissedIds.includes(dismissKey)) {
+        dismissedIds.push(dismissKey);
+        localStorage.setItem('dismissed_announcements', JSON.stringify(dismissedIds));
+      }
+    } catch (e) {
+      console.error('Error updating dismissed_announcements:', e);
+    }
+    setActiveAnnouncement(null);
   };
 
   const togglePhotoSelection = (photoId: string) => {
@@ -235,7 +317,9 @@ export default function EventPage({ user }: { user: AppUser | null }) {
 
   useEffect(() => {
     if (!slug) return;
-    return subscribeToEvent(
+
+    // 1. Subscribe to Realtime Postgres Changes
+    const unsubscribe = subscribeToEvent(
       slug,
       (ev) => {
         if (ev) {
@@ -253,6 +337,36 @@ export default function EventPage({ user }: { user: AppUser | null }) {
         setLoading(false);
       },
     );
+
+    // 2. Hybrid Polling Fallback (Resilient B2B design: guarantees popup works even if WebSockets are blocked by browser/network)
+    const intervalId = setInterval(() => {
+      import('../services/eventService').then(({ getEventBySlug }) => {
+        getEventBySlug(slug)
+          .then((ev) => {
+            if (ev) {
+              setEvent(current => {
+                // Only trigger react state update if vital real-time fields have changed
+                if (
+                  current?.active_announcement_id !== ev.active_announcement_id ||
+                  current?.announcement_trigger_at !== ev.announcement_trigger_at ||
+                  current?.status !== ev.status ||
+                  current?.interactions_paused !== ev.interactions_paused ||
+                  current?.tv_show_ranking !== ev.tv_show_ranking
+                ) {
+                  return ev;
+                }
+                return current;
+              });
+            }
+          })
+          .catch(console.error);
+      });
+    }, 5000); // Poll every 5 seconds
+
+    return () => {
+      unsubscribe();
+      clearInterval(intervalId);
+    };
   }, [slug]);
 
   useEffect(() => {
@@ -260,6 +374,125 @@ export default function EventPage({ user }: { user: AppUser | null }) {
     getExhibitors(event.id).then(setDbExhibitors).catch(() => {});
     getPartners(event.id).then(setDbSponsors).catch(() => {});
   }, [event?.id]);
+
+  // Link logged-in participant to this event so they are formally registered to receive push notifications
+  useEffect(() => {
+    if (!user || !event?.id) return;
+    if (user.event_id === event.id) return;
+
+    import('../services/userService').then(({ updateUserRole }) => {
+      updateUserRole(user.id, user.role, event.id, user.exhibitor_id)
+        .then(() => {
+          console.log('[EventPage] Linked user to event in DB:', event.id);
+        })
+        .catch(console.error);
+    });
+  }, [user, event?.id]);
+
+  const fetchNotifications = useCallback(async () => {
+    if (!user || !supabase) return;
+    try {
+      // 1. Fetch latest 50 notifications for the history drawer list
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Error fetching notifications:', error);
+        return;
+      }
+
+      if (data) {
+        setNotifications(data);
+      }
+
+      // 2. Fetch the exact count of all unread notifications in the entire database
+      const { count, error: countError } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (countError) {
+        console.error('Error counting unread notifications:', countError);
+        return;
+      }
+
+      if (count !== null) {
+        setUnreadCount(count);
+      }
+    } catch (err) {
+      console.error('Error in fetchNotifications:', err);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !supabase) return;
+
+    fetchNotifications();
+
+    const channel = supabase
+      .channel(`public:notifications:user_id=eq.${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchNotifications]);
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    if (!supabase) return;
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId);
+      
+      if (error) throw error;
+      setNotifications(prev =>
+        prev.map(n => (n.id === notificationId ? { ...n, read: true } : n))
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+      toast.error('Erro ao marcar como lida');
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!user || !supabase) return;
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+      
+      if (error) throw error;
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+      toast.success('Todas as notificações foram marcadas como lidas!');
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
+      toast.error('Erro ao marcar todas como lidas');
+    }
+  };
+
 
   const exhibitorItems = dbExhibitors.map(ex => ({
     id: ex.id,
@@ -337,6 +570,56 @@ export default function EventPage({ user }: { user: AppUser | null }) {
 
   return (
     <div className="min-h-screen transition-all duration-700 font-sans text-neutral-900" style={getBackgroundStyle()}>
+      {/* Real-time In-App Popup Alert Overlay */}
+      <AnimatePresence>
+        {activeAnnouncement && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-[110] w-[calc(100%-2rem)] max-w-lg shadow-2xl rounded-2xl overflow-hidden border border-white/20 backdrop-blur-xl"
+            style={{
+              backgroundColor: `${activeAnnouncement.bg_color || '#ef4444'}EE`,
+              color: activeAnnouncement.text_color || '#ffffff'
+            }}
+          >
+            <div className="p-4 pr-12 flex items-start gap-3.5 relative">
+              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center border border-white/15 shadow-inner mt-0.5">
+                {activeAnnouncement.icon === 'bell' && <Bell className="w-5 h-5 text-white" />}
+                {activeAnnouncement.icon === 'alert-triangle' && <AlertTriangle className="w-5 h-5 text-white" />}
+                {activeAnnouncement.icon === 'info' && <Info className="w-5 h-5 text-white" />}
+                {activeAnnouncement.icon === 'party-popper' && <PartyPopper className="w-5 h-5 text-white" />}
+                {activeAnnouncement.icon === 'megaphone' && <Megaphone className="w-5 h-5 -rotate-12 text-white" />}
+                {!activeAnnouncement.icon && <Megaphone className="w-5 h-5 -rotate-12 text-white" />}
+              </div>
+              <div className="flex-1 space-y-1">
+                <h4 className="font-black text-sm uppercase tracking-tight filter drop-shadow-sm leading-tight">
+                  {activeAnnouncement.title}
+                </h4>
+                <p className="text-xs font-semibold leading-relaxed text-white/90 filter drop-shadow-sm line-clamp-3">
+                  {activeAnnouncement.message}
+                </p>
+              </div>
+              <button
+                onClick={() => handleDismissAnnouncement(activeAnnouncement.id)}
+                className="absolute top-3 right-3 p-1.5 hover:bg-white/20 rounded-full transition-colors flex items-center justify-center border border-transparent hover:border-white/10"
+                aria-label="Fechar aviso"
+              >
+                <X className="w-4 h-4 text-white" />
+              </button>
+            </div>
+            {/* Ambient indicator bar showing duration countdown visually */}
+            <motion.div
+              initial={{ scaleX: 1 }}
+              animate={{ scaleX: 0 }}
+              transition={{ duration: activeAnnouncement.show_duration_sec || 15, ease: 'linear' }}
+              className="h-1 bg-white/30 origin-left"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-neutral-100 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -355,13 +638,16 @@ export default function EventPage({ user }: { user: AppUser | null }) {
           {user ? (
             <div className="flex items-center gap-3">
               <button
-                onClick={togglePushNotifications}
-                className={cn(
-                  "p-2 rounded-full transition-all duration-300",
-                  pushEnabled ? "bg-neutral-900 text-white shadow-lg" : "bg-neutral-50 text-neutral-300 hover:text-neutral-500"
-                )}
+                onClick={() => setIsNotificationsOpen(true)}
+                className="relative p-2 bg-neutral-50 hover:bg-neutral-100 text-neutral-850 rounded-full transition-all duration-300 active:scale-95 border border-neutral-200/40"
+                aria-label="Abrir notificações"
               >
-                {pushEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
+                <Bell className="w-5 h-5 text-neutral-850" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white ring-2 ring-white animate-pulse">
+                    {unreadCount}
+                  </span>
+                )}
               </button>
               <img
                 src={user.photo_url || `https://ui-avatars.com/api/?name=${user.display_name || 'P'}&background=random`}
@@ -577,6 +863,188 @@ export default function EventPage({ user }: { user: AppUser | null }) {
           <LoginModal onClose={() => setIsLoginViewOpen(false)} />
         )}
       </AnimatePresence>
+
+      {/* Notifications Drawer */}
+      <AnimatePresence>
+        {isNotificationsOpen && user && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsNotificationsOpen(false)}
+              className="fixed inset-0 z-[120] bg-black/40 backdrop-blur-sm"
+            />
+            {/* Drawer Container */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed top-0 right-0 bottom-0 w-[90%] md:w-[450px] max-w-lg z-[130] bg-neutral-50 shadow-2xl flex flex-col rounded-l-3xl overflow-hidden border-l border-neutral-100"
+            >
+              {/* Header */}
+              <div className="p-6 bg-white border-b border-neutral-100 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-neutral-50 rounded-xl">
+                    <Bell className="w-5 h-5 text-neutral-900" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black tracking-tight text-neutral-900">Avisos do Evento</h2>
+                    <p className="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider">Histórico de Mensagens</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setIsNotificationsOpen(false)} 
+                  className="p-2 hover:bg-neutral-50 rounded-full transition-colors border border-transparent hover:border-neutral-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Push Toggle Banner */}
+              <div className="p-4 bg-white border-b border-neutral-100">
+                <div className="bg-neutral-50 rounded-2xl p-4 border border-neutral-100/80 flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <h4 className="text-xs font-black text-neutral-800">Notificações no Celular</h4>
+                    <p className="text-[10px] text-neutral-500 font-semibold leading-tight">
+                      Receba avisos na tela mesmo fora do aplicativo.
+                    </p>
+                  </div>
+                  <button
+                    onClick={togglePushNotifications}
+                    className={cn(
+                      "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-300",
+                      pushEnabled
+                        ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20"
+                        : "bg-neutral-250 hover:bg-neutral-300 text-neutral-700"
+                    )}
+                  >
+                    {pushEnabled ? "Ativo" : "Ativar"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              {notifications.length > 0 && unreadCount > 0 && (
+                <div className="px-6 py-3 bg-white border-b border-neutral-100 flex justify-end">
+                  <button
+                    onClick={handleMarkAllAsRead}
+                    className="text-[10px] font-black uppercase tracking-wider text-neutral-500 hover:text-neutral-900 flex items-center gap-1.5 transition-colors"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                    Marcar todas como lidas
+                  </button>
+                </div>
+              )}
+
+              {/* Notification List Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
+                {notifications.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-4">
+                    <div className="w-16 h-16 bg-neutral-100 rounded-3xl flex items-center justify-center text-3xl shadow-inner animate-bounce">
+                      🐨
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-black text-neutral-800">Tudo limpo por aqui!</h3>
+                      <p className="text-xs text-neutral-400 font-semibold max-w-xs leading-relaxed">
+                        Nenhum aviso enviado até o momento. Quando a organização enviar alertas, eles aparecerão aqui!
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  notifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      className={cn(
+                        "p-4 rounded-2xl transition-all duration-300 border relative flex flex-col gap-3 group",
+                        notif.read
+                          ? "bg-white/60 border-neutral-100 text-neutral-800 shadow-sm"
+                          : "bg-white border-neutral-200/80 text-neutral-900 shadow-md ring-1 ring-neutral-900/5"
+                      )}
+                    >
+                      {/* Unread indicator red badge */}
+                      {!notif.read && (
+                        <span className="absolute top-4 right-4 w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                      )}
+
+                      <div className="space-y-1 pr-4">
+                        <h4 className="text-xs font-black tracking-tight leading-tight flex items-center gap-1.5">
+                          {notif.title}
+                          {!notif.read && (
+                            <span className="bg-red-50 text-[8px] font-extrabold text-red-600 px-1.5 py-0.5 rounded-full uppercase tracking-widest border border-red-100">
+                              Novo
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-xs font-medium text-neutral-500 leading-relaxed">
+                          {notif.body}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between border-t border-neutral-100/80 pt-3">
+                        <span className="text-[9px] font-semibold text-neutral-400">
+                          {formatRelativeTime(notif.created_at)}
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                          {!notif.read && (
+                            <button
+                              onClick={() => handleMarkAsRead(notif.id)}
+                              className="p-1.5 hover:bg-neutral-50 text-neutral-400 hover:text-emerald-600 rounded-lg transition-colors"
+                              title="Marcar como lida"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {notif.link && (
+                            <button
+                              onClick={() => {
+                                handleMarkAsRead(notif.id);
+                                const cleanLink = notif.link.replace('#silent', '');
+                                navigate(cleanLink);
+                                setIsNotificationsOpen(false);
+                              }}
+                              className="px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all active:scale-95 shadow-sm"
+                            >
+                              Ver
+                              <ChevronRight className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
+function formatRelativeTime(dateString?: string) {
+  if (!dateString) return '';
+  const now = new Date();
+  const date = new Date(dateString);
+  const diffMs = now.getTime() - date.getTime();
+  
+  if (isNaN(diffMs) || diffMs < 0) return 'agora';
+  
+  const diffSecs = Math.floor(diffMs / 1000);
+  if (diffSecs < 60) return 'agora mesmo';
+  
+  const diffMins = Math.floor(diffSecs / 60);
+  if (diffMins < 60) return `há ${diffMins} min`;
+  
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `há ${diffHours}h`;
+  
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return 'ontem';
+  return `há ${diffDays} dias`;
+}
+

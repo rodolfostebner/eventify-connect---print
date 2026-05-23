@@ -167,7 +167,7 @@ Exemplos:
 | Painel TV — Fotos + Rankings | ✅ Implementado | Ranking por curtidas; ranking ponderado (`view_exhibitor_rankings`) ainda não exibido na TV |
 | Painel TV — Carrossel expositores | ❌ Não implementado | |
 | Painel TV — Sorteios | 🔶 Backend pronto, UI pendente | `drawRandomTicket()` ok; falta tela/contador regressivo (som?)|
-| Painel TV — Avisos | ❌ Não implementado | Som seguido de mensagem com destaque |
+| Painel TV — Avisos | ✅ Implementado | Sino premium sintetizado (5 presets via Web Audio API) e reprodução de áudios customizados (upload de até 3 arquivos R2 por evento), com exibição reativa em tela cheia com Framer Motion e autoplay bypass |
 | Painel TV — Parceiros | ❌ Não implementado | Cadastro unificado pronto (`partners` + flag `show_on_tv`); falta o carrossel na TV consumir a flag |
 | Administração Geral — Dashboard redesenhado | ✅ Implementado | Full-width, botão '+' inline, EventCard com ícones |
 | Administração do Evento — base | ✅ Implementado | |
@@ -176,10 +176,10 @@ Exemplos:
 | Dashboard de métricas do evento | ✅ Implementado | Seção Dashboard do `/eventadmin`: Métricas Gerais (previstos vs cadastrados, média produtos/expositor, média valor produto, completos/incompletos, visitas únicas/total por fase) + Visitas (top/bottom 10 expositores e produtos, pizza por categoria). Gráficos CSS/SVG. ⚠️ Visitas zeradas até `trackVisit()` ser instrumentado [PVT2] |
 | Config de pesos de avaliação (EventAdmin) | ✅ Implementado | Campos Peso Avaliação Visitantes/Jurados (`public/juror_evaluation_weight`) com validação soma ≤ 1, + Expositores Previstos (`exhibitors_estimation`) |
 | Visitas — coluna de fase (pre/live/post) | ✅ Backend pronto | `visits.event_status` + `trackVisit(eventStatus)` prontos; falta instrumentar os cliques [PVT2] |
-| Administração do Evento — Avaliadores/Categorias/Pesos | 🔶 Backend pronto, UI pendente | CRUD de categorias/pesos em `evaluationService`; falta tela de cadastro |
+| Administração do Evento — Avaliadores/Categorias/Pesos | 🔶 Backend pronto, UI pendente | CRUD de categorias/pesos in `evaluationService`; falta tela de cadastro |
 | Sistema de Sorteios | 🔶 Backend pronto, UI pendente | `raffleService` ok; falta tela e vínculo avaliação→ticket [RN3] |
 | Sistema de Avaliação | 🔶 Backend pronto, UI pendente | Duplicado da linha acima; backend ok, UI pendente |
-| Cadastro de Avisos | ❌ Não implementado | |
+| Cadastro de Avisos | ✅ Implementado | Módulo completo com CRUD no Admin, biblioteca de upload de sons no R2 (máx. 3 por evento), dropdown seletor de áudio (silencioso/synth/custom) e envio realtime inteligente |
 | Moderação fotos e comentários | ✅ Implementado | |
 
 ## Login via Magic Link (participantes)
