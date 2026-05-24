@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Users, Star, Briefcase } from 'lucide-react';
+import React, { useRef, useState, useEffect } from 'react';
+import { Star, Briefcase } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { useEventPhotos } from '../hooks/useEventPhotos';
 import { useCategoryGroups } from '../hooks/useCategoryGroups';
@@ -10,14 +10,16 @@ import { FeedGrid } from './Feed/FeedGrid';
 import { UploadFAB } from './Feed/UploadFAB';
 import { LoginBanner } from './Feed/LoginBanner';
 import { PartnerSection } from './PartnerSection';
-import { ExhibitorCatalogModal } from './ExhibitorCatalogModal';
-import type { SocialLinkType } from './SocialLinks';
+import { ExhibitorDetailModal } from './ExhibitorDetailModal';
+import { ExhibitorList } from './ExhibitorList';
 import { getExhibitors } from '../../../services/exhibitorService';
 import { getPartners } from '../../../services/partnerService';
-import { trackVisit } from '../../../services/visitService';
-import type { EventData, AppUser, Exhibitor, Partner } from '../../../types';
+import { getExhibitorCategories } from '../../../services/exhibitorCategoryService';
+import type { EventData, AppUser, Exhibitor, Partner, ExhibitorCategory } from '../../../types';
 
-interface LiveEventViewProps {
+type Tab = 'expositores' | 'patrocinadores' | 'fotos';
+
+interface Props {
   event: EventData;
   user: AppUser | null;
   onLogin: () => void;
@@ -26,169 +28,144 @@ interface LiveEventViewProps {
   togglePhotoSelection: (id: string) => void;
 }
 
-export const LiveEventView = ({
-  event,
-  user,
-  onLogin,
-  isSelectingForPrint,
-  selectedPrintPhotos,
-  togglePhotoSelection
-}: LiveEventViewProps) => {
+export const LiveEventView = ({ event, user, onLogin, isSelectingForPrint, selectedPrintPhotos, togglePhotoSelection }: Props) => {
+  const [tab, setTab] = useState<Tab>('fotos');
+  const [exhibitors, setExhibitors] = useState<Exhibitor[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [categories, setCategories] = useState<ExhibitorCategory[]>([]);
+  const [selectedExhibitor, setSelectedExhibitor] = useState<Exhibitor | null>(null);
+
   const { photos } = useEventPhotos(event.id);
   const categoryGroups = useCategoryGroups(photos, event);
-  const {
-    currentGroupIndex,
-    currentPhotoIndex,
-    setCurrentPhotoIndex,
-    setPhotoIndex
-  } = useSlideshow(categoryGroups);
-
+  const { currentGroupIndex, currentPhotoIndex, setCurrentPhotoIndex } = useSlideshow(categoryGroups);
   const { uploading, handleDirectUpload } = usePhotoUpload(event, user);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [dbExhibitors, setDbExhibitors] = useState<Exhibitor[]>([]);
-  const [dbSponsors, setDbSponsors] = useState<Partner[]>([]);
-  const [selectedExhibitor, setSelectedExhibitor] = useState<Exhibitor | null>(null);
-
   useEffect(() => {
-    getExhibitors(event.id).then(setDbExhibitors).catch(() => {});
-    getPartners(event.id).then(setDbSponsors).catch(() => {});
+    getExhibitors(event.id).then(setExhibitors).catch(() => {});
+    getPartners(event.id).then(setPartners).catch(() => {});
+    getExhibitorCategories(event.id).then(setCategories).catch(() => {});
   }, [event.id]);
 
-  const exhibitorItems = dbExhibitors.map(ex => ({
-    id: ex.id,
-    name: ex.name,
-    logo: ex.logo_url ?? undefined,
-    photo: ex.photo_url ?? undefined,
-    bio: ex.description ?? '',
-    message: ex.message ?? undefined,
-    final_message: ex.final_message ?? undefined,
-    socials: {
-      instagram: ex.instagram_url ?? undefined,
-      whatsapp: ex.whatsapp ?? undefined,
-      website: ex.website_url ?? undefined,
-    },
-  }));
-
-  const sponsorItems = dbSponsors.map(s => ({
-    id: s.id,
-    name: s.name,
-    bio: s.description ?? '',
-    photos: s.photos,
-    socials: {
-      instagram: s.instagram_url ?? undefined,
-      whatsapp: s.whatsapp ?? undefined,
-      website: s.website_url ?? undefined,
-    },
-  }));
-
-  const handleExhibitorSocialClick = useCallback(
-    (item: { id?: string }, type: SocialLinkType) => {
-      if (!item.id) return;
-      void trackVisit({
-        eventId: event.id,
-        exhibitorId: item.id,
-        userId: user?.id,
-        action: `click_${type}` as const,
-        eventStatus: event.status,
-      });
-    },
-    [event.id, event.status, user?.id],
-  );
-
-  const handleFabClick = () => {
-    if (!user) {
-      onLogin();
-      return;
-    }
-    fileInputRef.current?.click();
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleDirectUpload(file);
-    }
-  };
-
+  const sponsors = partners.filter(p => p.type === 'patrocinador' || p.type === 'apoiador');
+  const services = partners.filter(p => p.type === 'servico');
   const officialPhotos = photos.filter(p => p.status === 'approved' && p.is_official);
   const galleryPhotos = photos.filter(p => !p.is_official);
 
+  const handleFabClick = () => {
+    if (!user) { onLogin(); return; }
+    fileInputRef.current?.click();
+  };
+
+  const tabs: { key: Tab; label: string; count?: number }[] = [
+    { key: 'fotos', label: 'Fotos', count: photos.length },
+    { key: 'expositores', label: 'Expositores', count: exhibitors.length },
+    { key: 'patrocinadores', label: 'Patrocinadores', count: sponsors.length },
+  ];
+
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-12 space-y-12 md:space-y-24">
-      {/* Live Status Indicator */}
-      <div className="flex items-center justify-center gap-3 py-2">
-        <span className="relative flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-        </span>
-        <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-neutral-500">
-          Feed em Tempo Real
-        </span>
+    <div className="min-h-screen bg-[#F5F5F7]">
+      {/* Live banner */}
+      <div className="mx-4 mt-4 rounded-2xl bg-white border border-[#FFD1D1] p-3 flex items-center gap-3">
+        <div className="relative flex items-center justify-center w-5 h-5 shrink-0">
+          <span className="absolute w-5 h-5 rounded-full bg-[#E84545]/20 animate-ping" />
+          <span className="relative w-2.5 h-2.5 rounded-full bg-[#E84545]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[#E84545]">Acontecendo agora</p>
+          <p className="text-[10px] text-[#94949E] font-medium">Feed em tempo real</p>
+        </div>
       </div>
 
-      <FeaturedSlideshow
-        event={event}
-        categoryGroups={categoryGroups}
-        currentGroupIndex={currentGroupIndex}
-        currentPhotoIndex={currentPhotoIndex}
-        onSetPhotoIndex={setCurrentPhotoIndex}
-      />
-
-      <FeedGrid
-        event={event}
-        user={user}
-        onLogin={onLogin}
-        officialPhotos={officialPhotos}
-        galleryPhotos={galleryPhotos}
-        isSelectingForPrint={isSelectingForPrint}
-        selectedPrintPhotos={selectedPrintPhotos}
-        togglePhotoSelection={togglePhotoSelection}
-      />
-
-      {/* Expositores & Patrocinadores */}
-      <div className="space-y-12 md:space-y-24">
-        <PartnerSection
-          title="Expositores"
-          items={exhibitorItems}
-          icon={<Users className="w-5 h-5" />}
-          onViewCatalog={dbExhibitors.length > 0 ? (item) => {
-            const found = dbExhibitors.find(ex => ex.id === item.id);
-            if (found) setSelectedExhibitor(found);
-          } : undefined}
-          onItemSocialClick={handleExhibitorSocialClick}
-        />
-        <PartnerSection
-          title="Patrocinadores"
-          items={sponsorItems}
-          icon={<Star className="w-5 h-5" />}
-        />
-        <PartnerSection
-          title="Serviços"
-          items={event.services || []}
-          icon={<Briefcase className="w-5 h-5" />}
-        />
+      {/* Tabs */}
+      <div className="flex gap-0 px-4 mt-4 border-b border-[#ECECF1] bg-[#F5F5F7]">
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex items-center gap-1.5 px-4 py-3 text-[13px] font-semibold border-b-[2.5px] transition-all ${
+              tab === t.key
+                ? 'border-[#3FA790] text-[#2D2D3F] font-bold'
+                : 'border-transparent text-[#7A7A8E] hover:text-[#5A5A6E]'
+            }`}
+          >
+            {t.label}
+            {t.count !== undefined && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                tab === t.key ? 'text-[#3FA790] bg-[#E8F6F2]' : 'text-[#B5B5C0] bg-[#F0F0F4]'
+              }`}>
+                {t.count}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
-      <UploadFAB
-        event={event}
-        uploading={uploading}
-        onFabClick={handleFabClick}
-        fileInputRef={fileInputRef}
-        onFileSelect={handleFileSelect}
-      />
+      {/* Conteúdo */}
+      <div className="p-4">
+        {tab === 'fotos' && (
+          <div className="space-y-6">
+            <FeaturedSlideshow
+              event={event}
+              categoryGroups={categoryGroups}
+              currentGroupIndex={currentGroupIndex}
+              currentPhotoIndex={currentPhotoIndex}
+              onSetPhotoIndex={setCurrentPhotoIndex}
+            />
+            {!user && <LoginBanner onLogin={onLogin} />}
+            <FeedGrid
+              event={event}
+              user={user}
+              onLogin={onLogin}
+              officialPhotos={officialPhotos}
+              galleryPhotos={galleryPhotos}
+              isSelectingForPrint={isSelectingForPrint}
+              selectedPrintPhotos={selectedPrintPhotos}
+              togglePhotoSelection={togglePhotoSelection}
+            />
+          </div>
+        )}
 
-      {!user && <LoginBanner onLogin={onLogin} />}
+        {tab === 'expositores' && (
+          <ExhibitorList
+            exhibitors={exhibitors}
+            categories={categories}
+            onSelect={setSelectedExhibitor}
+            event={{ id: event.id, status: event.status }}
+            user={user}
+          />
+        )}
+
+        {tab === 'patrocinadores' && (
+          <div className="space-y-8">
+            {sponsors.length > 0 && (
+              <PartnerSection title="Patrocinadores & Apoiadores" items={sponsors.map(s => ({ id: s.id, name: s.name, bio: s.description ?? '', photos: s.photos, socials: { instagram: s.instagram_url ?? undefined, whatsapp: s.whatsapp ?? undefined, website: s.website_url ?? undefined } }))} icon={<Star className="w-5 h-5" />} />
+            )}
+            {services.length > 0 && (
+              <PartnerSection title="Serviços" items={services.map(s => ({ id: s.id, name: s.name, bio: s.description ?? '', photos: s.photos, socials: { instagram: s.instagram_url ?? undefined, whatsapp: s.whatsapp ?? undefined, website: s.website_url ?? undefined } }))} icon={<Briefcase className="w-5 h-5" />} />
+            )}
+            {sponsors.length === 0 && services.length === 0 && (
+              <div className="text-center py-16 text-[#94949E]">
+                <p className="text-sm font-medium">Nenhum patrocinador cadastrado ainda.</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* FAB sempre visível no live */}
+      <UploadFAB event={event} uploading={uploading} onFabClick={handleFabClick} fileInputRef={fileInputRef} onFileSelect={e => { const f = e.target.files?.[0]; if (f) handleDirectUpload(f); }} />
 
       <AnimatePresence>
         {selectedExhibitor && (
-          <ExhibitorCatalogModal
+          <ExhibitorDetailModal
             exhibitor={selectedExhibitor}
-            eventStatus={event.status}
-            eventId={event.id}
-            userId={user?.id}
-            primaryColor={event.primary_color || '#171717'}
+            exhibitors={exhibitors}
+            categories={categories}
+            event={event}
+            user={user}
             onClose={() => setSelectedExhibitor(null)}
+            onSelectRelated={setSelectedExhibitor}
           />
         )}
       </AnimatePresence>

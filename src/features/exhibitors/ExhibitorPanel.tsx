@@ -7,8 +7,8 @@ import {
   BarChart2, MessageCircle, Globe, Share2, ShoppingCart, Instagram,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import type { Exhibitor, Product, Lead, LeadStatus, UserEmailRole } from '../../types';
-import { DEFAULT_EXHIBITOR_CATEGORIES } from '../../constants';
+import type { Exhibitor, Product, Lead, LeadStatus, UserEmailRole, ExhibitorCategory } from '../../types';
+import { getExhibitorCategories } from '../../services/exhibitorCategoryService';
 import {
   subscribeToExhibitors, createExhibitor, updateExhibitor, deleteExhibitor,
   getExhibitorUsers, removeExhibitorUser, getNextExhibitorNumber,
@@ -25,9 +25,9 @@ import type { EventData, VisitAction } from '../../types';
 const MAX_PRODUCT_PHOTOS = 3;
 
 // Garante que o valor atual apareça na lista mesmo se a categoria tiver sido removida do evento
-function mergeCategoryOptions(categories: string[], current?: string): string[] {
-  const base = categories.length ? categories : DEFAULT_EXHIBITOR_CATEGORIES;
-  return current && !base.includes(current) ? [...base, current] : base;
+function mergeCategoryOptions(categories: ExhibitorCategory[], current?: string): ExhibitorCategory[] {
+  if (!current || categories.some(c => c.name === current)) return categories;
+  return [...categories, { id: '', event_id: '', name: current, icon: '🏷️', color: '#94949E', order_index: 999, created_at: '' }];
 }
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
@@ -636,17 +636,22 @@ function VisualizacoesTab({ exhibitorId }: { exhibitorId: string }) {
 // ─── Exhibitor Detail ─────────────────────────────────────────────────────────
 
 function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
-  exhibitor: Exhibitor; eventSlug: string; categories: string[]; onUpdated: () => void;
+  exhibitor: Exhibitor; eventSlug: string; categories: ExhibitorCategory[]; onUpdated: () => void;
 }) {
   const [tab, setTab] = useState<Tab>('dados');
   const [form, setForm] = useState({
     name: exhibitor.name,
     category: exhibitor.category || 'Outros',
+    tagline: exhibitor.tagline || '',
     description: exhibitor.description || '',
+    ano: exhibitor.ano || '',
+    turma: exhibitor.turma || '',
     instagram_url: exhibitor.instagram_url || '',
     whatsapp: exhibitor.whatsapp || '',
     website_url: exhibitor.website_url || '',
   });
+  const [members, setMembers] = useState<string[]>(exhibitor.members ?? []);
+  const [newMember, setNewMember] = useState('');
   const [saving, setSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -657,11 +662,15 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
     setForm({
       name: exhibitor.name,
       category: exhibitor.category || 'Outros',
+      tagline: exhibitor.tagline || '',
       description: exhibitor.description || '',
+      ano: exhibitor.ano || '',
+      turma: exhibitor.turma || '',
       instagram_url: exhibitor.instagram_url || '',
       whatsapp: exhibitor.whatsapp || '',
       website_url: exhibitor.website_url || '',
     });
+    setMembers(exhibitor.members ?? []);
     setLogo(exhibitor.logo_url || '');
     setPhoto(exhibitor.photo_url || '');
   }, [exhibitor.id]);
@@ -703,7 +712,11 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
       await updateExhibitor(exhibitor.id, {
         name: form.name.trim(),
         category: form.category,
+        tagline: form.tagline.trim() || null,
         description: form.description.trim() || null,
+        ano: form.ano.trim() || null,
+        turma: form.turma.trim() || null,
+        members,
         logo_url: logo || null,
         photo_url: photo || null,
         instagram_url: form.instagram_url.trim() || null,
@@ -785,9 +798,23 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
                 className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20 bg-white"
               >
                 {mergeCategoryOptions(categories, form.category).map(c => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c.id || c.name} value={c.name}>{c.icon} {c.name}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">Frase Chamada</label>
+                <span className={`text-[10px] font-bold ${form.tagline.length > 50 ? 'text-red-500' : 'text-neutral-400'}`}>{form.tagline.length}/50</span>
+              </div>
+              <input
+                type="text"
+                maxLength={50}
+                placeholder="Ex: O melhor açaí da feira!"
+                value={form.tagline}
+                onChange={e => setForm(f => ({ ...f, tagline: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+              />
             </div>
             <div>
               <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Descrição</label>
@@ -797,6 +824,74 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
                 rows={3}
                 className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20 resize-none"
               />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Ano</label>
+                <input
+                  type="text"
+                  placeholder="Ex: 3º"
+                  value={form.ano}
+                  onChange={e => setForm(f => ({ ...f, ano: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Turma</label>
+                <input
+                  type="text"
+                  placeholder="Ex: A"
+                  value={form.turma}
+                  onChange={e => setForm(f => ({ ...f, turma: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+                />
+              </div>
+            </div>
+
+            {/* Integrantes */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider">Integrantes</label>
+                <span className="text-[10px] text-neutral-400">{members.length} cadastrado{members.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="space-y-1.5 mb-2">
+                {members.map((m, i) => (
+                  <div key={i} className="flex items-center gap-2 px-3 py-2 bg-neutral-50 border border-neutral-100 rounded-lg">
+                    <span className="flex-1 text-sm text-neutral-700 truncate">{m}</span>
+                    <button
+                      type="button"
+                      onClick={() => setMembers(ms => ms.filter((_, idx) => idx !== i))}
+                      className="p-0.5 rounded hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors shrink-0"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Nome do integrante"
+                  value={newMember}
+                  onChange={e => setNewMember(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const v = newMember.trim();
+                      if (v) { setMembers(ms => [...ms, v]); setNewMember(''); }
+                    }
+                  }}
+                  className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+                />
+                <button
+                  type="button"
+                  onClick={() => { const v = newMember.trim(); if (v) { setMembers(ms => [...ms, v]); setNewMember(''); } }}
+                  disabled={!newMember.trim()}
+                  className="px-3 py-2 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-700 disabled:opacity-40 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -911,12 +1006,18 @@ export default function ExhibitorPanel() {
   const [selected, setSelected] = useState<Exhibitor | null>(null);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
+  const [exhibitorCategories, setExhibitorCategories] = useState<ExhibitorCategory[]>([]);
 
   useEffect(() => {
     if (!slug) return;
     const unsub = subscribeToEvent(slug, setEvent);
     return unsub;
   }, [slug]);
+
+  useEffect(() => {
+    if (!event?.id) return;
+    getExhibitorCategories(event.id).then(setExhibitorCategories).catch(() => {});
+  }, [event?.id]);
 
   useEffect(() => {
     if (!event?.id) return;
@@ -1049,7 +1150,7 @@ export default function ExhibitorPanel() {
               <ExhibitorDetail
                 exhibitor={selected}
                 eventSlug={slug || ''}
-                categories={event?.exhibitor_categories ?? DEFAULT_EXHIBITOR_CATEGORIES}
+                categories={exhibitorCategories}
                 onUpdated={() => {}}
               />
             </div>

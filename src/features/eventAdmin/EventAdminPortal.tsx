@@ -19,6 +19,11 @@ import {
   getEvaluationCategories, createEvaluationCategory, updateEvaluationCategory, deleteEvaluationCategory,
 } from '../../services/evaluationService';
 import {
+  getExhibitorCategories, createExhibitorCategory, updateExhibitorCategory, deleteExhibitorCategory,
+  ICON_CATALOG,
+} from '../../services/exhibitorCategoryService';
+import type { ExhibitorCategory } from '../../types';
+import {
   listAvaliadores, addEmailRole, removeEmailRole, listEmailRoles, updateUserRole, updateUserDisplayName,
 } from '../../services/userService';
 import type { ExhibitorLinkedUser } from '../../services/userService';
@@ -107,7 +112,7 @@ type EventForm = Pick<EventData,
   | 'tv_bg_type' | 'tv_bg_value' | 'tv_primary_color' | 'tv_secondary_color'
   | 'app_logo'
   | 'comment_moderation_enabled' | 'custom_comments' | 'upload_source' | 'has_official_photos'
-  | 'exhibitor_categories' | 'exhibitors_estimation'
+  | 'exhibitors_estimation'
   | 'public_evaluation_weight' | 'juror_evaluation_weight'
 >;
 
@@ -135,7 +140,6 @@ function buildForm(e: EventData): EventForm {
     custom_comments: e.custom_comments || [],
     upload_source: e.upload_source || 'both',
     has_official_photos: e.has_official_photos || false,
-    exhibitor_categories: e.exhibitor_categories || [],
     exhibitors_estimation: e.exhibitors_estimation ?? 0,
     public_evaluation_weight: e.public_evaluation_weight ?? 0.40,
     juror_evaluation_weight: e.juror_evaluation_weight ?? 0.60,
@@ -341,6 +345,189 @@ function CategoriasAvaliacaoSection({ eventId }: { eventId: string }) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Categorias de Expositor ──────────────────────────────────────────────────
+
+const PRESET_COLORS = [
+  '#E87A5C','#C77DBA','#5B8FE8','#E8B85B','#7B7BE8',
+  '#E85B8A','#5BC0A8','#3B82F6','#3FA790','#7C3AED',
+  '#8D6E63','#3FA075','#94949E','#E74C3C','#C0392B',
+];
+
+function CategoriasExpositorSection({ eventId }: { eventId: string }) {
+  const [cats, setCats] = useState<ExhibitorCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const blank = { name: '', icon: '🏷️', color: '#94949E' };
+  const [newForm, setNewForm] = useState(blank);
+  const [editForm, setEditForm] = useState(blank);
+
+  const load = async () => {
+    setLoading(true);
+    try { setCats(await getExhibitorCategories(eventId)); }
+    catch { toast.error('Erro ao carregar categorias'); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, [eventId]);
+
+  const handleAdd = async () => {
+    if (!newForm.name.trim()) return;
+    setSaving(true);
+    try {
+      await createExhibitorCategory({ event_id: eventId, name: newForm.name.trim(), icon: newForm.icon, color: newForm.color, order_index: cats.length });
+      setNewForm(blank); setAdding(false);
+      toast.success('Categoria criada'); load();
+    } catch { toast.error('Erro ao criar categoria'); }
+    finally { setSaving(false); }
+  };
+
+  const handleEdit = async () => {
+    if (!editingId || !editForm.name.trim()) return;
+    setSaving(true);
+    try {
+      await updateExhibitorCategory(editingId, { name: editForm.name.trim(), icon: editForm.icon, color: editForm.color });
+      setEditingId(null); toast.success('Categoria atualizada'); load();
+    } catch { toast.error('Erro ao atualizar categoria'); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (cat: ExhibitorCategory) => {
+    if (!confirm(`Remover a categoria "${cat.name}"? Os expositores vinculados ficarão sem categoria.`)) return;
+    try {
+      await deleteExhibitorCategory(cat.id);
+      setCats(cs => cs.filter(c => c.id !== cat.id));
+      toast.success('Categoria removida');
+    } catch { toast.error('Erro ao remover categoria'); }
+  };
+
+  const startEdit = (cat: ExhibitorCategory) => {
+    setEditingId(cat.id);
+    setEditForm({ name: cat.name, icon: cat.icon, color: cat.color });
+    setAdding(false);
+  };
+
+  if (loading) return <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" /></div>;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-neutral-800">Categorias de Expositor</p>
+          <p className="text-[10px] text-neutral-400 mt-0.5">Usadas para classificar e filtrar os expositores no app.</p>
+        </div>
+        {!adding && !editingId && (
+          <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-700 transition-colors shrink-0">
+            <Plus className="w-3.5 h-3.5" /> Adicionar
+          </button>
+        )}
+      </div>
+
+      {(adding || editingId) && (() => {
+        const form = editingId ? editForm : newForm;
+        const setForm = editingId
+          ? (fn: (f: typeof blank) => typeof blank) => setEditForm(fn)
+          : (fn: (f: typeof blank) => typeof blank) => setNewForm(fn);
+        const onSave = editingId ? handleEdit : handleAdd;
+        const onCancel = editingId ? () => setEditingId(null) : () => { setAdding(false); setNewForm(blank); };
+
+        return (
+          <div className="border border-neutral-200 rounded-xl p-4 space-y-3 bg-neutral-50">
+            <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
+              {editingId ? 'Editar categoria' : 'Nova categoria'}
+            </p>
+            <div className="flex gap-3 items-center">
+              <div className="text-2xl w-10 h-10 flex items-center justify-center bg-white border border-neutral-200 rounded-lg shrink-0">
+                {form.icon}
+              </div>
+              <input
+                type="text"
+                placeholder="Nome da categoria (ex: Gastronomia)"
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                className="flex-1 px-3 py-2 text-sm border border-neutral-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+                onKeyDown={e => e.key === 'Enter' && onSave()}
+                autoFocus
+              />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-2">Ícone</p>
+              <div className="flex flex-wrap gap-1.5">
+                {ICON_CATALOG.map(({ icon, label, color }) => (
+                  <button
+                    key={icon}
+                    title={label}
+                    onClick={() => setForm(f => ({ ...f, icon, color }))}
+                    className={`w-8 h-8 rounded-lg text-base flex items-center justify-center transition-all ${
+                      form.icon === icon ? 'bg-neutral-900 shadow-md scale-110' : 'bg-white border border-neutral-200 hover:border-neutral-400'
+                    }`}
+                  >
+                    {icon}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-2">Cor</p>
+              <div className="flex flex-wrap gap-2">
+                {PRESET_COLORS.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setForm(f => ({ ...f, color: c }))}
+                    style={{ backgroundColor: c }}
+                    className={`w-6 h-6 rounded-full transition-all ${form.color === c ? 'ring-2 ring-offset-2 ring-neutral-900 scale-110' : 'hover:scale-110'}`}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button onClick={onSave} disabled={saving || !form.name.trim()} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-700 disabled:opacity-50 transition-colors">
+                {saving ? 'Salvando...' : editingId ? 'Salvar' : 'Adicionar'}
+              </button>
+              <button onClick={onCancel} className="px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {cats.length === 0 && !adding && (
+        <div className="text-center py-8 text-neutral-400 border border-dashed border-neutral-200 rounded-xl">
+          <p className="text-sm">Nenhuma categoria cadastrada</p>
+          <p className="text-xs mt-1">Adicione categorias para classificar os expositores.</p>
+        </div>
+      )}
+
+      {cats.length > 0 && (
+        <div className="border border-neutral-100 rounded-xl overflow-hidden divide-y divide-neutral-100">
+          {cats.map(cat => (
+            <div key={cat.id} className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 bg-white">
+              <span className="text-xl w-8 text-center shrink-0">{cat.icon}</span>
+              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+              <span className="text-sm font-medium text-neutral-800 flex-1 truncate">{cat.name}</span>
+              <button
+                onClick={() => startEdit(cat)}
+                className="p-1.5 rounded-lg hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700 transition-colors"
+                title="Editar"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+              </button>
+              <button
+                onClick={() => handleDelete(cat)}
+                className="p-1.5 rounded-lg hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors"
+                title="Remover"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -1613,15 +1800,7 @@ export default function EventAdminPortal() {
                   />
                 </div>
                 <div>
-                  <Label>Categorias de Expositor (separadas por vírgula)</Label>
-                  <input
-                    type="text"
-                    value={Array.isArray(form.exhibitor_categories) ? form.exhibitor_categories.join(', ') : ''}
-                    onChange={(e) => set('exhibitor_categories', e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
-                    placeholder="Salgados, Doces, Artesanato, Outros"
-                    className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
-                  />
-                  <p className="text-[10px] text-neutral-400 mt-1">Usadas no combobox de categoria do cadastro de expositores.</p>
+                  <CategoriasExpositorSection eventId={event.id} />
                 </div>
                 <div>
                   <Label>Expositores Previstos</Label>

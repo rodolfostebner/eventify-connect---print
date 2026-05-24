@@ -21,6 +21,7 @@ import { supabase } from '../lib/supabase/client';
 import { LiveEventView } from '../features/event/components/LiveEventView';
 import { PreEventView } from '../features/event/components/PreEventView';
 import { PostEventView } from '../features/event/components/PostEventView';
+import { EventWelcomeModal } from '../features/event/components/EventWelcomeModal';
 import { PartnerSection } from '../features/event/components/PartnerSection';
 import type { SocialLinkType } from '../features/event/components/SocialLinks';
 
@@ -198,6 +199,8 @@ export default function EventPage({ user }: { user: AppUser | null }) {
     }
   };
 
+  const [showWelcome, setShowWelcome] = useState(false);
+
   const [activeAnnouncement, setActiveAnnouncement] = useState<Announcement | null>(null);
 
   useEffect(() => {
@@ -373,6 +376,17 @@ export default function EventPage({ user }: { user: AppUser | null }) {
     if (!event?.id) return;
     getExhibitors(event.id).then(setDbExhibitors).catch(() => {});
     getPartners(event.id).then(setDbSponsors).catch(() => {});
+  }, [event?.id]);
+
+  // Exibe modal de boas-vindas uma vez por sessão se o evento tiver foto ou texto
+  useEffect(() => {
+    if (!event?.id) return;
+    if (!event.owner_photo && !event.owner_text) return;
+    const key = `welcome_shown_${event.id}`;
+    if (!sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1');
+      setShowWelcome(true);
+    }
   }, [event?.id]);
 
   // Link logged-in participant to this event so they are formally registered to receive push notifications
@@ -826,23 +840,13 @@ export default function EventPage({ user }: { user: AppUser | null }) {
         )}
       </AnimatePresence>
 
-      <main className="max-w-6xl mx-auto pb-24 md:pb-32">
-        {/* Owner Section */}
-        {(event.owner_text || event.owner_photo) && (
-          <div className="px-8 py-12 text-center space-y-8">
-            {event.owner_photo && (
-              <div className="inline-block rounded-2xl overflow-hidden shadow-xl border-4 md:border-8 border-white max-w-[85%]">
-                <img src={event.owner_photo} className="w-full h-auto object-cover" referrerPolicy="no-referrer" />
-              </div>
-            )}
-            {event.owner_text && (
-              <p className="text-sm text-neutral-500 leading-relaxed font-bold italic max-w-xs mx-auto">
-                "{event.owner_text}"
-              </p>
-            )}
-          </div>
-        )}
+      <EventWelcomeModal
+        event={event}
+        visible={showWelcome}
+        onClose={() => setShowWelcome(false)}
+      />
 
+      <main className="max-w-6xl mx-auto pb-24 md:pb-32">
         {event.status === 'pre' && <PreEventView event={event} user={user} />}
         {event.status === 'live' && (
           <LiveEventView

@@ -55,7 +55,6 @@ export interface EventData {
   services?: ExhibitorSponsor[];
   custom_comments?: string[];
   upload_source?: 'camera' | 'gallery' | 'both';
-  exhibitor_categories?: string[];
   exhibitors_estimation?: number;
   public_evaluation_weight?: number;
   juror_evaluation_weight?: number;
@@ -71,6 +70,16 @@ export interface EventData {
   announcement_trigger_at?: string | null;
   custom_sounds?: { id: string; name: string; url: string; }[] | null;
   active?: boolean;
+}
+
+export interface ExhibitorCategory {
+  id: string;
+  event_id: string;
+  name: string;
+  icon: string;
+  color: string;
+  order_index: number;
+  created_at: string;
 }
 
 export interface Announcement {
@@ -171,9 +180,13 @@ export interface Exhibitor {
   event_id: string;
   number: number;
   name: string;
-  // Texto livre — opções vêm de events.exhibitor_categories (configurável por evento)
   category: string;
+  category_id?: string | null;
+  tagline?: string | null;
   description?: string | null;
+  ano?: string | null;
+  turma?: string | null;
+  members?: string[];
   logo_url?: string | null;
   photo_url?: string | null;
   message?: string | null;

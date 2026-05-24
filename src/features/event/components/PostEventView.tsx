@@ -1,206 +1,240 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Trophy, Users, Star, Briefcase, Globe, Instagram, MessageCircle, ArrowLeft, ArrowRight } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Star, Briefcase, Trophy, ArrowLeft, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import type { EventData, PhotoData, AppUser, Exhibitor, Partner } from '../../../types';
+import type { EventData, AppUser, Exhibitor, Partner, ExhibitorCategory, ExhibitorRanking } from '../../../types';
 import { useEventPhotos } from '../hooks/useEventPhotos';
 import { PhotoCard } from './PhotoCard/PhotoCard';
 import { PartnerSection } from './PartnerSection';
-import type { SocialLinkType } from './SocialLinks';
+import { ExhibitorList } from './ExhibitorList';
+import { ExhibitorDetailModal } from './ExhibitorDetailModal';
 import { getExhibitors } from '../../../services/exhibitorService';
 import { getPartners } from '../../../services/partnerService';
-import { trackVisit } from '../../../services/visitService';
+import { getExhibitorCategories } from '../../../services/exhibitorCategoryService';
+import { getExhibitorRankings } from '../../../services/evaluationService';
 
-interface PostEventViewProps {
+interface Props {
   event: EventData;
   user: AppUser | null;
   onLogin: () => void;
 }
 
-export const PostEventView = ({ event, user, onLogin }: PostEventViewProps) => {
+const MEDALS = ['🥇', '🥈', '🥉'];
+
+export const PostEventView = ({ event, user, onLogin }: Props) => {
+  const [exhibitors, setExhibitors] = useState<Exhibitor[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [categories, setCategories] = useState<ExhibitorCategory[]>([]);
+  const [rankings, setRankings] = useState<ExhibitorRanking[]>([]);
+  const [selectedExhibitor, setSelectedExhibitor] = useState<Exhibitor | null>(null);
+  const [momentIdx, setMomentIdx] = useState(0);
+
   const { photos } = useEventPhotos(event.id);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [dbExhibitors, setDbExhibitors] = useState<Exhibitor[]>([]);
-  const [dbSponsors, setDbSponsors] = useState<Partner[]>([]);
 
   useEffect(() => {
-    getExhibitors(event.id).then(setDbExhibitors).catch(() => {});
-    getPartners(event.id).then(setDbSponsors).catch(() => {});
+    getExhibitors(event.id).then(setExhibitors).catch(() => {});
+    getPartners(event.id).then(setPartners).catch(() => {});
+    getExhibitorCategories(event.id).then(setCategories).catch(() => {});
+    getExhibitorRankings(event.id).then(r => setRankings(r.sort((a, b) => b.final_score - a.final_score))).catch(() => {});
   }, [event.id]);
 
-  const exhibitorItems = dbExhibitors.map(ex => ({
-    id: ex.id, name: ex.name,
-    logo: ex.logo_url ?? undefined, photo: ex.photo_url ?? undefined,
-    bio: ex.description ?? '',
-    message: ex.message ?? undefined, final_message: ex.final_message ?? undefined,
-    socials: { instagram: ex.instagram_url ?? undefined, whatsapp: ex.whatsapp ?? undefined, website: ex.website_url ?? undefined },
-  }));
+  const sponsors = partners.filter(p => p.type === 'patrocinador' || p.type === 'apoiador');
+  const services = partners.filter(p => p.type === 'servico');
 
-  const sponsorItems = dbSponsors.map(s => ({
-    id: s.id, name: s.name, bio: s.description ?? '',
-    photos: s.photos,
-    socials: { instagram: s.instagram_url ?? undefined, whatsapp: s.whatsapp ?? undefined, website: s.website_url ?? undefined },
-  }));
+  // Fotos destacadas: top por likes e por cada emoji
+  const momentPhotos = useMemo(() => {
+    const approved = photos.filter(p => p.status === 'approved' && !p.is_official);
+    return [...approved].sort((a, b) => (b.likes || 0) - (a.likes || 0)).slice(0, 12);
+  }, [photos]);
 
-  const handleExhibitorSocialClick = useCallback(
-    (item: { id?: string }, type: SocialLinkType) => {
-      if (!item.id) return;
-      void trackVisit({
-        eventId: event.id,
-        exhibitorId: item.id,
-        userId: user?.id,
-        action: `click_${type}` as const,
-        eventStatus: event.status,
-      });
-    },
-    [event.id, event.status, user?.id],
-  );
-
-  const rankingData = useMemo(() => {
-    const categories = [
-      { id: '🔥', title: 'Mais Curtidas', emoji: '🔥' },
+  const rankingPhotoHighlights = useMemo(() => {
+    const categories_emoji = [
+      { id: '🔥', title: 'Mais Curtida', emoji: '🔥' },
       { id: '😂', title: 'Mais Divertida', emoji: '😂' },
       { id: '❤️', title: 'Mais Fofura', emoji: '❤️' },
       { id: '🗣️', title: 'Mais Comentada', emoji: '🗣️' },
-      { id: '🎸', title: 'Rockstar', emoji: '🎸' }
     ];
-
-    const ranking = categories.map(cat => {
-      let sortedPhotos = photos.filter(p => !p.is_official);
-      if (cat.id === '🔥') {
-        sortedPhotos.sort((a, b) => (b.likes || 0) - (a.likes || 0));
-      } else if (cat.id === '🗣️') {
-        sortedPhotos.sort((a, b) => (b.comments?.filter(c => c.status === 'approved').length || 0) - (a.comments?.filter(c => c.status === 'approved').length || 0));
-      } else {
-        sortedPhotos.sort((a, b) => (b.reaction_counts?.[cat.id] || 0) - (a.reaction_counts?.[cat.id] || 0));
-      }
-
-      const topPhoto = sortedPhotos[0];
-      let score = 0;
-      if (topPhoto) {
-        if (cat.id === '🔥') score = topPhoto.likes || 0;
-        else if (cat.id === '🗣️') score = topPhoto.comments?.filter(c => c.status === 'approved').length || 0;
-        else score = topPhoto.reaction_counts?.[cat.id] || 0;
-      }
-
-      return { title: cat.title, emoji: cat.emoji, photo: topPhoto, score };
+    return categories_emoji.map(cat => {
+      const sorted = [...photos.filter(p => !p.is_official)].sort((a, b) => {
+        if (cat.id === '🔥') return (b.likes || 0) - (a.likes || 0);
+        if (cat.id === '🗣️') return (b.comments?.filter(c => c.status === 'approved').length || 0) - (a.comments?.filter(c => c.status === 'approved').length || 0);
+        return (b.reaction_counts?.[cat.id] || 0) - (a.reaction_counts?.[cat.id] || 0);
+      });
+      const top = sorted[0];
+      const score = top ? (cat.id === '🔥' ? top.likes || 0 : cat.id === '🗣️' ? top.comments?.filter(c => c.status === 'approved').length || 0 : top.reaction_counts?.[cat.id] || 0) : 0;
+      return { ...cat, photo: top, score };
     }).filter(r => r.photo && r.score > 0);
-
-    if (event?.has_official_photos) {
-      const officialPhotos = photos.filter(p => p.is_official).sort((a, b) => (b.likes || 0) - (a.likes || 0));
-      if (officialPhotos.length > 0 && (officialPhotos[0].likes || 0) > 0) {
-        ranking.push({ title: 'Destaques Oficiais', emoji: '📸', photo: officialPhotos[0], score: officialPhotos[0].likes || 0 });
-      }
-    }
-
-    return ranking;
-  }, [photos, event?.has_official_photos]);
-
-  useEffect(() => {
-    if (rankingData.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % rankingData.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [rankingData.length]);
-
-  const currentHighlight = rankingData[currentIndex];
+  }, [photos]);
 
   return (
-    <div className="max-w-6xl mx-auto p-4 md:p-12 space-y-12 md:space-y-24">
-      <div className="py-16 md:py-32 rounded-2xl border border-neutral-100 bg-white shadow-xl relative overflow-hidden text-center">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1 bg-neutral-900/5 rounded-full mt-6 md:mt-10" />
-        <Trophy className="w-20 h-20 md:w-32 md:h-32 mx-auto mb-10 text-yellow-500 drop-shadow-md" />
-        <h2 className="text-4xl md:text-7xl font-black tracking-tighter">Evento Encerrado</h2>
-        <p className="text-neutral-500 mt-6 md:mt-10 max-w-xs md:max-w-2xl mx-auto font-medium leading-relaxed px-4 text-sm md:text-lg">
-          {event.post_event_message || 'Obrigado por participar! O evento foi um sucesso e as fotos já estão disponíveis.'}
-        </p>
+    <div className="min-h-screen bg-[#F5F5F7] pb-12">
+      {/* Banner "Evento encerrado" */}
+      <div
+        className="mx-4 mt-4 rounded-2xl p-5 text-white relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, #2D2D3F, #4A4A60)', boxShadow: '0 4px 12px rgba(45,45,63,0.2)' }}
+      >
+        <div className="flex items-start gap-4">
+          <div className="w-10 h-10 rounded-full bg-green-400/20 flex items-center justify-center shrink-0">
+            <span className="text-xl">✅</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/50 mb-1">Encerrado</p>
+            <h2 className="text-lg font-black leading-tight">{event.name}</h2>
+            <p className="text-[12px] text-white/60 mt-1 leading-snug">
+              {event.post_event_message || 'Obrigado por participar! O evento foi um sucesso.'}
+            </p>
+          </div>
+        </div>
+        {event.summary_file_url && (
+          <a
+            href={event.summary_file_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-black"
+            style={{ backgroundColor: '#F5E96B', color: '#2D2D3F' }}
+          >
+            Resumo →
+          </a>
+        )}
       </div>
 
-      {rankingData.length > 0 && (
-        <section className="bg-white p-6 md:p-16 rounded-2xl border border-neutral-50 shadow-xl text-left overflow-hidden relative">
-          <h2 className="text-2xl md:text-4xl font-black mb-12 md:mb-20 flex items-center gap-4">
-             Destaques do Evento
-          </h2>
-          
-          <div className="relative aspect-[4/5] md:aspect-video w-full overflow-hidden rounded-xl bg-neutral-50 shadow-inner">
+      {/* Ranking dos expositores */}
+      {rankings.length > 0 && (
+        <div className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-[#ECECF1] shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy className="w-5 h-5 text-yellow-500" />
+            <h3 className="text-[15px] font-black text-[#2D2D3F]">Ranking dos Expositores</h3>
+          </div>
+          <div className="space-y-2">
+            {rankings.slice(0, 5).map((r, i) => (
+              <div key={r.exhibitor_id} className="flex items-center gap-3 py-2 border-b border-[#F0F0F4] last:border-0">
+                <span className="text-xl w-7 text-center shrink-0">{MEDALS[i] ?? `#${i + 1}`}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold text-[#2D2D3F] truncate">{r.exhibitor_name}</p>
+                  <p className="text-[10px] text-[#94949E]">Score: {r.final_score.toFixed(2)}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[11px] font-bold text-[#3FA790]">{r.public_votes_count} votos</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          {rankings.length > 5 && (
+            <button className="mt-3 w-full text-center text-[11px] font-bold text-[#3FA790]">
+              Ver ranking completo →
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Momentos — carrossel horizontal de fotos */}
+      {momentPhotos.length > 0 && (
+        <div className="mt-4">
+          <div className="px-4 flex items-center gap-2 mb-3">
+            <span className="text-base">📸</span>
+            <h3 className="text-[15px] font-black text-[#2D2D3F]">Momentos</h3>
+          </div>
+          <div
+            className="flex gap-2.5 overflow-x-auto px-4"
+            style={{ scrollbarWidth: 'none', scrollSnapType: 'x mandatory' }}
+          >
+            {momentPhotos.map(photo => (
+              <div
+                key={photo.id}
+                className="shrink-0 w-[140px] h-[170px] rounded-xl overflow-hidden relative bg-neutral-100"
+                style={{ scrollSnapAlign: 'start' }}
+              >
+                <img src={photo.image_url} alt="" className="w-full h-full object-cover" />
+                {(photo.likes || 0) > 0 && (
+                  <div className="absolute bottom-2 left-2 bg-black/50 rounded-full px-2 py-0.5 text-white text-[10px] font-bold">
+                    ❤️ {photo.likes}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Destaques de fotos por categoria */}
+      {rankingPhotoHighlights.length > 0 && (
+        <div className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-[#ECECF1] shadow-sm">
+          <h3 className="text-[15px] font-black text-[#2D2D3F] mb-4">Destaques do Feed</h3>
+          <div className="relative overflow-hidden rounded-xl bg-[#F5F5F7]">
             <AnimatePresence mode="wait">
               <motion.div
-                key={currentIndex}
+                key={momentIdx}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="absolute inset-0 grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16 p-6 md:p-12"
+                className="grid grid-cols-2 gap-3 p-3"
               >
-                <div className="flex flex-col justify-center gap-8 md:gap-10">
-                  <div className="flex items-center gap-6">
-                    <span className="text-6xl md:text-8xl">{currentHighlight.emoji}</span>
-                    <div>
-                      <h3 className="font-black text-[10px] md:text-xs uppercase tracking-[0.4em] text-neutral-400 mb-2">{currentHighlight.title}</h3>
-                      <p className="text-4xl md:text-6xl font-black text-neutral-900 leading-none">Score: {currentHighlight.score}</p>
-                    </div>
-                  </div>
-                  <div className="hidden md:block">
-                    <p className="text-neutral-500 md:text-lg font-medium leading-relaxed max-w-md">
-                      Esta foto se destacou na categoria {currentHighlight.title.toLowerCase()} com uma pontuação incrível de {currentHighlight.score} interações!
-                    </p>
-                  </div>
+                <div className="flex flex-col justify-center">
+                  <span className="text-4xl mb-1">{rankingPhotoHighlights[momentIdx].emoji}</span>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-[#94949E]">{rankingPhotoHighlights[momentIdx].title}</p>
+                  <p className="text-2xl font-black text-[#2D2D3F]">{rankingPhotoHighlights[momentIdx].score}</p>
                 </div>
-                
-                <div className="relative rounded-xl overflow-hidden shadow-2xl border-4 md:border-[12px] border-white bg-white group hover:scale-[1.02] transition-transform duration-500">
-                  <PhotoCard photo={currentHighlight.photo!} user={user} event={event} onLogin={onLogin} />
+                <div className="rounded-xl overflow-hidden aspect-square bg-neutral-100 border-2 border-white shadow-md">
+                  <PhotoCard photo={rankingPhotoHighlights[momentIdx].photo!} user={user} event={event} onLogin={onLogin} />
                 </div>
               </motion.div>
             </AnimatePresence>
           </div>
-
-          <div className="flex justify-center gap-3 mt-10 md:mt-16">
-            {rankingData.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentIndex(idx)}
-                className={`h-2 rounded-full transition-all duration-500 ${
-                  currentIndex === idx ? "w-12 bg-neutral-900 shadow-md" : "w-2 bg-neutral-200 hover:bg-neutral-300"
-                }`}
-              />
-            ))}
+          <div className="flex items-center justify-between mt-3">
+            <button onClick={() => setMomentIdx(i => Math.max(0, i - 1))} disabled={momentIdx === 0} className="p-1.5 rounded-lg hover:bg-neutral-100 disabled:opacity-30 transition-colors">
+              <ArrowLeft className="w-4 h-4 text-[#5A5A6E]" />
+            </button>
+            <div className="flex gap-1.5">
+              {rankingPhotoHighlights.map((_, i) => (
+                <button key={i} onClick={() => setMomentIdx(i)} className={`h-1.5 rounded-full transition-all ${i === momentIdx ? 'w-6 bg-[#2D2D3F]' : 'w-1.5 bg-[#D0D0D8]'}`} />
+              ))}
+            </div>
+            <button onClick={() => setMomentIdx(i => Math.min(rankingPhotoHighlights.length - 1, i + 1))} disabled={momentIdx === rankingPhotoHighlights.length - 1} className="p-1.5 rounded-lg hover:bg-neutral-100 disabled:opacity-30 transition-colors">
+              <ArrowRight className="w-4 h-4 text-[#5A5A6E]" />
+            </button>
           </div>
-        </section>
+        </div>
       )}
 
-      {event.summary_file_url && (
-        <a
-          href={event.summary_file_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group block w-full py-10 md:py-14 bg-neutral-900 text-white rounded-2xl font-black text-xl md:text-3xl shadow-2xl active:scale-[0.98] transition-all text-center relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-          <span className="relative">Baixar Resumo do Evento 🎁</span>
-        </a>
-      )}
-
-      {/* Expositores e Patrocinadores */}
-      <div className="space-y-16 md:space-y-32 text-left pt-8">
-        <PartnerSection
-          title="Expositores"
-          items={exhibitorItems}
-          icon={<Users className="w-5 h-5" />}
-          showMessages={true}
-          onItemSocialClick={handleExhibitorSocialClick}
-        />
-        <PartnerSection
-          title="Patrocinadores"
-          items={sponsorItems}
-          icon={<Star className="w-5 h-5" />}
-          showMessages={true}
-        />
-        <PartnerSection 
-          title="Serviços" 
-          items={event.services || []} 
-          icon={<Briefcase className="w-5 h-5" />} 
-          showMessages={true}
+      {/* Expositores filtrável */}
+      <div className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-[#ECECF1] shadow-sm">
+        <h3 className="text-[15px] font-black text-[#2D2D3F] mb-4">Expositores</h3>
+        <ExhibitorList
+          exhibitors={exhibitors}
+          categories={categories}
+          onSelect={setSelectedExhibitor}
+          event={{ id: event.id, status: event.status }}
+          user={user}
         />
       </div>
+
+      {/* Patrocinadores */}
+      {(sponsors.length > 0 || services.length > 0) && (
+        <div className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-[#ECECF1] shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#94949E] mb-4">⭐ Quem tornou isso possível</p>
+          <div className="space-y-8">
+            {sponsors.length > 0 && (
+              <PartnerSection title="Patrocinadores & Apoiadores" items={sponsors.map(s => ({ id: s.id, name: s.name, bio: s.description ?? '', photos: s.photos, socials: { instagram: s.instagram_url ?? undefined, whatsapp: s.whatsapp ?? undefined, website: s.website_url ?? undefined } }))} icon={<Star className="w-5 h-5" />} showMessages />
+            )}
+            {services.length > 0 && (
+              <PartnerSection title="Serviços" items={services.map(s => ({ id: s.id, name: s.name, bio: s.description ?? '', photos: s.photos, socials: { instagram: s.instagram_url ?? undefined, whatsapp: s.whatsapp ?? undefined, website: s.website_url ?? undefined } }))} icon={<Briefcase className="w-5 h-5" />} showMessages />
+            )}
+          </div>
+        </div>
+      )}
+
+      <AnimatePresence>
+        {selectedExhibitor && (
+          <ExhibitorDetailModal
+            exhibitor={selectedExhibitor}
+            exhibitors={exhibitors}
+            categories={categories}
+            event={event}
+            user={user}
+            onClose={() => setSelectedExhibitor(null)}
+            onSelectRelated={setSelectedExhibitor}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
