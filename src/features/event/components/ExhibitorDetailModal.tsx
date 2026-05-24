@@ -57,7 +57,8 @@ export function ExhibitorDetailModal({ exhibitor, categories, event, user, onClo
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 32, stiffness: 300 }}
-        className="fixed inset-x-0 bottom-0 top-12 z-[81] flex flex-col rounded-t-3xl overflow-hidden bg-[#F5F5F7]"
+        className="fixed inset-x-0 bottom-0 top-12 md:inset-x-auto md:top-auto md:left-1/2 md:-translate-x-1/2 md:bottom-0 md:w-full md:max-w-2xl z-[81] flex flex-col rounded-t-3xl overflow-hidden bg-[#F5F5F7]"
+        style={{ maxHeight: '92dvh' }}
       >
         {/* Hero */}
         <div
