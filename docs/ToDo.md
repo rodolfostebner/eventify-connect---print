@@ -144,7 +144,9 @@ Exemplos:
 
 | Feature | Status | Observação |
 |---------|--------|------------|
-| Feed — Expositores + catálogo | ✅ Implementado | Modal de catálogo público com pré-venda |
+| Feed — Redesign v2 (layout novo) | ✅ Implementado | PreEventView/LiveEventView/PostEventView reescritos com novo design (ExhibitorCard 3 tamanhos, ExhibitorList com filtro por categoria + toggle de tamanho, ExhibitorDetailModal, EventWelcomeModal) |
+| Feed — Expositores + catálogo | ✅ Implementado | ExhibitorDetailModal como primeira tela (hero, stats, fotos de produtos, integrantes); abre ExhibitorCatalogModal internamente via botão "Confira o catálogo" |
+| Feed — Boas-vindas (splash) | ✅ Implementado | EventWelcomeModal: exibe foto/texto do evento por 5s na abertura, uma vez por sessão (sessionStorage) |
 | Feed — Fotos dos participantes | ✅ Implementado | Ainda na tabela `photos` legada |
 | Feed — Patrocinadores | ✅ Implementado | Tabela dedicada `sponsors`, carrossel de fotos, dados do banco |
 | Feed — Contador pré-evento responsivo | ✅ Implementado | Ajustado para mobile |
@@ -153,7 +155,8 @@ Exemplos:
 | Expositores — CRUD + produtos + usuários | ✅ Implementado | Painel admin `/expositores/:slug` |
 | Expositores — Foto do stand (photo_url) | ✅ Implementado | Upload no painel admin e portal do expositor |
 | Expositores — Leads de pré-venda | ✅ Implementado | Status (novo/atendido/pago/retirado) + exportação CSV/Excel |
-| Expositores — Categoria | ✅ Implementado | Campo `exhibitors.category` (texto livre). Categorias configuráveis por evento em `events.exhibitor_categories`, editáveis na aba Configurações do EventAdmin. Combobox no cadastro admin e no portal do expositor |
+| Expositores — Categoria | ✅ Implementado | Tabela dedicada `exhibitor_categories` (id, event_id, name, icon, color, order_index) substituindo array legado em `events.exhibitor_categories`. CRUD completo no EventAdmin. FK `category_id` na tabela `exhibitors`. Combobox no cadastro admin e portal do expositor |
+| Expositores — Campos escolares (tagline/ano/turma/integrantes) | ✅ Implementado | `tagline` (50 chars, exibida no card médio e no detalhe), `ano`, `turma`, `members` (JSON array de nomes). CRUD no painel admin e portal do expositor. Seção "Integrantes" em pills no ExhibitorDetailModal |
 | Parceiros — Painel unificado | ✅ Implementado | `/parceiros/:slug` (ex-`/patrocinadores`). Unifica Patrocinador/Apoiador/Serviço via campo `type`. Abas Dados/Fotos/Contatos Marketing/Visualização. Tabela `partners` (ex-`sponsors`). Campos internos: contato, valor do patrocínio. Flags MostraTelão/MostraFeed |
 | Apoiadores - Parceiros que não pagam | ✅ Implementado | Absorvido pela tela de Parceiros (tipo `apoiador`) |
 | Serviços | ✅ Implementado | Absorvido pela tela de Parceiros (tipo `servico`) |
@@ -210,7 +213,7 @@ Exemplos:
 |------|-------------|
 | [D1] Integração Instagram | **Descartar** — API do Instagram requer Meta Business Verification, inviável |
 | [D2] Relatório de visitas no rank | Manter aberto — depende de [PVT2] |
-| [D3] Layout do feed | **Decisão urgente** — com expositores e fotos no mesmo feed, o layout precisa ser definido antes da próxima sprint |
+| [D3] Layout do feed | ✅ **Resolvido** — Novo design implementado: abas (Fotos/Expositores/Patrocinadores) no Live, cards em 3 tamanhos com filtro por categoria, layout pós-evento em seções verticais |
 | [D4] Música de fundo | **Descartar** — autoplay de áudio é bloqueado por padrão em todos os browsers modernos |
 | [D5] Tela de sorteio | Manter aberto — depende de [PD1][PD2] |
 
