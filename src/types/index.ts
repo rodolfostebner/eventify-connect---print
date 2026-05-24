@@ -70,6 +70,7 @@ export interface EventData {
   active_announcement_id?: string | null;
   announcement_trigger_at?: string | null;
   custom_sounds?: { id: string; name: string; url: string; }[] | null;
+  active?: boolean;
 }
 
 export interface Announcement {

@@ -157,15 +157,10 @@ export async function updateEvent(id: string, data: Partial<EventData>): Promise
 }
 
 /**
- * Delete an event document.
+ * Inativa um evento (active = false) em vez de excluir permanentemente.
  */
-export async function deleteEvent(id: string): Promise<void> {
-  if (!supabase) return;
-  const { error } = await supabase
-    .from('events')
-    .delete()
-    .eq('id', id);
-  if (error) throw error;
+export async function inactivateEvent(id: string): Promise<void> {
+  await updateEvent(id, { active: false } as Partial<EventData>);
 }
 
 /**

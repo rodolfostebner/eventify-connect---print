@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 import type { EventData, ExhibitorSponsor } from '../../types';
-import { subscribeToEvents, createEvent, updateEvent, deleteEvent, uploadEventSummary } from '../../services/eventService';
+import { subscribeToEvents, createEvent, updateEvent, inactivateEvent, uploadEventSummary } from '../../services/eventService';
 import { useAuth } from '../../hooks/useAuth';
 import type { AppUser } from '../../types';
 
@@ -136,13 +136,13 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
     }
   };
 
-  const handleDeleteEvent = async (eventId: string) => {
+  const handleInactivateEvent = async (eventId: string) => {
     try {
-      await deleteEvent(eventId);
-      toast.success('Evento excluído com sucesso.');
+      await inactivateEvent(eventId);
+      toast.success('Evento inativado com sucesso.');
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao excluir evento.');
+      toast.error('Erro ao inativar evento.');
     }
   };
 
@@ -372,7 +372,7 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                 onUpdateStatus={updateStatus}
                 onShare={setSharingEvent}
                 onEdit={(ev) => navigate(`/eventadmin/${ev.slug}`)}
-                onDelete={handleDeleteEvent}
+                onInactivate={handleInactivateEvent}
               />
             ))}
 

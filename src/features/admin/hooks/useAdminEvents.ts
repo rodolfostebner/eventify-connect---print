@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { subscribeToEvents, createEvent, updateEvent, deleteEvent } from '../../../services/eventService';
+import { subscribeToEvents, createEvent, updateEvent, inactivateEvent } from '../../../services/eventService';
 import type { EventData } from '../../../types';
 
 export function useAdminEvents(userId: string | undefined) {
@@ -28,13 +28,13 @@ export function useAdminEvents(userId: string | undefined) {
     }
   };
 
-  const handleDeleteEvent = async (eventId: string) => {
+  const handleInactivateEvent = async (eventId: string) => {
     try {
-      await deleteEvent(eventId);
-      toast.success('Evento excluído com sucesso.');
+      await inactivateEvent(eventId);
+      toast.success('Evento inativado com sucesso.');
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao excluir evento.');
+      toast.error('Erro ao inativar evento.');
     }
   };
 
@@ -80,7 +80,7 @@ export function useAdminEvents(userId: string | undefined) {
     newEventAdminEmail,
     setNewEventAdminEmail,
     updateStatus,
-    handleDeleteEvent,
+    handleInactivateEvent,
     createNewEvent,
   };
 }
