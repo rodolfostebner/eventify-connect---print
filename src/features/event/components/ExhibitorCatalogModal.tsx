@@ -223,7 +223,7 @@ export function ExhibitorCatalogModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
       <motion.div
