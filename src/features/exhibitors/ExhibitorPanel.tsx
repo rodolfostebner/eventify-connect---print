@@ -1065,24 +1065,39 @@ export default function ExhibitorPanel() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-neutral-50 flex flex-col">
       {/* Top Bar */}
-      <header className="bg-white border-b border-neutral-100 px-6 py-4 flex items-center gap-4">
+      <header className="bg-white border-b border-neutral-100 px-4 md:px-6 py-3 md:py-4 flex items-center gap-3 md:gap-4 shrink-0">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => selected ? setSelected(null) : navigate('/')}
           className="p-2 rounded-lg hover:bg-neutral-100 text-neutral-500 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div>
-          <h1 className="text-lg font-bold text-neutral-900">Painel de Expositores</h1>
-          {event && <p className="text-xs text-neutral-500">{event.name}</p>}
+        <div className="flex-1 min-w-0">
+          <h1 className="text-base md:text-lg font-bold text-neutral-900">
+            {selected ? (
+              <span className="flex items-center gap-2">
+                <span className="hidden md:inline">Painel de Expositores</span>
+                <span className="md:hidden truncate">{selected.name}</span>
+              </span>
+            ) : 'Painel de Expositores'}
+          </h1>
+          {event && <p className="text-xs text-neutral-500 truncate">{event.name}</p>}
         </div>
+        {selected && (
+          <button
+            onClick={() => setSelected(null)}
+            className="md:hidden text-xs font-semibold text-neutral-500 hover:text-neutral-900 px-2 py-1 rounded-lg hover:bg-neutral-100 transition-colors"
+          >
+            Lista
+          </button>
+        )}
       </header>
 
-      <div className="flex h-[calc(100vh-69px)]">
+      <div className="flex flex-1 min-h-0">
         {/* Sidebar — Exhibitor List */}
-        <aside className="w-72 shrink-0 bg-white border-r border-neutral-100 flex flex-col">
+        <aside className={`bg-white border-r border-neutral-100 flex-col ${selected ? 'hidden md:flex md:w-72 md:shrink-0' : 'flex w-full md:w-72 md:shrink-0'}`}>
           <div className="p-4 border-b border-neutral-100">
             <div className="flex gap-2">
               <input
@@ -1125,9 +1140,7 @@ export default function ExhibitorPanel() {
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{ex.name}</p>
-                    <p className={`text-[10px] ${selected?.id === ex.id ? 'text-neutral-400' : 'text-neutral-400'}`}>
-                      #{ex.number}
-                    </p>
+                    <p className="text-[10px] text-neutral-400">#{ex.number}</p>
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); handleDelete(ex); }}
@@ -1144,16 +1157,32 @@ export default function ExhibitorPanel() {
         </aside>
 
         {/* Main Detail Area */}
-        <main className="flex-1 overflow-hidden p-6">
+        <main className={`flex-1 min-h-0 flex-col overflow-y-auto md:overflow-hidden ${selected ? 'flex' : 'hidden md:flex'}`}>
           {selected ? (
-            <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 h-full overflow-hidden flex flex-col max-w-3xl">
-              <ExhibitorDetail
-                exhibitor={selected}
-                eventSlug={slug || ''}
-                categories={exhibitorCategories}
-                onUpdated={() => {}}
-              />
-            </div>
+            <>
+              {/* Mobile: scroll natural da página */}
+              <div className="md:hidden p-3 pb-8">
+                <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-4 w-full">
+                  <ExhibitorDetail
+                    exhibitor={selected}
+                    eventSlug={slug || ''}
+                    categories={exhibitorCategories}
+                    onUpdated={() => {}}
+                  />
+                </div>
+              </div>
+              {/* Desktop: scroll interno, layout fixo */}
+              <div className="hidden md:block h-full overflow-hidden p-6">
+                <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 h-full overflow-hidden flex flex-col max-w-3xl">
+                  <ExhibitorDetail
+                    exhibitor={selected}
+                    eventSlug={slug || ''}
+                    categories={exhibitorCategories}
+                    onUpdated={() => {}}
+                  />
+                </div>
+              </div>
+            </>
           ) : (
             <div className="flex items-center justify-center h-full text-neutral-400">
               <div className="text-center">

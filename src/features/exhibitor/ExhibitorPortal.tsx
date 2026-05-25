@@ -831,13 +831,13 @@ export default function ExhibitorPortal() {
       <AppHeader title="Área do Expositor" />
 
       {/* Tabs */}
-      <div className="bg-white border-b border-neutral-100 px-4">
+      <div className="bg-white border-b border-neutral-100 px-2 sm:px-4 overflow-x-auto">
         <div className="flex gap-0 max-w-2xl mx-auto">
           {tabs.map(t => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
-              className={`flex items-center gap-1.5 px-4 py-3 text-sm font-bold border-b-2 transition-colors ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-3 text-xs sm:text-sm font-bold border-b-2 whitespace-nowrap transition-colors ${
                 tab === t.key
                   ? 'border-neutral-900 text-neutral-900'
                   : 'border-transparent text-neutral-400 hover:text-neutral-600'
