@@ -15,6 +15,7 @@ import { getEventById, getEventBySlug, updateEvent } from '../../services/eventS
 import { diffObjects, getEventAuditLogs, logChange } from '../../services/auditService';
 import { getEventDashboard, type DashboardData } from '../../services/dashboardService';
 import { HBarChart, PieChart } from './components/DashboardCharts';
+import { SorteioTab } from './components/SorteioTab';
 import {
   getEvaluationCategories, createEvaluationCategory, updateEvaluationCategory, deleteEvaluationCategory,
 } from '../../services/evaluationService';
@@ -1873,8 +1874,13 @@ export default function EventAdminPortal() {
               </div>
             )}
 
-            {/* Abas 5–7 — placeholders */}
-            {(['sorteio', 'relatorios', 'marketing'] as const).includes(activeTab as any) && (
+            {/* Aba Sorteio */}
+            {activeTab === 'sorteio' && (
+              <SorteioTab event={event} onEventUpdate={(updatedEvent) => setEvent(updatedEvent)} />
+            )}
+
+            {/* Abas 6–7 — placeholders */}
+            {(['relatorios', 'marketing'] as const).includes(activeTab as any) && (
               <div className="flex flex-col items-center justify-center py-16 text-neutral-300">
                 <Info className="w-10 h-10 mb-3" />
                 <p className="text-sm font-bold text-neutral-400">Em definição</p>

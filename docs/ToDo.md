@@ -115,7 +115,7 @@ Exemplos:
 - [D2] - Possibilidade desse relatorio gerar alguma relevancia no rank de expositores
 - [D3] - Verificar qual o melhor leiaute para organizar as informações (abas laterais, feed continuo, botões no topo...)
 - [D4] - Musica de fundo talvez, para tocar no evento?
-- [D5] - Definição da tela de sorteio pendente... (cadastro de brindes, listagem de participantes registrados)
+- ~~[D5] - Definição da tela de sorteio pendente... (cadastro de brindes, listagem de participantes registrados)~~ ✅ **Resolvido** — Prêmios cadastrados antecipadamente (`raffle_prizes`), fluxo de sorteio via EventAdmin, animação no telão
 
 # REGRAS DE NEGOCIO
 
@@ -131,7 +131,7 @@ Exemplos:
 
 # PENDENTE DE DEFINIÇÃO
 
-- [PD1] Tela de sorteios — ⚠️ **Backend pronto, UI pendente** — `raffleService.drawRandomTicket()` sorteia no backend; tela de sorteio e exibição no telão não implementadas
+- ~~[PD1] Tela de sorteios~~ ✅ **Implementado** — CRUD de prêmios no EventAdmin (aba Sorteio), picker de produto por expositor, controles de telão (Mostrar prêmio → Sortear!), animação de tambor giratório no TVView com revelação do ganhador. Ganhador persistido em `raffle_prizes.winner_ticket_id` + histórico consultável.
 - [PD2] ~~Regra para sorteios~~ ✅ **Backend resolvido** — Modelo simplificado: 1 único ticket por participante por evento. UNIQUE(event_id, user_id) na tabela `raffle_tickets`.
 - [PD3] Administradores poderão registrar fotos para enriquecer feed?
 - [PD4] Criaremos uma tela para marketing da escola? 
@@ -151,7 +151,7 @@ Exemplos:
 | Feed — Patrocinadores | ✅ Implementado | Tabela dedicada `sponsors`, carrossel de fotos, dados do banco |
 | Feed — Contador pré-evento responsivo | ✅ Implementado | Ajustado para mobile |
 | Feed — Registro de clicks/visitas | ✅ Implementado | `trackVisit()` instrumentado nos cliques do feed; aba Visitas no painel admin e portal do expositor |
-| Feed — Sorteios | 🔶 Backend pronto, UI pendente | `raffle_tickets` + `raffleService` ok; falta tela e vínculo [RN3] |
+| Feed — Sorteios | 🔶 Parcial | Ticket criado por participante ok; vínculo avaliação→ticket [RN3] ainda não implementado |
 | Expositores — CRUD + produtos + usuários | ✅ Implementado | Painel admin `/expositores/:slug` |
 | Expositores — Foto do stand (photo_url) | ✅ Implementado | Upload no painel admin e portal do expositor |
 | Expositores — Leads de pré-venda | ✅ Implementado | Status (novo/atendido/pago/retirado) + exportação CSV/Excel |
@@ -169,18 +169,18 @@ Exemplos:
 | Sistema de Avaliação | 🔶 Backend pronto, UI pendente | Tabelas + `evaluationService` + view de ranking ok; falta módulo `src/features/evaluation/` |
 | Painel TV — Fotos + Rankings | ✅ Implementado | Ranking por curtidas; ranking ponderado (`view_exhibitor_rankings`) ainda não exibido na TV |
 | Painel TV — Carrossel expositores | ❌ Não implementado | |
-| Painel TV — Sorteios | 🔶 Backend pronto, UI pendente | `drawRandomTicket()` ok; falta tela/contador regressivo (som?)|
+| Painel TV — Sorteios | ✅ Implementado | Overlay `showing_prize` (foto do prêmio em tela cheia) + `showing_winner` (tambor giratório com nomes dos participantes, para no ganhador). Estado controlado por `tv_raffle_state` + `tv_raffle_prize_id` em `events` via realtime |
 | Painel TV — Avisos | ✅ Implementado | Sino premium sintetizado (5 presets via Web Audio API) e reprodução de áudios customizados (upload de até 3 arquivos R2 por evento), com exibição reativa em tela cheia com Framer Motion e autoplay bypass |
 | Painel TV — Parceiros | ❌ Não implementado | Cadastro unificado pronto (`partners` + flag `show_on_tv`); falta o carrossel na TV consumir a flag |
 | Administração Geral — Dashboard redesenhado | ✅ Implementado | Full-width, botão '+' inline, EventCard com ícones |
 | Administração do Evento — base | ✅ Implementado | |
-| Tela de Administração do Evento (`/eventadmin`) | ✅ Implementado | Seção fixa de controles + acordeons (Dashboard, Configurações com 8 abas). Acesso: admin geral (engrenagem do card → `/eventadmin/:slug`) e event_admin (tela de entrada). Abas Dados/Aparência/Configurações funcionais; Avaliação/Sorteio/Relatórios/Marketing em branco |
+| Tela de Administração do Evento (`/eventadmin`) | ✅ Implementado | Seção fixa de controles + acordeons (Dashboard, Configurações com 8 abas). Acesso: admin geral (engrenagem do card → `/eventadmin/:slug`) e event_admin (tela de entrada). Abas Dados/Aparência/Configurações/Avaliação/Sorteio funcionais; Relatórios/Marketing em branco |
 | Auditoria de alterações do evento | ✅ Implementado | Tabela `audit_logs` + `auditService`; registra autor e diff (antes/depois) de edições e mudanças de fase. Visível na aba Auditoria com modal de detalhes |
 | Dashboard de métricas do evento | ✅ Implementado | Seção Dashboard do `/eventadmin`: Métricas Gerais (previstos vs cadastrados, média produtos/expositor, média valor produto, completos/incompletos, visitas únicas/total por fase) + Visitas (top/bottom 10 expositores e produtos, pizza por categoria). Gráficos CSS/SVG. ⚠️ Visitas zeradas até `trackVisit()` ser instrumentado [PVT2] |
 | Config de pesos de avaliação (EventAdmin) | ✅ Implementado | Campos Peso Avaliação Visitantes/Jurados (`public/juror_evaluation_weight`) com validação soma ≤ 1, + Expositores Previstos (`exhibitors_estimation`) |
 | Visitas — coluna de fase (pre/live/post) | ✅ Backend pronto | `visits.event_status` + `trackVisit(eventStatus)` prontos; falta instrumentar os cliques [PVT2] |
 | Administração do Evento — Avaliadores/Categorias/Pesos | 🔶 Backend pronto, UI pendente | CRUD de categorias/pesos in `evaluationService`; falta tela de cadastro |
-| Sistema de Sorteios | 🔶 Backend pronto, UI pendente | `raffleService` ok; falta tela e vínculo avaliação→ticket [RN3] |
+| Sistema de Sorteios | ✅ Implementado | `raffle_prizes` (nova tabela) com CRUD no EventAdmin, picker de produto por expositor (nome/descrição/foto do produto), `drawPrize()` persiste ganhador, `setTvRaffleState()` controla telão. Vínculo avaliação→ticket [RN3] ainda pendente |
 | Sistema de Avaliação | 🔶 Backend pronto, UI pendente | Duplicado da linha acima; backend ok, UI pendente |
 | Cadastro de Avisos | ✅ Implementado | Módulo completo com CRUD no Admin, biblioteca de upload de sons no R2 (máx. 3 por evento), dropdown seletor de áudio (silencioso/synth/custom) e envio realtime inteligente |
 | Moderação fotos e comentários | ✅ Implementado | |
@@ -238,6 +238,7 @@ Exemplos:
 - ~~Tabela `sponsors`~~: ✅ Criada (migration 20260519000000_sponsors.sql)
 - ~~Tabelas de avaliação e sorteio~~: ✅ Criadas (migration 20260522000000_evaluations_and_analytics.sql) — `evaluation_categories`, `evaluations`, `juror_evaluations`, `raffle_tickets`, `visits`, `view_exhibitor_rankings`
 - ~~Decisões de [PD2] e [RN2]~~: ✅ Definidas e implementadas
+- ~~Tabela `raffle_prizes` e campos `tv_raffle_prize_id`/`tv_raffle_state` em `events`~~: ✅ Criados (migration `20260602000000_raffle_prizes.sql`) — prêmios com nome, descrição, foto, ordem, ganhador e timestamp do sorteio
 
 ---
 

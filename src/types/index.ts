@@ -70,6 +70,8 @@ export interface EventData {
   announcement_trigger_at?: string | null;
   custom_sounds?: { id: string; name: string; url: string; }[] | null;
   active?: boolean;
+  tv_raffle_prize_id?: string | null;
+  tv_raffle_state?: 'idle' | 'showing_prize' | 'showing_winner' | null;
 }
 
 export interface ExhibitorCategory {
@@ -330,6 +332,22 @@ export interface RaffleTicket {
   event_id: string;
   user_id: string;
   created_at: string;
+  user?: { display_name: string | null; email: string };
+}
+
+export interface RafflePrize {
+  id: string;
+  event_id: string;
+  name: string;
+  description?: string | null;
+  image_url?: string | null;
+  order_index: number;
+  winner_ticket_id?: string | null;
+  drawn_at?: string | null;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  winner?: { display_name: string | null; email: string } | null;
 }
 
 // ─── Visits (Analytics) ──────────────────────────────────────────────────────

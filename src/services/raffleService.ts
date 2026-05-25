@@ -1,12 +1,8 @@
 import { supabase } from '../lib/supabase/client';
-import type { RaffleTicket } from '../types';
+import type { RaffleTicket, RafflePrize } from '../types';
 
-// ─── Criação de Ticket ───────────────────────────────────────────────────────
+// ─── Tickets ─────────────────────────────────────────────────────────────────
 
-/**
- * Gera um ticket de sorteio para o participante.
- * Silenciosamente ignora se o ticket já existe (UNIQUE constraint).
- */
 export async function ensureRaffleTicket(
   eventId: string,
   userId: string,
@@ -26,8 +22,6 @@ export async function ensureRaffleTicket(
   }
   return data as RaffleTicket;
 }
-
-// ─── Consultas ───────────────────────────────────────────────────────────────
 
 export async function getEventTickets(eventId: string): Promise<RaffleTicket[]> {
   if (!supabase) return [];
@@ -62,36 +56,6 @@ export async function hasUserTicket(eventId: string, userId: string): Promise<bo
   return !!data;
 }
 
-// ─── Sorteio Automático ──────────────────────────────────────────────────────
-
-/**
- * Sorteia um ticket aleatório do evento.
- * Retorna null se não houver tickets cadastrados.
- */
-export async function drawRandomTicket(eventId: string): Promise<RaffleTicket | null> {
-  if (!supabase) return null;
-
-  // Busca total de tickets para gerar offset aleatório
-  const total = await getTicketCount(eventId);
-  if (total === 0) return null;
-
-  const randomOffset = Math.floor(Math.random() * total);
-  const { data, error } = await supabase
-    .from('raffle_tickets')
-    .select('*, user:users(display_name, email)')
-    .eq('event_id', eventId)
-    .range(randomOffset, randomOffset)
-    .single();
-
-  if (error) {
-    console.error('[RaffleService] Erro no sorteio:', error);
-    return null;
-  }
-  return data as RaffleTicket;
-}
-
-// ─── Realtime ────────────────────────────────────────────────────────────────
-
 export function subscribeToRaffleTickets(
   eventId: string,
   onUpdate: () => void,
@@ -106,4 +70,161 @@ export function subscribeToRaffleTickets(
     )
     .subscribe();
   return () => { supabase.removeChannel(channel); };
+}
+
+// ─── Prêmios ──────────────────────────────────────────────────────────────────
+
+export async function getPrizes(eventId: string): Promise<RafflePrize[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('raffle_prizes')
+    .select('*, winner:raffle_tickets(user:users(display_name, email))')
+    .eq('event_id', eventId)
+    .order('order_index', { ascending: true });
+  if (error) throw error;
+  // Normaliza join aninhado: winner.user → winner
+  return ((data || []) as any[]).map((p) => ({
+    ...p,
+    winner: p.winner?.user ?? null,
+  })) as RafflePrize[];
+}
+
+export async function getPrize(prizeId: string): Promise<RafflePrize | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('raffle_prizes')
+    .select('*, winner:raffle_tickets(user:users(display_name, email))')
+    .eq('id', prizeId)
+    .single();
+  if (error) return null;
+  return { ...data, winner: (data as any).winner?.user ?? null } as RafflePrize;
+}
+
+export async function createPrize(
+  prize: Pick<RafflePrize, 'event_id' | 'name'> & Partial<Pick<RafflePrize, 'description' | 'image_url' | 'order_index'>>,
+): Promise<RafflePrize | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('raffle_prizes')
+    .insert(prize)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as RafflePrize;
+}
+
+export async function updatePrize(
+  prizeId: string,
+  updates: Partial<Pick<RafflePrize, 'name' | 'description' | 'image_url' | 'order_index' | 'active'>>,
+): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('raffle_prizes')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', prizeId);
+  if (error) throw error;
+}
+
+export async function deletePrize(prizeId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('raffle_prizes')
+    .delete()
+    .eq('id', prizeId);
+  if (error) throw error;
+}
+
+export function subscribeToPrizes(
+  eventId: string,
+  onUpdate: () => void,
+): () => void {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel(`public:raffle_prizes:event_id=eq.${eventId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'raffle_prizes', filter: `event_id=eq.${eventId}` },
+      onUpdate,
+    )
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}
+
+// ─── Sorteio ──────────────────────────────────────────────────────────────────
+
+/**
+ * Sorteia um ticket aleatório, grava o ganhador no prêmio e
+ * atualiza o estado do telão para 'showing_winner'.
+ * Idempotente: retorna o ganhador já gravado se o prêmio já foi sorteado.
+ */
+export async function drawPrize(
+  prizeId: string,
+  eventId: string,
+): Promise<RaffleTicket | null> {
+  if (!supabase) return null;
+
+  // Garante idempotência
+  const existing = await getPrize(prizeId);
+  if (existing?.winner_ticket_id) {
+    const { data } = await supabase
+      .from('raffle_tickets')
+      .select('*, user:users(display_name, email)')
+      .eq('id', existing.winner_ticket_id)
+      .single();
+    return data as RaffleTicket;
+  }
+
+  const total = await getTicketCount(eventId);
+  if (total === 0) return null;
+
+  const randomOffset = Math.floor(Math.random() * total);
+  const { data: ticket, error: ticketError } = await supabase
+    .from('raffle_tickets')
+    .select('*, user:users(display_name, email)')
+    .eq('event_id', eventId)
+    .range(randomOffset, randomOffset)
+    .single();
+
+  if (ticketError || !ticket) {
+    console.error('[RaffleService] Erro no sorteio:', ticketError);
+    return null;
+  }
+
+  // Persiste ganhador no prêmio
+  const { error: updateError } = await supabase
+    .from('raffle_prizes')
+    .update({
+      winner_ticket_id: ticket.id,
+      drawn_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', prizeId);
+
+  if (updateError) {
+    console.error('[RaffleService] Erro ao gravar ganhador:', updateError);
+    return null;
+  }
+
+  // Atualiza estado do telão
+  await setTvRaffleState(eventId, 'showing_winner', prizeId);
+
+  return ticket as RaffleTicket;
+}
+
+// ─── Estado do Telão ─────────────────────────────────────────────────────────
+
+export async function setTvRaffleState(
+  eventId: string,
+  state: 'idle' | 'showing_prize' | 'showing_winner',
+  prizeId?: string | null,
+): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('events')
+    .update({
+      tv_raffle_state: state,
+      tv_raffle_prize_id: prizeId ?? null,
+    })
+    .eq('id', eventId);
+  if (error) throw error;
 }
