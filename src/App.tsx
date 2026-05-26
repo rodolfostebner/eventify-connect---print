@@ -56,10 +56,10 @@ function App() {
         {/* Rotas Admin Geral */}
         <Route path="/" element={<AdminDashboard user={user} />} />
         <Route path="/admin" element={<Navigate to="/" replace />} />
-        <Route path="/moderation/:slug" element={isAdmin ? <ModerationPanel user={user} /> : <Navigate to="/login" replace />} />
+        <Route path="/moderation/:slug" element={(isAdmin || isEventAdmin) ? <ModerationPanel user={user} /> : <Navigate to="/login" replace />} />
         <Route path="/operator/:slug" element={isAdmin ? <OperatorPanel user={user} /> : <Navigate to="/login" replace />} />
-        <Route path="/expositores/:slug" element={isAdmin ? <ExhibitorPanelPage /> : <Navigate to="/login" replace />} />
-        <Route path="/parceiros/:slug" element={isAdmin ? <PartnerPanelPage /> : <Navigate to="/login" replace />} />
+        <Route path="/expositores/:slug" element={(isAdmin || isEventAdmin) ? <ExhibitorPanelPage /> : <Navigate to="/login" replace />} />
+        <Route path="/parceiros/:slug" element={(isAdmin || isEventAdmin) ? <PartnerPanelPage /> : <Navigate to="/login" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

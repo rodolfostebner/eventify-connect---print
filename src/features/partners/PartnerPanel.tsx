@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import {
   ArrowLeft, Plus, Trash2, Save, Upload, X, Handshake,
   ChevronLeft, ChevronRight, BarChart3,
@@ -349,6 +350,7 @@ function PartnerDetail({ partner }: { partner: Partner }) {
 export default function PartnerPanel() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [event, setEvent] = useState<EventData | null>(null);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [selected, setSelected] = useState<Partner | null>(null);
@@ -413,7 +415,7 @@ export default function PartnerPanel() {
     <div className="min-h-screen bg-neutral-50">
       {/* Top Bar */}
       <header className="bg-white border-b border-neutral-100 px-6 py-4 flex items-center gap-4">
-        <button onClick={() => navigate('/')} className="p-2 rounded-lg hover:bg-neutral-100 text-neutral-500 transition-colors">
+        <button onClick={() => navigate(user?.role === 'event_admin' ? '/eventadmin' : '/')} className="p-2 rounded-lg hover:bg-neutral-100 text-neutral-500 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>

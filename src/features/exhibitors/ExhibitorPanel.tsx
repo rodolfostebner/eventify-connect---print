@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import {
   ArrowLeft, Plus, Trash2, Save, Eye, EyeOff,
   Package, Users, ShoppingBag, Phone,
@@ -738,8 +739,8 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
     { key: 'contatos', label: 'Contatos' },
     { key: 'produtos', label: 'Produtos' },
     { key: 'usuarios', label: 'Usuários' },
-    { key: 'leads', label: 'Leads' },
-    { key: 'visualizacoes', label: 'Visitas' },
+    { key: 'leads', label: 'Interessados' },
+    { key: 'visualizacoes', label: 'Visitas ao Stand' },
   ];
 
   return (
@@ -1001,6 +1002,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
 export default function ExhibitorPanel() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [event, setEvent] = useState<EventData | null>(null);
   const [exhibitors, setExhibitors] = useState<Exhibitor[]>([]);
   const [selected, setSelected] = useState<Exhibitor | null>(null);
@@ -1069,7 +1071,7 @@ export default function ExhibitorPanel() {
       {/* Top Bar */}
       <header className="bg-white border-b border-neutral-100 px-4 md:px-6 py-3 md:py-4 flex items-center gap-3 md:gap-4 shrink-0">
         <button
-          onClick={() => selected ? setSelected(null) : navigate('/')}
+          onClick={() => selected ? setSelected(null) : navigate(user?.role === 'event_admin' ? '/eventadmin' : '/')}
           className="p-2 rounded-lg hover:bg-neutral-100 text-neutral-500 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />

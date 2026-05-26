@@ -38,6 +38,7 @@ export function UsersPanel({ events }: UsersPanelProps) {
   const [emailRoles, setEmailRoles] = useState<UserEmailRole[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [search, setSearch] = useState('');
+  const [showParticipants, setShowParticipants] = useState(false);
 
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('admin');
@@ -133,8 +134,9 @@ export function UsersPanel({ events }: UsersPanelProps) {
 
   const filteredUsers = users.filter(
     (u) =>
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      (u.display_name ?? '').toLowerCase().includes(search.toLowerCase()),
+      (showParticipants || u.role !== 'participant') &&
+      (u.email.toLowerCase().includes(search.toLowerCase()) ||
+        (u.display_name ?? '').toLowerCase().includes(search.toLowerCase())),
   );
 
   const eventName = (id: string | null) =>
@@ -246,18 +248,31 @@ export function UsersPanel({ events }: UsersPanelProps) {
             <UserCheck className="w-5 h-5 text-neutral-400" />
             <div>
               <h2 className="text-sm font-bold">Usuários Cadastrados</h2>
-              <p className="text-[10px] text-neutral-400 mt-0.5">{users.length} usuários</p>
+              <p className="text-[10px] text-neutral-400 mt-0.5">{filteredUsers.length} de {users.length} usuários</p>
             </div>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-300" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome ou e-mail..."
-              className="pl-9 pr-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/10 w-64"
-            />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowParticipants((v) => !v)}
+              className={cn(
+                'text-[10px] font-bold px-3 py-1.5 rounded-full border transition-colors',
+                showParticipants
+                  ? 'bg-neutral-900 text-white border-neutral-900'
+                  : 'bg-neutral-50 text-neutral-500 border-neutral-200 hover:border-neutral-400',
+              )}
+            >
+              {showParticipants ? 'Ocultar participantes' : 'Mostrar participantes'}
+            </button>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-300" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar por nome ou e-mail..."
+                className="pl-9 pr-4 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/10 w-64"
+              />
+            </div>
           </div>
         </div>
 

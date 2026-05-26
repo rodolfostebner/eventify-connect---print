@@ -154,7 +154,7 @@ Exemplos:
 | Feed — Sorteios | 🔶 Parcial | Ticket criado por participante ok; vínculo avaliação→ticket [RN3] ainda não implementado |
 | Expositores — CRUD + produtos + usuários | ✅ Implementado | Painel admin `/expositores/:slug` |
 | Expositores — Foto do stand (photo_url) | ✅ Implementado | Upload no painel admin e portal do expositor |
-| Expositores — Leads de pré-venda | ✅ Implementado | Status (novo/atendido/pago/retirado) + exportação CSV/Excel |
+| Expositores — Leads de pré-venda | ✅ Implementado | Status (novo/atendido/pago/retirado) + exportação CSV/Excel. Aba renomeada para "Interessados" no painel admin e portal do expositor |
 | Expositores — Categoria | ✅ Implementado | Tabela dedicada `exhibitor_categories` (id, event_id, name, icon, color, order_index) substituindo array legado em `events.exhibitor_categories`. CRUD completo no EventAdmin. FK `category_id` na tabela `exhibitors`. Combobox no cadastro admin e portal do expositor |
 | Expositores — Campos escolares (tagline/ano/turma/integrantes) | ✅ Implementado | `tagline` (50 chars, exibida no card médio e no detalhe), `ano`, `turma`, `members` (JSON array de nomes). CRUD no painel admin e portal do expositor. Seção "Integrantes" em pills no ExhibitorDetailModal |
 | Parceiros — Painel unificado | ✅ Implementado | `/parceiros/:slug` (ex-`/patrocinadores`). Unifica Patrocinador/Apoiador/Serviço via campo `type`. Abas Dados/Fotos/Contatos Marketing/Visualização. Tabela `partners` (ex-`sponsors`). Campos internos: contato, valor do patrocínio. Flags MostraTelão/MostraFeed |
@@ -164,15 +164,15 @@ Exemplos:
 | Parceiros — Analytics (aba Visualização) | ❌ Não implementado | Ver [PVT3] — sem fonte de dados (visits não rastreia parceiros) |
 | Relatório financeiro do evento (valor de patrocínio) | ❌ Não implementado | `partners.sponsorship_value` já é capturado; falta tela/exportação do relatório financeiro |
 | Perfil Expositor (portal dedicado) | ✅ Implementado | `/expositor` com Supabase Auth |
-| Perfil EventAdmin | ✅ Implementado | Portal `/eventadmin` dedicado (substitui acúmulo no Admin) |
+| Perfil EventAdmin | ✅ Implementado | Portal `/eventadmin` dedicado (substitui acúmulo no Admin). Acesso completo às telas do evento: moderação, expositores e parceiros. Botão voltar nessas telas redireciona para `/eventadmin` |
 | Perfil Avaliador | ✅ implementado | via cadastro de usuarios |
 | Sistema de Avaliação | 🔶 Backend pronto, UI pendente | Tabelas + `evaluationService` + view de ranking ok; falta módulo `src/features/evaluation/` |
 | Painel TV — Fotos + Rankings | ✅ Implementado | Ranking por curtidas; ranking ponderado (`view_exhibitor_rankings`) ainda não exibido na TV |
 | Painel TV — Carrossel expositores | ❌ Não implementado | |
 | Painel TV — Sorteios | ✅ Implementado | Overlay `showing_prize` (foto do prêmio em tela cheia) + `showing_winner` (tambor giratório com nomes dos participantes, para no ganhador). Estado controlado por `tv_raffle_state` + `tv_raffle_prize_id` em `events` via realtime |
-| Painel TV — Avisos | ✅ Implementado | Sino premium sintetizado (5 presets via Web Audio API) e reprodução de áudios customizados (upload de até 3 arquivos R2 por evento), com exibição reativa em tela cheia com Framer Motion e autoplay bypass |
+| Painel TV — Avisos | ✅ Implementado | Sino premium sintetizado (5 presets via Web Audio API) e reprodução de áudios customizados (upload de até 3 arquivos R2 por evento), com exibição reativa em tela cheia com Framer Motion e autoplay bypass. Áudio interrompido (`.pause()`) quando o aviso some |
 | Painel TV — Parceiros | ❌ Não implementado | Cadastro unificado pronto (`partners` + flag `show_on_tv`); falta o carrossel na TV consumir a flag |
-| Administração Geral — Dashboard redesenhado | ✅ Implementado | Full-width, botão '+' inline, EventCard com ícones |
+| Administração Geral — Dashboard redesenhado | ✅ Implementado | Full-width, botão '+' inline, EventCard com ícones. Painel de usuários oculta participantes por padrão (toggle "Mostrar participantes") |
 | Administração do Evento — base | ✅ Implementado | |
 | Tela de Administração do Evento (`/eventadmin`) | ✅ Implementado | Seção fixa de controles + acordeons (Dashboard, Configurações com 8 abas). Acesso: admin geral (engrenagem do card → `/eventadmin/:slug`) e event_admin (tela de entrada). Abas Dados/Aparência/Configurações/Avaliação/Sorteio funcionais; Relatórios/Marketing em branco |
 | Auditoria de alterações do evento | ✅ Implementado | Tabela `audit_logs` + `auditService`; registra autor e diff (antes/depois) de edições e mudanças de fase. Visível na aba Auditoria com modal de detalhes |

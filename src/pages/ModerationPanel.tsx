@@ -165,7 +165,7 @@ export default function ModerationPanel({ user }: { user: AppUser | null }) {
       <header className="max-w-6xl mx-auto flex flex-col gap-10 mb-12">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <button onClick={() => navigate('/')} className="p-3 bg-white hover:bg-neutral-50 rounded-2xl shadow-sm border border-neutral-100 transition-all">
+            <button onClick={() => navigate(user?.role === 'event_admin' ? '/eventadmin' : '/')} className="p-3 bg-white hover:bg-neutral-50 rounded-2xl shadow-sm border border-neutral-100 transition-all">
               <ArrowLeft className="w-6 h-6" />
             </button>
             <div>

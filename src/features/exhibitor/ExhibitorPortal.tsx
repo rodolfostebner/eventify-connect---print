@@ -822,8 +822,8 @@ export default function ExhibitorPortal() {
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     { key: 'perfil', label: 'Perfil', icon: <Package className="w-4 h-4" /> },
     { key: 'produtos', label: 'Produtos', icon: <ShoppingBag className="w-4 h-4" /> },
-    { key: 'leads', label: 'Leads', icon: <Phone className="w-4 h-4" /> },
-    { key: 'visualizacoes', label: 'Visitas', icon: <BarChart2 className="w-4 h-4" /> },
+    { key: 'leads', label: 'Interessados', icon: <Phone className="w-4 h-4" /> },
+    { key: 'visualizacoes', label: 'Visitas ao Stand', icon: <BarChart2 className="w-4 h-4" /> },
   ];
 
   return (

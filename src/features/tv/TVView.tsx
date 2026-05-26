@@ -184,9 +184,9 @@ function playSynthRetro() {
   }
 }
 
-function playNotificationSound(audioUrl: string | null) {
+function playNotificationSound(audioUrl: string | null): HTMLAudioElement | null {
   try {
-    if (!audioUrl || audioUrl === 'silent') return;
+    if (!audioUrl || audioUrl === 'silent') return null;
 
     if (audioUrl.startsWith('http://') || audioUrl.startsWith('https://')) {
       const audio = new Audio(audioUrl);
@@ -194,7 +194,7 @@ function playNotificationSound(audioUrl: string | null) {
       audio.play().catch(err => {
         console.error('Failed to play custom announcement audio file:', err);
       });
-      return;
+      return audio;
     }
 
     switch (audioUrl) {
@@ -216,8 +216,10 @@ function playNotificationSound(audioUrl: string | null) {
       default:
         playSynthClassic();
     }
+    return null;
   } catch (err) {
     console.error('Error playing announcement sound:', err);
+    return null;
   }
 }
 
@@ -505,6 +507,7 @@ export default function TVView() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [activeAnnouncement, setActiveAnnouncement] = useState<Announcement | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const announcementAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Fetch and handle active announcements in real-time
   useEffect(() => {
@@ -535,7 +538,8 @@ export default function TVView() {
               
               // Play synthesized chime
               if (soundEnabled) {
-                playNotificationSound(ann.audio_url || 'synth_classic');
+                const audio = playNotificationSound(ann.audio_url || 'synth_classic');
+                if (audio) announcementAudioRef.current = audio;
               }
 
               // Auto-dismiss after show_duration_sec
@@ -554,8 +558,10 @@ export default function TVView() {
 
     return () => {
       active = false;
-      if (timerId) {
-        clearTimeout(timerId);
+      if (timerId) clearTimeout(timerId);
+      if (announcementAudioRef.current) {
+        announcementAudioRef.current.pause();
+        announcementAudioRef.current = null;
       }
     };
   }, [event?.active_announcement_id, event?.announcement_trigger_at, soundEnabled]);
