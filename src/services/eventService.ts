@@ -47,6 +47,35 @@ export function subscribeToEvents(
   };
 }
 
+// Helper for executing queries with retry in case of lock issues
+async function executeWithRetry<T>(operation: () => Promise<{ data: T | null; error: any }>): Promise<T | null> {
+  if (!supabase) return null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const { data, error } = await operation();
+      if (error) {
+        const errMsg = error.message || '';
+        if (errMsg.includes('lock') || errMsg.includes('Lock') || errMsg.includes('stole')) {
+          console.warn(`[EventService] Lock collision detected on attempt ${attempt}. Retrying in ${attempt * 150}ms...`);
+          await new Promise(resolve => setTimeout(resolve, attempt * 150));
+          continue;
+        }
+        throw error;
+      }
+      return data;
+    } catch (err: any) {
+      const errMsg = err.message || '';
+      if ((errMsg.includes('lock') || errMsg.includes('Lock') || errMsg.includes('stole')) && attempt < 3) {
+        console.warn(`[EventService] Promise rejected with lock error on attempt ${attempt}. Retrying...`);
+        await new Promise(resolve => setTimeout(resolve, attempt * 150));
+        continue;
+      }
+      throw err;
+    }
+  }
+  return null;
+}
+
 /**
  * Subscribe to a single event by slug.
  */
@@ -59,15 +88,19 @@ export function subscribeToEvent(
 
   const cleanSlug = slug.trim().toLowerCase();
 
-  // Initial fetch
-  supabase
-    .from('events')
-    .select('*')
-    .eq('slug', cleanSlug)
-    .maybeSingle()
-    .then(({ data, error }) => {
-      if (error) onError?.(error);
-      else onUpdate(data as EventData | null);
+  // Initial fetch with lock retry logic
+  executeWithRetry(() => 
+    supabase
+      .from('events')
+      .select('*')
+      .eq('slug', cleanSlug)
+      .maybeSingle()
+  )
+    .then((data) => {
+      onUpdate(data);
+    })
+    .catch((error) => {
+      onError?.(error);
     });
 
   // Real-time subscription
@@ -101,13 +134,13 @@ export function subscribeToEvent(
  */
 export async function getEventById(id: string): Promise<EventData | null> {
   if (!supabase) return null;
-  const { data, error } = await supabase
-    .from('events')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
-  if (error) throw error;
-  return data as EventData | null;
+  return await executeWithRetry(() => 
+    supabase
+      .from('events')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+  );
 }
 
 /**
@@ -115,13 +148,13 @@ export async function getEventById(id: string): Promise<EventData | null> {
  */
 export async function getEventBySlug(slug: string): Promise<EventData | null> {
   if (!supabase) return null;
-  const { data, error } = await supabase
-    .from('events')
-    .select('*')
-    .eq('slug', slug.trim().toLowerCase())
-    .maybeSingle();
-  if (error) throw error;
-  return data as EventData | null;
+  return await executeWithRetry(() => 
+    supabase
+      .from('events')
+      .select('*')
+      .eq('slug', slug.trim().toLowerCase())
+      .maybeSingle()
+  );
 }
 
 /**
