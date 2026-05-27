@@ -27,7 +27,7 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
   activeSyncPromise = (async () => {
     try {
       // Função auxiliar para executar consultas com retry em caso de erro de lock do Supabase (Web Locks API)
-      const executeWithRetry = async <T>(operation: () => Promise<{ data: T | null; error: any }>): Promise<T | null> => {
+      const executeWithRetry = async <T>(operation: () => any): Promise<T | null> => {
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
             const { data, error } = await operation();
@@ -57,7 +57,7 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
       // 1. Busca pelo supabase_user_id — caminho rápido após o primeiro login
       let byUid = null;
       try {
-        byUid = await executeWithRetry(() => 
+        byUid = await executeWithRetry<AppUser>(() => 
           supabase
             .from('users')
             .select('*')
@@ -69,7 +69,7 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
       }
 
       if (byUid) {
-        await executeWithRetry(() => 
+        await executeWithRetry<any>(() => 
           supabase.from('users').update({
             display_name: authUser.user_metadata?.full_name ?? byUid.display_name,
             photo_url: authUser.user_metadata?.avatar_url ?? byUid.photo_url,
@@ -83,7 +83,7 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
       // 2. Busca por email — limit(1) garante que funciona mesmo se houver duplicatas
       let byEmail = null;
       try {
-        const emailRows = await executeWithRetry(() => 
+        const emailRows = await executeWithRetry<AppUser[]>(() => 
           supabase
             .from('users')
             .select('*')
@@ -98,7 +98,7 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
 
       if (byEmail) {
         // Vincula o supabase_user_id ao registro existente (por id, não por email)
-        await executeWithRetry(() => 
+        await executeWithRetry<any>(() => 
           supabase.from('users').update({
             supabase_user_id: authUser.id,
             display_name: authUser.user_metadata?.full_name ?? byEmail.display_name,
@@ -113,7 +113,7 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
       // 3. Usuário novo — verifica pré-cadastro de role
       let preReg = null;
       try {
-        preReg = await executeWithRetry(() => 
+        preReg = await executeWithRetry<UserEmailRole>(() => 
           supabase
             .from('user_email_roles')
             .select('*')
@@ -124,7 +124,7 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
         console.warn('[UserService] pre-registration lookup error:', preError.message);
       }
 
-      const created = await executeWithRetry(() => 
+      const created = await executeWithRetry<AppUser>(() => 
         supabase
           .from('users')
           .insert({
@@ -146,7 +146,7 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
       }
 
       if (preReg) {
-        await executeWithRetry(() => 
+        await executeWithRetry<any>(() => 
           supabase.from('user_email_roles').delete().eq('email', email)
           .select()
         );

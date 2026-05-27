@@ -48,7 +48,7 @@ export function subscribeToEvents(
 }
 
 // Helper for executing queries with retry in case of lock issues
-async function executeWithRetry<T>(operation: () => Promise<{ data: T | null; error: any }>): Promise<T | null> {
+async function executeWithRetry<T>(operation: () => any): Promise<T | null> {
   if (!supabase) return null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -89,7 +89,7 @@ export function subscribeToEvent(
   const cleanSlug = slug.trim().toLowerCase();
 
   // Initial fetch with lock retry logic
-  executeWithRetry(() => 
+  executeWithRetry<EventData>(() => 
     supabase
       .from('events')
       .select('*')
@@ -134,7 +134,7 @@ export function subscribeToEvent(
  */
 export async function getEventById(id: string): Promise<EventData | null> {
   if (!supabase) return null;
-  return await executeWithRetry(() => 
+  return await executeWithRetry<EventData>(() => 
     supabase
       .from('events')
       .select('*')
@@ -148,7 +148,7 @@ export async function getEventById(id: string): Promise<EventData | null> {
  */
 export async function getEventBySlug(slug: string): Promise<EventData | null> {
   if (!supabase) return null;
-  return await executeWithRetry(() => 
+  return await executeWithRetry<EventData>(() => 
     supabase
       .from('events')
       .select('*')
