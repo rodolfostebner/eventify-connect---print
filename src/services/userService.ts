@@ -19,137 +19,79 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
 
   // Deduplicar chamadas concorrentes para o mesmo usuário
   if (activeSyncPromise && activeSyncUserId === authUser.id) {
-    console.log('[UserService] Retornando promessa de sincronização ativa para evitar conflito de locks.');
     return activeSyncPromise;
   }
 
   activeSyncUserId = authUser.id;
   activeSyncPromise = (async () => {
     try {
-      // Função auxiliar para executar consultas com retry em caso de erro de lock do Supabase (Web Locks API)
-      const executeWithRetry = async <T>(operation: () => any): Promise<T | null> => {
-        for (let attempt = 1; attempt <= 3; attempt++) {
-          try {
-            const { data, error } = await operation();
-            if (error) {
-              const errMsg = error.message || '';
-              if (errMsg.includes('lock') || errMsg.includes('Lock') || errMsg.includes('stole')) {
-                console.warn(`[UserService] Lock collision detected on attempt ${attempt}. Retrying in ${attempt * 150}ms...`);
-                await new Promise(resolve => setTimeout(resolve, attempt * 150));
-                continue;
-              }
-              throw error;
-            }
-            return data;
-          } catch (err: any) {
-            const errMsg = err.message || '';
-            if ((errMsg.includes('lock') || errMsg.includes('Lock') || errMsg.includes('stole')) && attempt < 3) {
-              console.warn(`[UserService] Promise rejected with lock error on attempt ${attempt}. Retrying...`);
-              await new Promise(resolve => setTimeout(resolve, attempt * 150));
-              continue;
-            }
-            throw err;
-          }
-        }
-        return null;
-      };
-
       // 1. Busca pelo supabase_user_id — caminho rápido após o primeiro login
-      let byUid = null;
-      try {
-        byUid = await executeWithRetry<AppUser>(() => 
-          supabase
-            .from('users')
-            .select('*')
-            .eq('supabase_user_id', authUser.id)
-            .maybeSingle()
-        );
-      } catch (uidError: any) {
+      const { data: byUid, error: uidError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('supabase_user_id', authUser.id)
+        .maybeSingle();
+
+      if (uidError) {
         console.warn('[UserService] supabase_user_id lookup error:', uidError.message);
       }
 
       if (byUid) {
-        await executeWithRetry<any>(() => 
-          supabase.from('users').update({
-            display_name: authUser.user_metadata?.full_name ?? byUid.display_name,
-            photo_url: authUser.user_metadata?.avatar_url ?? byUid.photo_url,
-          }).eq('supabase_user_id', authUser.id)
-          .select()
-          .maybeSingle()
-        );
+        await supabase.from('users').update({
+          display_name: authUser.user_metadata?.full_name ?? byUid.display_name,
+          photo_url: authUser.user_metadata?.avatar_url ?? byUid.photo_url,
+        }).eq('supabase_user_id', authUser.id);
         return byUid as AppUser;
       }
 
       // 2. Busca por email — limit(1) garante que funciona mesmo se houver duplicatas
-      let byEmail = null;
-      try {
-        const emailRows = await executeWithRetry<AppUser[]>(() => 
-          supabase
-            .from('users')
-            .select('*')
-            .eq('email', email)
-            .order('created_at', { ascending: true })
-            .limit(1)
-        );
-        byEmail = emailRows?.[0] ?? null;
-      } catch (emailError: any) {
-        console.warn('[UserService] email lookup error:', emailError.message);
-      }
+      const { data: emailRows } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .order('created_at', { ascending: true })
+        .limit(1);
+
+      const byEmail = emailRows?.[0] ?? null;
 
       if (byEmail) {
         // Vincula o supabase_user_id ao registro existente (por id, não por email)
-        await executeWithRetry<any>(() => 
-          supabase.from('users').update({
-            supabase_user_id: authUser.id,
-            display_name: authUser.user_metadata?.full_name ?? byEmail.display_name,
-            photo_url: authUser.user_metadata?.avatar_url ?? byEmail.photo_url,
-          }).eq('id', byEmail.id)
-          .select()
-          .maybeSingle()
-        );
+        await supabase.from('users').update({
+          supabase_user_id: authUser.id,
+          display_name: authUser.user_metadata?.full_name ?? byEmail.display_name,
+          photo_url: authUser.user_metadata?.avatar_url ?? byEmail.photo_url,
+        }).eq('id', byEmail.id);
         return { ...byEmail, supabase_user_id: authUser.id } as AppUser;
       }
 
       // 3. Usuário novo — verifica pré-cadastro de role
-      let preReg = null;
-      try {
-        preReg = await executeWithRetry<UserEmailRole>(() => 
-          supabase
-            .from('user_email_roles')
-            .select('*')
-            .eq('email', email)
-            .maybeSingle()
-        );
-      } catch (preError: any) {
-        console.warn('[UserService] pre-registration lookup error:', preError.message);
-      }
+      const { data: preReg } = await supabase
+        .from('user_email_roles')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
 
-      const created = await executeWithRetry<AppUser>(() => 
-        supabase
-          .from('users')
-          .insert({
-            supabase_user_id: authUser.id,
-            email,
-            display_name: authUser.user_metadata?.full_name ?? null,
-            photo_url: authUser.user_metadata?.avatar_url ?? null,
-            role: (preReg?.role as UserRole) ?? 'participant',
-            event_id: preReg?.event_id ?? null,
-            exhibitor_id: preReg?.exhibitor_id ?? null,
-          })
-          .select()
-          .single()
-      );
+      const { data: created, error } = await supabase
+        .from('users')
+        .insert({
+          supabase_user_id: authUser.id,
+          email,
+          display_name: authUser.user_metadata?.full_name ?? null,
+          photo_url: authUser.user_metadata?.avatar_url ?? null,
+          role: (preReg?.role as UserRole) ?? 'participant',
+          event_id: preReg?.event_id ?? null,
+          exhibitor_id: preReg?.exhibitor_id ?? null,
+        })
+        .select()
+        .single();
 
-      if (!created) {
-        console.error('[UserService] Erro ao criar usuário: retorno nulo');
+      if (error) {
+        console.error('[UserService] Erro ao criar usuário:', error);
         return null;
       }
 
       if (preReg) {
-        await executeWithRetry<any>(() => 
-          supabase.from('user_email_roles').delete().eq('email', email)
-          .select()
-        );
+        await supabase.from('user_email_roles').delete().eq('email', email);
       }
 
       return created as AppUser;
@@ -157,7 +99,6 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
       console.error('[UserService] Erro na sincronização do usuário:', error);
       return null;
     } finally {
-      // Limpar estado após finalizar
       activeSyncPromise = null;
       activeSyncUserId = null;
     }
@@ -180,35 +121,12 @@ export async function listUsers(): Promise<AppUser[]> {
 
 export async function updateUserRole(userId: string, role: UserRole, eventId?: string | null, exhibitorId?: string | null): Promise<void> {
   if (!supabase) return;
-  
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const { error } = await supabase.from('users').update({
-        role,
-        event_id: eventId ?? null,
-        exhibitor_id: exhibitorId ?? null,
-      }).eq('id', userId);
-      
-      if (error) {
-        const errMsg = error.message || '';
-        if ((errMsg.includes('lock') || errMsg.includes('Lock') || errMsg.includes('stole')) && attempt < 3) {
-          console.warn(`[UserService] Lock collision in updateUserRole attempt ${attempt}. Retrying in ${attempt * 150}ms...`);
-          await new Promise(resolve => setTimeout(resolve, attempt * 150));
-          continue;
-        }
-        throw error;
-      }
-      return;
-    } catch (err: any) {
-      const errMsg = err.message || '';
-      if ((errMsg.includes('lock') || errMsg.includes('Lock') || errMsg.includes('stole')) && attempt < 3) {
-        console.warn(`[UserService] Lock collision in updateUserRole attempt ${attempt}. Retrying in ${attempt * 150}ms...`);
-        await new Promise(resolve => setTimeout(resolve, attempt * 150));
-        continue;
-      }
-      throw err;
-    }
-  }
+  const { error } = await supabase.from('users').update({
+    role,
+    event_id: eventId ?? null,
+    exhibitor_id: exhibitorId ?? null,
+  }).eq('id', userId);
+  if (error) throw error;
 }
 
 // ─── Pré-cadastro de email com role ──────────────────────────────────────────
