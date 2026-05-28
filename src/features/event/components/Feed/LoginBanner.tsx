@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { Mail } from 'lucide-react';
 
 interface LoginBannerProps {
   onLogin: () => void;
@@ -16,12 +17,13 @@ export const LoginBanner = ({ onLogin }: LoginBannerProps) => {
       <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest mb-6">Entre para postar e interagir</p>
       <button
         onClick={onLogin}
-        className="w-full py-4 bg-neutral-900 text-white rounded-2xl font-black text-xs flex items-center justify-center gap-3 shadow-lg"
+        className="w-full py-4 bg-neutral-900 text-white rounded-2xl font-black text-xs flex items-center justify-center gap-3 shadow-lg active:scale-[0.98] transition-all hover:bg-neutral-800"
       >
-        <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="Google" />
-        Entrar com Google
+        <Mail className="w-4 h-4" />
+        Acessar com E-mail ou Google
       </button>
       <p className="text-[9px] text-neutral-300 mt-4 font-bold uppercase tracking-tighter">Identificação automática Koala's Memories</p>
     </motion.div>
   );
 };
+
