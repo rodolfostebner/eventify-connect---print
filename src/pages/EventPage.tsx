@@ -51,7 +51,9 @@ function LoginModal({ onClose }: { onClose: () => void }) {
     if (!email.trim()) return;
     setSending(true);
     try {
-      await loginWithMagicLink(email.trim());
+      // Salva a URL atual para redirecionar após a autenticação via magic link
+      localStorage.setItem('magic_link_redirect', window.location.href);
+      await loginWithMagicLink(email.trim(), window.location.href);
       setSent(true);
     } catch {
       toast.error('Erro ao enviar link. Tente novamente.');
@@ -302,7 +304,7 @@ export default function EventPage({ user }: { user: AppUser | null }) {
       await createPrintOrder({
         eventId: event?.id ?? '',
         userId: user.id,
-        userName: user.display_name || 'Anônimo',
+        userName: user.display_name || user.email || 'Anônimo',
         userEmail: user.email ?? undefined,
         photoIds: selectedPrintPhotos,
         option: printOption,

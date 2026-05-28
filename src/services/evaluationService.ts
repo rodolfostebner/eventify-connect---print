@@ -93,12 +93,35 @@ export async function getExhibitorEvaluations(exhibitorId: string): Promise<Eval
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('evaluations')
-    .select('*')
+    .select('*, user:users(display_name, photo_url)')
     .eq('exhibitor_id', exhibitorId)
     .order('created_at', { ascending: false });
   if (error) throw error;
   return (data || []) as Evaluation[];
 }
+
+export async function updateEvaluation(
+  id: string,
+  stars: number,
+  comment: string | null,
+): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('evaluations')
+    .update({ stars, comment })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteEvaluation(id: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('evaluations')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
 
 // ─── Avaliações dos Jurados (por categoria) ──────────────────────────────────
 

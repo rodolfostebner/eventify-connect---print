@@ -121,11 +121,26 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
 
   useEffect(() => {
     if (!user) return;
+    if (user.role !== 'admin') {
+      if (user.role === 'event_admin') {
+        navigate('/eventadmin', { replace: true });
+      } else if (user.role === 'expositor') {
+        navigate('/expositor', { replace: true });
+      } else if (user.role === 'avaliador') {
+        navigate('/avaliador', { replace: true });
+      } else if (user.role === 'participant') {
+        const lastSlug = localStorage.getItem('last_event_slug');
+        if (lastSlug) {
+          navigate(`/event/${lastSlug}`, { replace: true });
+        }
+      }
+      return;
+    }
     return subscribeToEvents(
       (eventList) => setEvents(eventList),
       (error) => console.error('Error fetching events:', error),
     );
-  }, [user]);
+  }, [user, navigate]);
 
   const updateStatus = async (eventId: string, status: 'pre' | 'live' | 'post') => {
     try {

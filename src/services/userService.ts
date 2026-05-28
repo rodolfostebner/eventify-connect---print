@@ -37,11 +37,13 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
       }
 
       if (byUid) {
+        const resolvedName = authUser.user_metadata?.full_name ?? byUid.display_name ?? email;
+        const resolvedPhoto = authUser.user_metadata?.avatar_url ?? byUid.photo_url;
         await supabase.from('users').update({
-          display_name: authUser.user_metadata?.full_name ?? byUid.display_name,
-          photo_url: authUser.user_metadata?.avatar_url ?? byUid.photo_url,
+          display_name: resolvedName,
+          photo_url: resolvedPhoto,
         }).eq('supabase_user_id', authUser.id);
-        return byUid as AppUser;
+        return { ...byUid, display_name: resolvedName, photo_url: resolvedPhoto } as AppUser;
       }
 
       // 2. Busca por email — limit(1) garante que funciona mesmo se houver duplicatas
@@ -55,13 +57,15 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
       const byEmail = emailRows?.[0] ?? null;
 
       if (byEmail) {
+        const resolvedName = authUser.user_metadata?.full_name ?? byEmail.display_name ?? email;
+        const resolvedPhoto = authUser.user_metadata?.avatar_url ?? byEmail.photo_url;
         // Vincula o supabase_user_id ao registro existente (por id, não por email)
         await supabase.from('users').update({
           supabase_user_id: authUser.id,
-          display_name: authUser.user_metadata?.full_name ?? byEmail.display_name,
-          photo_url: authUser.user_metadata?.avatar_url ?? byEmail.photo_url,
+          display_name: resolvedName,
+          photo_url: resolvedPhoto,
         }).eq('id', byEmail.id);
-        return { ...byEmail, supabase_user_id: authUser.id } as AppUser;
+        return { ...byEmail, supabase_user_id: authUser.id, display_name: resolvedName, photo_url: resolvedPhoto } as AppUser;
       }
 
       // 3. Usuário novo — verifica pré-cadastro de role
@@ -76,7 +80,7 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
         .insert({
           supabase_user_id: authUser.id,
           email,
-          display_name: authUser.user_metadata?.full_name ?? null,
+          display_name: authUser.user_metadata?.full_name ?? email,
           photo_url: authUser.user_metadata?.avatar_url ?? null,
           role: (preReg?.role as UserRole) ?? 'participant',
           event_id: preReg?.event_id ?? null,
@@ -185,7 +189,15 @@ export async function findOrCreateUserByEmail(email: string): Promise<AppUser | 
     .order('created_at', { ascending: true })
     .limit(1);
 
-  if (rows?.[0]) return rows[0] as AppUser;
+  if (rows?.[0]) {
+    const existing = rows[0] as AppUser;
+    // Se display_name estiver vazio, atualiza com o email
+    if (!existing.display_name) {
+      await supabase.from('users').update({ display_name: normalizedEmail }).eq('id', existing.id);
+      return { ...existing, display_name: normalizedEmail } as AppUser;
+    }
+    return existing;
+  }
 
   const { data: preReg } = await supabase
     .from('user_email_roles')

@@ -191,17 +191,17 @@ Exemplos:
 
 | Item | Status |
 |------|--------|
-| `authService.ts` — placeholder comentado | Código órfão — remover |
-| Modal de login em `EventPage.tsx` | Só exibe botão Google atualmente |
-| Supabase `signInWithOtp({ email })` | ❌ Não implementado |
-| Handler de retorno da magic link URL | ❌ Não implementado |
-| Hook de auth para participantes via Supabase | ❌ Não implementado |
+| `authService.ts` — suporte a OTP | ✅ Resolvido — `loginWithMagicLink` ativo |
+| Modal de login em `EventPage.tsx` | ✅ Resolvido — Campo de e-mail e Google integrados no modal do feed |
+| Supabase `signInWithOtp({ email })` | ✅ Resolvido — Integrado no service e nos fluxos de login |
+| Handler de retorno da magic link URL | ✅ Resolvido — Supabase Auth client gerencia tokens de retorno automaticamente no AuthProvider |
+| Hook de auth para participantes via Supabase | ✅ Resolvido — Integrado ao `useAuth.ts` |
 
-**O que implementar:**
-1. Novo modal de login com campo de email (convive com botão Google como opção alternativa)
-2. Chamar `supabase.auth.signInWithOtp({ email })` no submit
-3. Tratar retorno da URL com token (Supabase redireciona de volta após clique no link)
-4. Integrar com `useAuth.ts` ou criar hook paralelo para sessão Supabase do participante
+**Implementado:**
+1. Banner do Feed atualizado para "Acessar com E-mail ou Google", indicando explicitamente a opção sem login externo.
+2. Novo modal de login unificado contendo o campo de e-mail integrado para disparo de OTP (Magic Link).
+3. Resgate automático de sessão de retorno via Supabase no `AuthProvider` na inicialização do aplicativo.
+4. Identificação segura e normalização de dados do visitante associado ao evento.
 
 **Motivação:** evitar dependência exclusiva do Google OAuth, que pode restringir acesso a alguns visitantes. Magic link cobre quem não tem conta Google ou prefere não usar.
 
