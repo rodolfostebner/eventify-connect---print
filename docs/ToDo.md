@@ -167,8 +167,8 @@ Exemplos:
 | Relatório financeiro do evento (valor de patrocínio) | ❌ Não implementado | `partners.sponsorship_value` já é capturado; falta tela/exportação do relatório financeiro |
 | Perfil Expositor (portal dedicado) | ✅ Implementado | `/expositor` com Supabase Auth |
 | Perfil EventAdmin | ✅ Implementado | Portal `/eventadmin` dedicado (substitui acúmulo no Admin). Acesso completo às telas do evento: moderação, expositores e parceiros. Botão voltar nessas telas redireciona para `/eventadmin` |
-| Perfil Avaliador | ✅ implementado | via cadastro de usuarios |
-| Sistema de Avaliação | 🔶 Backend pronto, UI pendente | Tabelas + `evaluationService` + view de ranking ok; falta módulo `src/features/evaluation/` |
+| Perfil Avaliador | ✅ Implementado | Via cadastro de usuários; AvaliadorPage completa em `src/features/avaliador/AvaliadorPage.tsx` — tabela de expositores com status por avaliador, fluxo sequencial de avaliação por categoria (notas 0.0–5.0 com ±0.5), dados da comunidade por expositor |
+| Sistema de Avaliação | ✅ Implementado | `AvaliadorPage` com tabela + fluxo de cards, `ControleAvaliacoesSection` no EventAdmin (encerrar/calcular/reabrir/publicar), route `/avaliacao/:slug` para admin/event_admin em modo read-only; view `view_exhibitor_rankings` consumida |
 | Painel TV — Fotos + Rankings | ✅ Implementado | Ranking por curtidas; ranking ponderado (`view_exhibitor_rankings`) ainda não exibido na TV |
 | Painel TV — Carrossel expositores | ❌ Não implementado | |
 | Painel TV — Sorteios | ✅ Implementado | Overlay `showing_prize` (foto do prêmio em tela cheia) + `showing_winner` (tambor giratório com nomes dos participantes, para no ganhador). Estado controlado por `tv_raffle_state` + `tv_raffle_prize_id` em `events` via realtime |
@@ -181,9 +181,8 @@ Exemplos:
 | Dashboard de métricas do evento | ✅ Implementado | Seção Dashboard do `/eventadmin`: Métricas Gerais (previstos vs cadastrados, média produtos/expositor, média valor produto, completos/incompletos, visitas únicas/total por fase) + Visitas (top/bottom 10 expositores e produtos, pizza por categoria). Gráficos CSS/SVG. ⚠️ Visitas zeradas até `trackVisit()` ser instrumentado [PVT2] |
 | Config de pesos de avaliação (EventAdmin) | ✅ Implementado | Campos Peso Avaliação Visitantes/Jurados (`public/juror_evaluation_weight`) com validação soma ≤ 1, + Expositores Previstos (`exhibitors_estimation`) |
 | Visitas — coluna de fase (pre/live/post) | ✅ Backend pronto | `visits.event_status` + `trackVisit(eventStatus)` prontos; falta instrumentar os cliques [PVT2] |
-| Administração do Evento — Avaliadores/Categorias/Pesos | 🔶 Backend pronto, UI pendente | CRUD de categorias/pesos in `evaluationService`; falta tela de cadastro |
+| Administração do Evento — Avaliadores/Categorias/Pesos | ✅ Implementado | CRUD de categorias + pesos nas abas Config/Avaliação do EventAdmin; `ControleAvaliacoesSection` com encerrar/calcular ranking/reabrir/publicar + editor inline de pesos público/jurado |
 | Sistema de Sorteios | ✅ Implementado | `raffle_prizes` (nova tabela) com CRUD no EventAdmin, picker de produto por expositor (nome/descrição/foto do produto), `drawPrize()` persiste ganhador, `setTvRaffleState()` controla telão. Vínculo avaliação→ticket [RN3] ainda pendente |
-| Sistema de Avaliação | 🔶 Backend pronto, UI pendente | Duplicado da linha acima; backend ok, UI pendente |
 | Cadastro de Avisos | ✅ Implementado | Módulo completo com CRUD no Admin, biblioteca de upload de sons no R2 (máx. 3 por evento), dropdown seletor de áudio (silencioso/synth/custom) e envio realtime inteligente |
 | Moderação fotos e comentários | ✅ Implementado | |
 
@@ -241,6 +240,7 @@ Exemplos:
 - ~~Tabelas de avaliação e sorteio~~: ✅ Criadas (migration 20260522000000_evaluations_and_analytics.sql) — `evaluation_categories`, `evaluations`, `juror_evaluations`, `raffle_tickets`, `visits`, `view_exhibitor_rankings`
 - ~~Decisões de [PD2] e [RN2]~~: ✅ Definidas e implementadas
 - ~~Tabela `raffle_prizes` e campos `tv_raffle_prize_id`/`tv_raffle_state` em `events`~~: ✅ Criados (migration `20260602000000_raffle_prizes.sql`) — prêmios com nome, descrição, foto, ordem, ganhador e timestamp do sorteio
+- ~~Campo `evaluation_status` em `events`~~: ✅ Criado (migration `20260604000000_evaluation_status.sql`) — ciclo de vida `open → closed → published` controlado pelo EventAdmin
 
 ---
 
