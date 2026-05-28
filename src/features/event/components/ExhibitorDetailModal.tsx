@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { X, Instagram, MessageCircle, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import type { Exhibitor, ExhibitorCategory, AppUser, EventData, Product } from '../../../types';
+import type { Exhibitor, ExhibitorCategory, AppUser, EventData, Product, Evaluation } from '../../../types';
 import { trackVisit } from '../../../services/visitService';
 import { getProducts } from '../../../services/productService';
 import { ExhibitorCatalogModal } from './ExhibitorCatalogModal';
+import { getExhibitorEvaluations } from '../../../services/evaluationService';
+import { ExhibitorRatingSummary } from '../../evaluation/components/ExhibitorRatingSummary';
+import { EvaluationModal } from '../../evaluation/components/EvaluationModal';
+import { EvaluationListModal } from '../../evaluation/components/EvaluationListModal';
+
 
 interface Props {
   exhibitor: Exhibitor;
@@ -19,9 +24,19 @@ interface Props {
 export function ExhibitorDetailModal({ exhibitor, categories, event, user, onClose }: Props) {
   const [showCatalog, setShowCatalog] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+
+  const loadEvaluations = () => {
+    getExhibitorEvaluations(exhibitor.id)
+      .then(setEvaluations)
+      .catch((err) => console.error('Erro ao carregar avaliações:', err));
+  };
 
   useEffect(() => {
     getProducts(exhibitor.id).then(setProducts).catch(() => {});
+    loadEvaluations();
   }, [exhibitor.id]);
 
   const category = categories.find(c => c.id === exhibitor.category_id)
@@ -111,6 +126,15 @@ export function ExhibitorDetailModal({ exhibitor, categories, event, user, onClo
               </p>
             )}
 
+            {/* Resumo de Avaliações */}
+            <ExhibitorRatingSummary
+              evaluations={evaluations}
+              event={event}
+              user={user}
+              onOpenEvaluate={() => setShowRatingModal(true)}
+              onOpenComments={() => setShowCommentsModal(true)}
+            />
+
             {/* Fotos dos produtos */}
             {products.some(p => p.photos?.[0]) && (
               <div className="flex gap-2 mt-4 overflow-x-auto -mx-5 px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
@@ -187,6 +211,16 @@ export function ExhibitorDetailModal({ exhibitor, categories, event, user, onClo
               </div>
             )}
 
+            {/* Comentários button */}
+            {evaluations.length > 0 && (
+              <button
+                onClick={() => setShowCommentsModal(true)}
+                className="w-full mt-4 py-3 rounded-xl border border-[#ECECF1] bg-white text-xs font-bold text-[#5A5A6E] hover:bg-neutral-50 transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                Ler avaliações e comentários ({evaluations.length})
+              </button>
+            )}
+
             {/* Integrantes */}
             {exhibitor.members && exhibitor.members.length > 0 && (
               <div className="mt-5">
@@ -212,6 +246,32 @@ export function ExhibitorDetailModal({ exhibitor, categories, event, user, onClo
             userId={user?.id}
             primaryColor={primaryColor}
             onClose={() => setShowCatalog(false)}
+          />
+        )}
+
+        {showRatingModal && user && (
+          <EvaluationModal
+            exhibitorId={exhibitor.id}
+            exhibitorName={exhibitor.name}
+            event={event}
+            user={user}
+            onClose={() => setShowRatingModal(false)}
+            onSuccess={loadEvaluations}
+          />
+        )}
+
+        {showCommentsModal && (
+          <EvaluationListModal
+            exhibitorName={exhibitor.name}
+            evaluations={evaluations}
+            event={event}
+            user={user}
+            onClose={() => setShowCommentsModal(false)}
+            onRefresh={loadEvaluations}
+            onEdit={() => {
+              setShowCommentsModal(false);
+              setShowRatingModal(true);
+            }}
           />
         )}
       </AnimatePresence>

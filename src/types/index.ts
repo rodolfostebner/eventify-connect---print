@@ -313,6 +313,10 @@ export interface Evaluation {
   stars: number; // 1–5
   comment?: string | null;
   created_at: string;
+  user?: {
+    display_name: string | null;
+    photo_url?: string | null;
+  };
 }
 
 export interface JurorEvaluation {
