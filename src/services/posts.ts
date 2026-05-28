@@ -38,6 +38,7 @@ function mapRowToPostData(row: any): PostData {
     reactions,
     comments: mappedComments,
     reaction_counts: reactionCounts,
+    views_count: row.views_count || 0,
 
     // Legacy fallback bindings
     url: row.image_url,
@@ -58,9 +59,10 @@ async function attachInteractions(rows: any[]): Promise<any[]> {
 
   const postIds = rows.map(r => r.id);
 
-  const [{ data: reactions }, { data: comments }] = await Promise.all([
+  const [{ data: reactions }, { data: comments }, { data: views }] = await Promise.all([
     supabase.from('reactions').select('*').in('post_id', postIds),
     supabase.from('comments').select('*').in('post_id', postIds),
+    supabase.from('photo_views').select('*').in('post_id', postIds),
   ]);
 
   // Resolve nomes: autores dos posts + autores dos comments
@@ -90,11 +92,17 @@ async function attachInteractions(rows: any[]): Promise<any[]> {
     });
   });
 
+  const viewsByPost: Record<string, number> = {};
+  (views || []).forEach(v => {
+    viewsByPost[v.post_id] = (viewsByPost[v.post_id] || 0) + 1;
+  });
+
   return rows.map(r => ({
     ...r,
     user_name: userNames[r.user_id] || null,
     reactions: reactionsByPost[r.id] || [],
     comments: commentsByPost[r.id] || [],
+    views_count: viewsByPost[r.id] || 0,
   }));
 }
 
@@ -186,9 +194,14 @@ export async function deletePost(id: string): Promise<void> {
 export async function likePost(postId: string, userId: string, delta: 1 | -1): Promise<void> {
   if (!supabase) return;
   if (delta === 1) {
-    await supabase.from('reactions').upsert({ post_id: postId, user_id: userId, type: '🔥' });
+    const { error } = await supabase.from('reactions').upsert(
+      { post_id: postId, user_id: userId, type: '🔥' },
+      { onConflict: 'post_id,user_id,type' }
+    );
+    if (error) throw error;
   } else {
-    await supabase.from('reactions').delete().match({ post_id: postId, user_id: userId, type: '🔥' });
+    const { error } = await supabase.from('reactions').delete().match({ post_id: postId, user_id: userId, type: '🔥' });
+    if (error) throw error;
   }
 }
 
@@ -198,11 +211,17 @@ export async function likePost(postId: string, userId: string, delta: 1 | -1): P
 export async function reactToPost(postId: string, emoji: string, userId: string, delta: 1 | -1): Promise<void> {
   if (!supabase) return;
   if (delta === 1) {
-    await supabase.from('reactions').upsert({ post_id: postId, user_id: userId, type: emoji });
+    const { error } = await supabase.from('reactions').upsert(
+      { post_id: postId, user_id: userId, type: emoji },
+      { onConflict: 'post_id,user_id,type' }
+    );
+    if (error) throw error;
   } else {
-    await supabase.from('reactions').delete().match({ post_id: postId, user_id: userId, type: emoji });
+    const { error } = await supabase.from('reactions').delete().match({ post_id: postId, user_id: userId, type: emoji });
+    if (error) throw error;
   }
 }
+
 
 /**
  * Add a comment to a post.
@@ -240,6 +259,20 @@ export async function deleteComment(commentId: string): Promise<void> {
 }
 
 /**
+ * Record a unique view for a photo.
+ */
+export async function recordPhotoView(postId: string, userId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('photo_views')
+    .upsert({ post_id: postId, user_id: userId }, { onConflict: 'post_id,user_id' });
+  
+  if (error) {
+    console.error('[PostsService] Error recording photo view:', error);
+  }
+}
+
+/**
  * Subscriptions
  */
 export function subscribeToPosts(eventId: string, onUpdate: (payload: any) => void) {
@@ -249,6 +282,7 @@ export function subscribeToPosts(eventId: string, onUpdate: (payload: any) => vo
     .on('postgres_changes', { event: '*', schema: 'public', table: 'posts', filter: `event_id=eq.${eventId}` }, onUpdate)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, onUpdate)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, onUpdate)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'photo_views' }, onUpdate)
     .subscribe();
 
   return () => { supabase.removeChannel(channel); };

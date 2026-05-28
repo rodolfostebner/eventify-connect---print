@@ -168,7 +168,7 @@ Exemplos:
 | Perfil Expositor (portal dedicado) | ✅ Implementado | `/expositor` com Supabase Auth |
 | Perfil EventAdmin | ✅ Implementado | Portal `/eventadmin` dedicado (substitui acúmulo no Admin). Acesso completo às telas do evento: moderação, expositores e parceiros. Botão voltar nessas telas redireciona para `/eventadmin` |
 | Perfil Avaliador | ✅ implementado | via cadastro de usuarios |
-| Sistema de Avaliação | 🔶 Backend pronto, UI pendente | Tabelas + `evaluationService` + view de ranking ok; falta módulo `src/features/evaluation/` |
+| Sistema de Avaliação | ✅ Implementado | Módulo `src/features/evaluation/` integrado no modal de detalhes do expositor, reativo e sincronizado com cupons de sorteio |
 | Painel TV — Fotos + Rankings | ✅ Implementado | Ranking por curtidas; ranking ponderado (`view_exhibitor_rankings`) ainda não exibido na TV |
 | Painel TV — Carrossel expositores | ❌ Não implementado | |
 | Painel TV — Sorteios | ✅ Implementado | Overlay `showing_prize` (foto do prêmio em tela cheia) + `showing_winner` (tambor giratório com nomes dos participantes, para no ganhador). Estado controlado por `tv_raffle_state` + `tv_raffle_prize_id` em `events` via realtime |

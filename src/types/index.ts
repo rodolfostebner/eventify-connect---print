@@ -149,6 +149,7 @@ export interface PostData {
   
   // Aggregations
   reaction_counts?: Record<string, number>;
+  views_count?: number;
 
   // --- Legacy Mappings (Temporário para UI não quebrar) ---
   url?: string;

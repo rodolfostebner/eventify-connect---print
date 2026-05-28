@@ -2,7 +2,7 @@ import React, { useState, memo, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import type { EventData, PhotoData, AppUser } from '../../../../types';
-import { likePost, commentOnPost, reactToPost, deletePost, deleteComment } from '../../../../services/posts';
+import { likePost, commentOnPost, reactToPost, deletePost, deleteComment, recordPhotoView } from '../../../../services/posts';
 import { InteractionBar } from './InteractionBar';
 import { PhotoModal } from './PhotoModal';
 
@@ -24,10 +24,6 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
 
   const handleLike = useCallback(async (e?: React.MouseEvent) => {
     e?.stopPropagation();
-    if (event.interactions_paused) {
-      toast.error('Interações estão pausadas no momento.');
-      return;
-    }
     if (!user) {
       onLogin();
       return;
@@ -35,8 +31,8 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
 
     // Limits check (dna.json: max_emojis_per_photo = 2)
     const userReactions = photo.reacted_users?.filter(r => r.startsWith(`${user.id}_`)) || [];
-    if (!hasLiked && userReactions.length >= 2 && !isAdmin) {
-      toast.error('Limite de 2 reações por foto atingido.');
+    if (!hasLiked && userReactions.length >= 2) {
+      toast.error('Você atingiu o limite de 2 reações por foto.');
       return;
     }
 
@@ -46,13 +42,9 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
       console.error(err);
       toast.error('Erro ao curtir foto.');
     }
-  }, [event.interactions_paused, user, onLogin, photo.id, hasLiked, photo.reacted_users, isAdmin]);
+  }, [user, onLogin, photo.id, hasLiked, photo.reacted_users]);
 
   const handleReact = useCallback(async (emoji: string) => {
-    if (event.interactions_paused) {
-      toast.error('Interações estão pausadas no momento.');
-      return;
-    }
     if (!user) {
       onLogin();
       return;
@@ -63,8 +55,8 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
 
     // Limits check (dna.json: max_emojis_per_photo = 2)
     const userReactions = photo.reacted_users?.filter(r => r.startsWith(`${user.id}_`)) || [];
-    if (!hasReacted && userReactions.length >= 2 && !isAdmin) {
-      toast.error('Limite de 2 reações por foto atingido.');
+    if (!hasReacted && userReactions.length >= 2) {
+      toast.error('Você atingiu o limite de 2 reações por foto.');
       return;
     }
     
@@ -74,7 +66,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
       console.error(err);
       toast.error('Erro ao reagir.');
     }
-  }, [event.interactions_paused, user, onLogin, photo.id, photo.reacted_users, isAdmin]);
+  }, [user, onLogin, photo.id, photo.reacted_users]);
 
   const handleAddComment = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,8 +74,8 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
 
     // Limits check (dna.json: max_comments_per_photo = 2)
     const userComments = photo.comments?.filter(c => c.uid === user.id || (c as any).user_id === user.id) || [];
-    if (userComments.length >= 2 && !isAdmin) {
-      toast.error('Limite de 2 comentários por foto atingido.');
+    if (userComments.length >= 2) {
+      toast.error('Você atingiu o limite de 2 comentários por foto.');
       return;
     }
 
@@ -106,7 +98,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, newComment, isSubmitting, photo.id, photo.comments, event.comment_moderation_enabled, event.custom_comments, isAdmin]);
+  }, [user, newComment, isSubmitting, photo.id, photo.comments, event.comment_moderation_enabled, event.custom_comments]);
 
   const handleDeleteComment = useCallback(async (commentId: string) => {
     const comment = photo.comments?.find(c => c.id === commentId);
@@ -119,7 +111,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
       console.error(err);
       toast.error('Erro ao remover comentário.');
     }
-  }, [user, photo.comments, photo.id, isAdmin]);
+  }, [user, photo.comments, isAdmin]);
 
   const handleDeletePhoto = useCallback(async () => {
     try {
@@ -138,7 +130,15 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
   );
 
   const handleCloseModal = useCallback(() => setShowDetails(false), []);
-  const handleOpenModal = useCallback(() => setShowDetails(true), []);
+  const handleOpenModal = useCallback(() => {
+    setShowDetails(true);
+    // Grava visualização única se o usuário estiver logado e não for o autor do post
+    if (user && user.id !== photo.user_id) {
+      recordPhotoView(photo.id, user.id).catch(err => {
+        console.error('Erro ao registrar visualização:', err);
+      });
+    }
+  }, [user, photo.id, photo.user_id]);
 
   return (
     <>
@@ -167,10 +167,12 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
         </div>
 
         <InteractionBar 
-          likes={photo.likes || 0}
-          hasLiked={hasLiked}
+          reactionCounts={photo.reaction_counts || {}}
           commentCount={approvedComments.length}
-          onLike={handleLike}
+          viewsCount={photo.views_count || 0}
+          onReact={handleReact}
+          reactedUsers={photo.reacted_users || []}
+          user={user}
         />
       </motion.div>
 

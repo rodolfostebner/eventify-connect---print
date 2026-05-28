@@ -10,6 +10,10 @@ export const usePhotoUpload = (event: EventData, user: AppUser | null) => {
   const [uploading, setUploading] = useState(false);
 
   const handleDirectUpload = useCallback(async (file: File) => {
+    if (event.status !== 'live') {
+      toast.error('Fotos só podem ser enviadas na página Live do evento.');
+      return;
+    }
     if (event.interactions_paused) return;
     const toastId = toast.loading('Processando sua foto...');
     setUploading(true);
@@ -89,6 +93,7 @@ export const usePhotoUpload = (event: EventData, user: AppUser | null) => {
     }
   }, [
     event.id,
+    event.status,
     event.interactions_paused,
     event.comment_moderation_enabled,
     user

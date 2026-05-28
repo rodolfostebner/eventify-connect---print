@@ -61,7 +61,7 @@ export const FeaturedSlideshow = ({
         </h2>
       </div>
 
-      <div className="aspect-video bg-white rounded-2xl overflow-hidden shadow-xl border-4 md:border-8 border-white relative group">
+      <div className="aspect-video bg-neutral-900 rounded-2xl overflow-hidden shadow-xl border-4 md:border-8 border-white relative group">
         <AnimatePresence mode="wait">
           <motion.div
             key={`${currentGroupIndex}-${currentPhotoIndex}`}
@@ -69,11 +69,11 @@ export const FeaturedSlideshow = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5 }}
-            className="absolute inset-0"
+            className="absolute inset-0 flex items-center justify-center"
           >
             <img
               src={currentPhoto.url}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-contain"
               referrerPolicy="no-referrer"
               loading="lazy"
             />
