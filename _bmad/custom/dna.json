@@ -1,137 +1,354 @@
 {
-    "project_name": "Eventify Connect & Print",
-    "version": "2.0.0",
-    "stack": {
-        "frontend": "React 19, Vite 6, Tailwind CSS 4",
-        "auth": "Firebase Auth (Google Login)",
-        "database": "Supabase (PostgreSQL)",
-        "storage": "Cloudflare R2"
-    },
-    "database_schema": {
-        "tables": [
-            {
-                "name": "events",
-                "description": "Configurações de UI, estados do evento e dados de expositores/sponsors",
-                "columns": [
-                    "id",
-                    "name",
-                    "slug",
-                    "status",
-                    "date",
-                    "logo_url",
-                    "primary_color",
-                    "secondary_color",
-                    "bg_type",
-                    "bg_value",
-                    "tv_show_ranking",
-                    "countdown_active",
-                    "interactions_paused",
-                    "comment_moderation_enabled",
-                    "exhibitors",
-                    "sponsors",
-                    "custom_comments",
-                    "created_at",
-                    "updated_at"
-                ]
-            },
-            {
-                "name": "photos",
-                "description": "Galeria de fotos com sistema de reações e moderação",
-                "columns": [
-                    "id",
-                    "event_id",
-                    "url",
-                    "user_name",
-                    "firebase_uid",
-                    "likes",
-                    "reactions",
-                    "reacted_users",
-                    "comments",
-                    "status",
-                    "is_official",
-                    "created_at"
-                ]
-            },
-            {
-                "name": "print_orders",
-                "description": "Fila de impressão física (stickers/cartelas)",
-                "columns": [
-                    "id",
-                    "event_id",
-                    "user_id",
-                    "user_name",
-                    "photo_ids",
-                    "status",
-                    "created_at"
-                ]
-            },
-            {
-                "name": "users",
-                "description": "Perfis de usuários vinculados ao Firebase Auth",
-                "columns": [
-                    "id",
-                    "email",
-                    "display_name",
-                    "photo_url",
-                    "role",
-                    "firebase_uid"
-                ]
-            },
-            {
-                "name": "notifications",
-                "description": "Alertas do sistema para usuários",
-                "columns": [
-                    "id",
-                    "user_id",
-                    "title",
-                    "body",
-                    "read",
-                    "created_at"
-                ]
-            }
+  "project_name": "Eventify Connect & Print",
+  "version": "3.0.0",
+  "stack": {
+    "frontend": "React 19, TypeScript 5.8, Vite 6, Tailwind CSS 4, Motion (Framer)",
+    "auth": "Supabase Auth (Google OAuth, Magic Link OTP + BETA_MODE local)",
+    "database": "Supabase (PostgreSQL 17 + Realtime Channels)",
+    "storage": "Cloudflare R2 (Direct browser upload via Edge Function presigned URL)"
+  },
+  "database_schema": {
+    "tables": [
+      {
+        "name": "events",
+        "description": "Configurações gerais do evento, branding visual, controle de telão TV, pesos de avaliação, status ativo, sorteios e anúncios",
+        "columns": [
+          "id (uuid)",
+          "name (text)",
+          "slug (text, unique)",
+          "status (text - pre|live|post)",
+          "date (timestamptz)",
+          "logo_url (text)",
+          "primary_color (text)",
+          "secondary_color (text)",
+          "bg_type (text)",
+          "bg_value (text)",
+          "tv_show_ranking (boolean)",
+          "countdown_active (boolean)",
+          "interactions_paused (boolean)",
+          "comment_moderation_enabled (boolean)",
+          "public_evaluation_weight (numeric - peso aval. público)",
+          "juror_evaluation_weight (numeric - peso aval. jurado)",
+          "active_announcement_id (uuid - FK announcements)",
+          "announcement_trigger_at (timestamptz)",
+          "tv_raffle_prize_id (uuid - FK raffle_prizes)",
+          "tv_raffle_state (text - idle|showing_prize|showing_winner)",
+          "created_at (timestamptz)",
+          "updated_at (timestamptz)"
         ]
-    },
-    "critical_observations": [
-        "Expositores e Patrocinadores são armazenados como JSONB dentro da tabela events para simplificar o fetch inicial.",
-        "A tabela de fotos usa 'firebase_uid' para rastrear a autoria via Auth e garantir permissões de exclusão.",
-        "A tabela de impressão suporta cartelas (photo_ids armazenados como array/text[]).",
-        "Comentários livres exigem moderação se não constarem em 'custom_comments' da tabela events."
+      },
+      {
+        "name": "users",
+        "description": "Perfis unificados de usuários integrados ao Supabase Auth com roles específicas",
+        "columns": [
+          "id (text, primary key)",
+          "email (text)",
+          "display_name (text)",
+          "photo_url (text)",
+          "role (text - admin|event_admin|avaliador|expositor|participant)",
+          "event_id (uuid - FK events)",
+          "exhibitor_id (uuid - FK exhibitors)",
+          "supabase_user_id (uuid, unique - FK auth.users)"
+        ]
+      },
+      {
+        "name": "user_email_roles",
+        "description": "Pré-cadastro de emails autorizados com roles antes do primeiro login",
+        "columns": [
+          "email (text, primary key)",
+          "role (text)",
+          "event_id (uuid - FK events)",
+          "exhibitor_id (uuid - FK exhibitors)",
+          "created_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "exhibitors",
+        "description": "Stands virtuais dos expositores B2B associados a um evento",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "number (int)",
+          "name (text)",
+          "description (text)",
+          "tagline (text - limite 50 chars)",
+          "logo_url (text)",
+          "photo_url (text)",
+          "message (text)",
+          "final_message (text)",
+          "instagram_url (text)",
+          "whatsapp (text)",
+          "website_url (text)",
+          "status (text - active|inactive)",
+          "category_id (uuid - FK exhibitor_categories)",
+          "ano (text)",
+          "turma (text)",
+          "members (jsonb - nomes dos integrantes)",
+          "created_at (timestamptz)",
+          "updated_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "exhibitor_categories",
+        "description": "Categorias de stands virtuais parametrizáveis por evento",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "name (text)",
+          "icon (text)",
+          "color (text)",
+          "order_index (int)",
+          "created_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "products",
+        "description": "Catálogo de produtos oferecidos pelo expositor no stand virtual",
+        "columns": [
+          "id (uuid, primary key)",
+          "exhibitor_id (uuid - FK exhibitors)",
+          "name (text)",
+          "description (text)",
+          "price (numeric)",
+          "photos (text[] - array de URLs)",
+          "active (boolean)",
+          "created_at (timestamptz)",
+          "updated_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "leads",
+        "description": "Interesses de pré-venda gerados por participantes em produtos durante as fases pré/live",
+        "columns": [
+          "id (uuid, primary key)",
+          "product_id (uuid - FK products)",
+          "exhibitor_id (uuid - FK exhibitors)",
+          "customer_name (text)",
+          "customer_phone (text)",
+          "status (text - novo|atendido|pago|retirado)",
+          "created_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "partners",
+        "description": "Entidades unificadas de patrocinadores, apoiadores e prestadores de serviços do evento",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "name (text)",
+          "description (text)",
+          "photos (text[] - array de URLs)",
+          "instagram_url (text)",
+          "whatsapp (text)",
+          "website_url (text)",
+          "type (text - patrocinador|apoiador|servico)",
+          "internal_contact (text - contatos de marketing internos)",
+          "sponsorship_value (numeric - valor do patrocínio)",
+          "show_on_tv (boolean)",
+          "show_on_feed (boolean)",
+          "order_index (int)",
+          "active (boolean)",
+          "created_at (timestamptz)",
+          "updated_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "posts",
+        "description": "Fotos da galeria social do evento publicadas por participantes (substitui a tabela legada photos)",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "user_id (text - FK users)",
+          "image_url (text)",
+          "status (text - pending|approved|rejected)",
+          "is_official (boolean)",
+          "printed (boolean)",
+          "created_at (timestamptz)",
+          "updated_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "reactions",
+        "description": "Reações de emojis a posts do feed pelos participantes",
+        "columns": [
+          "id (uuid, primary key)",
+          "post_id (uuid - FK posts)",
+          "user_id (text - FK users)",
+          "emoji (text)",
+          "created_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "comments",
+        "description": "Comentários moderáveis nas fotos dos participantes",
+        "columns": [
+          "id (uuid, primary key)",
+          "post_id (uuid - FK posts)",
+          "user_id (text - FK users)",
+          "content (text)",
+          "status (text - pending|approved|rejected)",
+          "created_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "evaluation_categories",
+        "description": "Categorias de avaliação técnica de stands virtuais pelos jurados (ex. Organização, Criatividade)",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "name (text)",
+          "weight (numeric)",
+          "order_index (int)",
+          "created_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "evaluations",
+        "description": "Avaliações do público comum atribuindo estrelas e comentários aos expositores (1 voto por participante por expositor)",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "exhibitor_id (uuid - FK exhibitors)",
+          "user_id (text - FK users)",
+          "stars (int - 1 a 5)",
+          "comment (text)",
+          "created_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "juror_evaluations",
+        "description": "Notas dos jurados avaliadores por categoria técnica (1 nota por categoria por expositor por jurado)",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "exhibitor_id (uuid - FK exhibitors)",
+          "user_id (text - FK users)",
+          "category_id (uuid - FK evaluation_categories)",
+          "score (numeric - 0.00 a 5.00)",
+          "created_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "raffle_tickets",
+        "description": "Tickets que habilitam participantes a concorrerem a sorteios (1 ticket por participante por evento)",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "user_id (text - FK users)",
+          "created_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "raffle_prizes",
+        "description": "Catálogo de prêmios cadastrados para sorteio com indicação de ganhador e controle de telão",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "name (text)",
+          "description (text)",
+          "image_url (text)",
+          "order_index (int)",
+          "winner_ticket_id (uuid - FK raffle_tickets)",
+          "drawn_at (timestamptz)",
+          "active (boolean)",
+          "created_at (timestamptz)",
+          "updated_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "announcements",
+        "description": "Avisos importantes cadastrados para transmissão no telão da TV ou popup no feed do aplicativo",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "title (text)",
+          "message (text)",
+          "bg_color (text)",
+          "text_color (text)",
+          "icon (text)",
+          "image_url (text)",
+          "audio_url (text - sons customs hospedados no R2)",
+          "show_duration_sec (int)",
+          "target_tv (boolean)",
+          "target_app_popup (boolean)",
+          "target_push (boolean)",
+          "created_at (timestamptz)",
+          "updated_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "visits",
+        "description": "Métricas de cliques e visualizações silenciosas no feed de expositores, produtos e links de contato",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "exhibitor_id (uuid - FK exhibitors)",
+          "product_id (uuid - FK products)",
+          "user_id (text - FK users)",
+          "session_id (text)",
+          "action (text - view_stand|view_product|click_lead|click_instagram|click_whatsapp|click_website|share)",
+          "event_status (text - pre|live|post)",
+          "created_at (timestamptz)"
+        ]
+      },
+      {
+        "name": "audit_logs",
+        "description": "Registro de auditoria de alterações do evento documentando autor e diferenças",
+        "columns": [
+          "id (uuid, primary key)",
+          "event_id (uuid - FK events)",
+          "user_id (text - FK users)",
+          "user_name (text)",
+          "user_email (text)",
+          "action (text)",
+          "changes (jsonb - diff de valores antes/depois)",
+          "created_at (timestamptz)"
+        ]
+      }
     ],
-    "business_logic": {
-        "event_states": [
-            "PRE_EVENT",
-            "LIVE",
-            "POST_EVENT"
-        ],
-        "interaction_rules": {
-            "max_comments_per_photo": 2,
-            "max_emojis_per_photo": 2,
-            "allowed_emojis": [
-                "🔥",
-                "😂",
-                "❤️",
-                "🎸"
-            ],
-            "user_deletion_rights": "self_only_after_approval"
-        },
-        "moderation_rules": {
-            "auto_approve_preset_comments": true,
-            "require_curation_for_free_text": true,
-            "curation_required_for_live_feed": true
-        },
-        "ranking_categories": {
-            "🔥": "Mais curtidas",
-            "😂": "Mais divertida",
-            "❤️": "Mais Fofura",
-            "🎸": "Rockstar",
-            "comments": "Mais comentadas",
-            "official": "Destaques Oficiais"
-        },
-        "upload_flow": "Client -> Cloudflare R2 (Direct) -> Supabase (Record URL)"
+    "views": [
+      {
+        "name": "view_exhibitor_rankings",
+        "description": "View SQL que calcula em tempo real o ranking dos expositores utilizando médias ponderadas configuráveis entre votos do público (estrelas) e notas técnicas dos jurados",
+        "columns": [
+          "exhibitor_id (uuid)",
+          "exhibitor_name (text)",
+          "exhibitor_number (int)",
+          "event_id (uuid)",
+          "public_score (numeric)",
+          "juror_score (numeric)",
+          "final_score (numeric)",
+          "public_votes_count (bigint)",
+          "jurors_voted_count (bigint)"
+        ]
+      }
+    ]
+  },
+  "critical_observations": [
+    "A autenticação unificada do Supabase baseia-se na tabela pre-cadastro user_email_roles, delegando a criação inicial a Edge Functions.",
+    "A integridade de avaliações e tickets de sorteios é protegida por chaves UNIQUE(exhibitor_id, user_id) e UNIQUE(event_id, user_id) direto no Postgres.",
+    "Os uploads são feitos em pipeline direto para o Cloudflare R2 a partir de presigned URLs temporárias geradas por Edge Function (get-r2-upload-url).",
+    "A comunicação em tempo real no telão da TV e feed baseia-se em Supabase Realtime escutando as tabelas e recarregando dados do banco.",
+    "Ação de visitas rastreia a fase ativa do evento (pre/live/post) para análises estatísticas precisas sem impactar rankings oficiais."
+  ],
+  "business_logic": {
+    "event_states": [
+      "pre (Landing, countdown, catálogo de expositores e pré-venda)",
+      "live (Feed social ativo, reações, upload de fotos, comentários, votações, telão, avisos e sorteio)",
+      "post (Galeria social fechada, download de fotos e exibição do ranking oficial de expositores)"
+    ],
+    "interaction_rules": {
+      "rating_stars": "1 a 5 estrelas por participante por expositor.",
+      "juror_score": "0.00 a 5.00 por categoria técnica por expositor por jurado.",
+      "raffle_tickets": "Exatamente 1 ticket gerado por participante para concorrer a sorteios no evento."
     },
-    "ui_mapping": {
-        "exhibitors_source": "events.exhibitors (jsonb)",
-        "sponsors_source": "events.sponsors (jsonb)",
-        "comments_presets": "events.custom_comments (jsonb)"
-    }
+    "moderation_rules": {
+      "posts_moderation": "Aprovação manual por admin antes da exibição no feed live público.",
+      "comments_moderation": "Se ativado, requer aprovação manual; caso contrário, é auto-aprovado se corresponder a respostas rápidas pré-definidas."
+    },
+    "ranking_calculations": {
+      "weighted_formula": "Score Final = (Média Estrelas Público * Peso Público) + (Média Ponderada Notas Jurados * Peso Jurado). Pesos ajustados dinamicamente no painel do administrador do evento."
+    },
+    "upload_flow": "Browser -> Edge Function (Token de Upload R2) -> Cloudflare R2 direct PUT -> Supabase Service (Gravação final da URL no registro do post/stand/produto)"
+  }
 }

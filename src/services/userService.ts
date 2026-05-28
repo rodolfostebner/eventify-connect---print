@@ -10,80 +10,101 @@ export interface ExhibitorLinkedUser {
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
 import type { AppUser, UserRole, UserEmailRole } from '../types';
 
+let activeSyncPromise: Promise<AppUser | null> | null = null;
+let activeSyncUserId: string | null = null;
+
 export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | null> {
   if (!supabase) return null;
   const email = authUser.email!.trim().toLowerCase();
 
-  // 1. Busca pelo supabase_user_id — caminho rápido após o primeiro login
-  const { data: byUid, error: uidError } = await supabase
-    .from('users')
-    .select('*')
-    .eq('supabase_user_id', authUser.id)
-    .maybeSingle();
-
-  if (uidError) {
-    console.warn('[UserService] supabase_user_id lookup error:', uidError.message);
+  // Deduplicar chamadas concorrentes para o mesmo usuário
+  if (activeSyncPromise && activeSyncUserId === authUser.id) {
+    return activeSyncPromise;
   }
 
-  if (byUid) {
-    await supabase.from('users').update({
-      display_name: authUser.user_metadata?.full_name ?? byUid.display_name,
-      photo_url: authUser.user_metadata?.avatar_url ?? byUid.photo_url,
-    }).eq('supabase_user_id', authUser.id);
-    return byUid as AppUser;
-  }
+  activeSyncUserId = authUser.id;
+  activeSyncPromise = (async () => {
+    try {
+      // 1. Busca pelo supabase_user_id — caminho rápido após o primeiro login
+      const { data: byUid, error: uidError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('supabase_user_id', authUser.id)
+        .maybeSingle();
 
-  // 2. Busca por email — limit(1) garante que funciona mesmo se houver duplicatas
-  const { data: emailRows } = await supabase
-    .from('users')
-    .select('*')
-    .eq('email', email)
-    .order('created_at', { ascending: true })
-    .limit(1);
+      if (uidError) {
+        console.warn('[UserService] supabase_user_id lookup error:', uidError.message);
+      }
 
-  const byEmail = emailRows?.[0] ?? null;
+      if (byUid) {
+        await supabase.from('users').update({
+          display_name: authUser.user_metadata?.full_name ?? byUid.display_name,
+          photo_url: authUser.user_metadata?.avatar_url ?? byUid.photo_url,
+        }).eq('supabase_user_id', authUser.id);
+        return byUid as AppUser;
+      }
 
-  if (byEmail) {
-    // Vincula o supabase_user_id ao registro existente (por id, não por email)
-    await supabase.from('users').update({
-      supabase_user_id: authUser.id,
-      display_name: authUser.user_metadata?.full_name ?? byEmail.display_name,
-      photo_url: authUser.user_metadata?.avatar_url ?? byEmail.photo_url,
-    }).eq('id', byEmail.id);
-    return { ...byEmail, supabase_user_id: authUser.id } as AppUser;
-  }
+      // 2. Busca por email — limit(1) garante que funciona mesmo se houver duplicatas
+      const { data: emailRows } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .order('created_at', { ascending: true })
+        .limit(1);
 
-  // 3. Usuário novo — verifica pré-cadastro de role
-  const { data: preReg } = await supabase
-    .from('user_email_roles')
-    .select('*')
-    .eq('email', email)
-    .maybeSingle();
+      const byEmail = emailRows?.[0] ?? null;
 
-  const { data: created, error } = await supabase
-    .from('users')
-    .insert({
-      supabase_user_id: authUser.id,
-      email,
-      display_name: authUser.user_metadata?.full_name ?? null,
-      photo_url: authUser.user_metadata?.avatar_url ?? null,
-      role: (preReg?.role as UserRole) ?? 'participant',
-      event_id: preReg?.event_id ?? null,
-      exhibitor_id: preReg?.exhibitor_id ?? null,
-    })
-    .select()
-    .single();
+      if (byEmail) {
+        // Vincula o supabase_user_id ao registro existente (por id, não por email)
+        await supabase.from('users').update({
+          supabase_user_id: authUser.id,
+          display_name: authUser.user_metadata?.full_name ?? byEmail.display_name,
+          photo_url: authUser.user_metadata?.avatar_url ?? byEmail.photo_url,
+        }).eq('id', byEmail.id);
+        return { ...byEmail, supabase_user_id: authUser.id } as AppUser;
+      }
 
-  if (error) {
-    console.error('[UserService] Erro ao criar usuário:', error);
-    return null;
-  }
+      // 3. Usuário novo — verifica pré-cadastro de role
+      const { data: preReg } = await supabase
+        .from('user_email_roles')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
 
-  if (preReg) {
-    await supabase.from('user_email_roles').delete().eq('email', email);
-  }
+      const { data: created, error } = await supabase
+        .from('users')
+        .insert({
+          supabase_user_id: authUser.id,
+          email,
+          display_name: authUser.user_metadata?.full_name ?? null,
+          photo_url: authUser.user_metadata?.avatar_url ?? null,
+          role: (preReg?.role as UserRole) ?? 'participant',
+          event_id: preReg?.event_id ?? null,
+          exhibitor_id: preReg?.exhibitor_id ?? null,
+        })
+        .select()
+        .single();
 
-  return created as AppUser;
+      if (error) {
+        console.error('[UserService] Erro ao criar usuário:', error);
+        return null;
+      }
+
+      if (preReg) {
+        await supabase.from('user_email_roles').delete().eq('email', email);
+      }
+
+      return created as AppUser;
+    } catch (error) {
+      console.error('[UserService] Erro na sincronização do usuário:', error);
+      return null;
+    } finally {
+      activeSyncPromise = null;
+      activeSyncUserId = null;
+    }
+  })();
+
+  return activeSyncPromise;
 }
 
 // ─── CRUD usuários (painel de admin) ─────────────────────────────────────────

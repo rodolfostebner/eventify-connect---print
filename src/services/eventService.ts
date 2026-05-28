@@ -46,7 +46,6 @@ export function subscribeToEvents(
     supabase.removeChannel(channel);
   };
 }
-
 /**
  * Subscribe to a single event by slug.
  */

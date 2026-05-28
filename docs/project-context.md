@@ -1,290 +1,199 @@
 # Project Context: Eventify Connect & Print
-> **Gerado por**: GPC (bmad-generate-project-context) | **Data**: 2026-05-02
-> **BMAD Status**: PRD v4 validado ✅ | Fase de implementação: Arquitetura em andamento
+> **Gerado por**: Mary (Business Analyst) & Paige (Technical Writer) | **Data**: 2026-05-27
+> **BMAD Status**: PRD v5 validado ✅ | Fase de implementação: Arquitetura em andamento ⏳ (Foco: Integração Avaliação + Sorteio)
 
 ---
 
 ## 📋 Visão Geral
 
-**Eventify Connect & Print** é uma plataforma **Phygital de eventos** em tempo real. Participantes fotografam durante o evento, as fotos são moderadas, exibidas no feed e TV (telão), e podem ser enviadas para fila de impressão física (stickers).
+**Eventify Connect & Print** é uma plataforma **Phygital de eventos** em tempo real modelada para atender a feiras de negócios, eventos de exposição escolar e exposições B2B. A plataforma viabiliza a criação de stands virtuais para expositores com catálogos de produtos e captura de leads de pré-venda, além de um sistema interativo com feed de fotos sociais, avaliação técnica por jurados, votação pública por participantes com score ponderado em tempo real e exibição no telão (TV wall) com sorteios automatizados e anúncios sonoros inteligentes.
 
-**Três estados de evento**: `pre` (landing + countdown) → `live` (feed + upload + interações) → `post` (galeria + download)
+**Três estados de evento**: 
+`pre` (landing + countdown + catálogo de expositores + registro de pré-vendas) 
+→ `live` (feed social + upload + interações + votação pública/técnica + anúncios sonoros + sorteios) 
+→ `post` (galeria social fechada + download de fotos + ranking oficial ponderado)
 
 ---
 
 ## 🏗️ Stack Técnica
 
-| Camada | Tecnologia | Versão |
-|---|---|---|
-| Framework UI | React | 19.x |
-| Build Tool | Vite | 6.x |
-| Linguagem | TypeScript | 5.8.x |
-| Estilização | Tailwind CSS | 4.x |
-| Animações | Motion (Framer) | 12.x |
-| Roteamento | React Router DOM | 7.x |
-| Banco de Dados | Supabase (PostgreSQL) | @supabase/supabase-js 2.x |
-| Realtime | Supabase Realtime | — |
-| Auth | Firebase Auth (Google OAuth) | firebase 12.x |
-| Storage | Cloudflare R2 (presigned URLs via Edge Function) | — |
-| AI Layer | Google Generative AI (Gemini) | @google/genai 1.x |
-| Ícones | lucide-react | 0.546.x |
-| Notificações UI | sonner | 2.x |
-| Datas | date-fns | 4.x |
-| Testes E2E | Playwright | 1.59.x |
+| Camada | Tecnologia | Versão | Observação |
+| :--- | :--- | :--- | :--- |
+| **Framework UI** | React | 19.x | React 19 executando em modo estrito |
+| **Build Tool** | Vite | 6.x | Servidor de desenvolvimento rápido |
+| **Linguagem** | TypeScript | 5.8.x | Tipagem estrita de schemas e retornos |
+| **Estilização** | Tailwind CSS | 4.x | Configuração CSS-First via `@layer` diretivas |
+| **Animações** | Motion (Framer) | 12.x | Transições suaves de feeds e modais da UI |
+| **Roteamento** | React Router DOM | 7.x | Rotas públicas e restritas por perfil |
+| **Database** | Supabase (PostgreSQL 17) | 2.x | Tabelas normalizadas e views de ranking |
+| **Realtime** | Supabase Realtime | — | Canais dedicados de sincronização |
+| **Auth** | Supabase Auth | — | Google OAuth + Magic Link + BETA_MODE local |
+| **Storage** | Cloudflare R2 | — | Direct browser upload via Edge Function presigned URL |
+| **Ícones** | lucide-react | 0.546.x | Biblioteca de ícones vetoriais |
+| **Notificações UI**| sonner | 2.x | Mensagens toast não bloqueantes |
+| **Datas** | date-fns | 4.x | Formatação localizada para português (PT-BR) |
+| **Testes E2E** | Playwright | 1.59.x | Testes integrados automatizados |
 
 ---
 
 ## 📁 Estrutura de Arquivos
 
+Abaixo está o layout das pastas e a organização das features baseadas em domínio:
+
 ```
 src/
-├── App.tsx                        # Rotas e LoginScreen (Firebase Google)
-├── main.tsx                       # Entry point
+├── App.tsx                        # Roteador principal e gerenciador de acessos
+├── main.tsx                       # Entry point do React 19
 ├── index.css                      # Estilos globais Tailwind 4
 │
+├── constants/
+│   └── index.ts                   # Constantes de rotas e Enums de estado do evento
+│
 ├── types/
-│   └── index.ts                   # Todos os tipos TypeScript do projeto (PostData normalizado)
+│   └── index.ts                   # Central de interfaces TypeScript (Schemas normais e legados)
 │
 ├── lib/
-│   ├── firebase/client.ts         # Firebase: auth + googleProvider
-│   ├── supabase/client.ts         # Supabase: createClient (null se sem .env)
-│   ├── storage/upload.ts          # (legado — não usar; usar storageService.ts)
-│   └── utils.ts                   # Utilitários gerais
+│   ├── supabase/client.ts         # Inicializador do Supabase (null-safe para builds locais)
+│   └── utils.ts                   # Funções auxiliares utilitárias (ex. cn, getAppUrl)
+│
+├── contexts/
+│   └── AuthContext.tsx            # Provedor de sessão Supabase e gestão do BETA_MODE
 │
 ├── hooks/
-│   ├── useAuth.ts                 # Firebase onAuthStateChanged + createUserIfNotExists
-│   ├── useEvent.ts                # subscribeToEvent por slug
-│   ├── useEvents.ts               # subscribeToEvents (todos)
-│   └── usePosts.ts                # fetchPosts + subscribeToPosts (tabela posts)
+│   ├── useAuth.ts                 # Hook utilitário para consumo de contexto de autenticação
+│   ├── useEvent.ts                # Assinatura em tempo real de um evento específico por slug
+│   ├── useEvents.ts               # Escuta reativa de múltiplos eventos no dashboard
+│   ├── usePosts.ts                # Gerenciador de queries e realtime do feed de posts
+│   └── usePhotoUpload.ts          # Compressão no navegador e upload direto ao R2
 │
 ├── services/
-│   ├── authService.ts             # Firebase Auth: Google, email/senha, logout
-│   ├── eventService.ts            # CRUD events + subscribeToEvents/Event
-│   ├── notificationService.ts     # CRUD + subscribe notifications
-│   ├── posts.ts                   # Gerenciamento de posts, reações e comentários (tabelas posts, reactions, comments)
-│   ├── printService.ts            # CRUD print_orders (usa photo_ids array — legado parcial)
-│   ├── storageService.ts          # uploadImage → R2 via Edge Function `get-r2-upload-url`
-│   └── userService.ts             # createUserIfNotExists (sync Firebase → Supabase users)
+│   ├── authService.ts             # Chamadas de autenticação do Supabase (OAuth, OTP, Logout)
+│   ├── userService.ts             # Sincronização e cadastro de novos usuários com Relação de Emails
+│   ├── eventService.ts            # CRUD de eventos e subscrições realtime
+│   ├── posts.ts                   # CRUD de fotos, comentários e reações do feed
+│   ├── exhibitorService.ts        # Gerenciamento de expositores, logos, fotos e integrantes
+│   ├── productService.ts          # CRUD de catálogo de produtos do expositor
+│   ├── leadService.ts             # Captura e controle de status de interessados na pré-venda
+│   ├── partnerService.ts          # CRUD de patrocinadores, apoiadores e prestadores de serviço
+│   ├── storageService.ts          # Pipeline de R2 (Edge Function presigned URL + PUT)
+│   ├── notificationService.ts     # Gerenciamento e subscrição de alertas na UI
+│   ├── evaluationService.ts       # CRUD de notas, categorias técnicas e view de rankings
+│   ├── raffleService.ts           # Geração de tickets e execução dos sorteios
+│   ├── visitService.ts            # Registro e agregados de métricas de clique silenciosas
+│   ├── auditService.ts            # Logs de auditoria administrativa de alterações de eventos
+│   ├── dashboardService.ts        # Consolidação de métricas gerais no backoffice do administrador
+│   ├── announcementService.ts     # Transmissão de anúncios com áudio e imagem
+│   └── printService.ts            # Pedidos de impressão física (INATIVO nesta versão)
 │
-├── pages/                         # Re-exportações — renderizam features/
+├── pages/                         # Thin wrappers que encapsulam e renderizam as features
 │   ├── AdminDashboard.tsx
 │   ├── EventPage.tsx
+│   ├── LoginPage.tsx
 │   ├── ModerationPanel.tsx
 │   ├── OperatorPanel.tsx
-│   └── TVView.tsx
+│   ├── TVView.tsx
+│   ├── ExhibitorPanelPage.tsx
+│   ├── ExhibitorPortalPage.tsx
+│   ├── PartnerPanelPage.tsx
+│   ├── EventAdminPortalPage.tsx
+│   └── AvaliadorPage.tsx
 │
 ├── features/
-│   ├── admin/
-│   │   ├── AdminDashboard.tsx     # Lista eventos, CRUD, modais
-│   │   ├── components/
-│   │   │   ├── BrandingModal.tsx  # Editor de tema do evento
-│   │   │   ├── EventCard.tsx      # Card do evento no dashboard
-│   │   │   └── ShareModal.tsx     # Compartilhar links do evento
-│   │   └── hooks/
-│   │       ├── useAdminEvents.ts  # State dos eventos no dashboard
-│   │       └── useBrandingForm.ts # Form state do branding
-│   │
-│   ├── event/
-│   │   ├── EventPage.tsx          # Orquestrador — detecta estado do evento
-│   │   ├── LiveEventView.tsx      # View LIVE (duplicata — ver components/)
-│   │   ├── PostEventView.tsx      # View POST (duplicata — ver components/)
-│   │   ├── PreEventView.tsx       # View PRE (duplicata — ver components/)
-│   │   ├── components/
-│   │   │   ├── LiveEventView.tsx  # View principal LIVE
-│   │   │   ├── PostEventView.tsx  # View pós-evento
-│   │   │   ├── PreEventView.tsx   # Landing + countdown + parceiros
-│   │   │   ├── PartnerSection.tsx # Expositores/patrocinadores
-│   │   │   ├── SocialLinks.tsx    # Links sociais do app
-│   │   │   └── Feed/
-│   │   │       ├── FeedGrid.tsx      # Grid de fotos aprovadas
-│   │   │       ├── FeaturedSlideshow.tsx # Slideshow de destaques
-│   │   │       ├── LoginBanner.tsx   # Banner de login para participar
-│   │   │       └── UploadFAB.tsx     # Botão flutuante de upload
-│   │   │   └── PhotoCard/
-│   │   │       ├── PhotoCard.tsx     # Card de foto com reações
-│   │   │       ├── InteractionBar.tsx # Barra de likes/emojis/comentários
-│   │   │       └── PhotoModal.tsx    # Modal de foto ampliada
-│   │   └── hooks/
-│   │       ├── useEventPhotos.ts     # Fotos do evento (feed)
-│   │       ├── useModerationPhotos.ts # Fotos para moderação
-│   │       ├── usePhotoUpload.ts     # Upload para R2
-│   │       ├── useAdminActions.ts    # Ações de moderação inline
-│   │       ├── useCategoryGroups.ts  # Agrupamento por ranking
-│   │       ├── usePrintOrders.ts     # Print orders do participante
-│   │       └── useSlideshow.ts       # Controle do slideshow
-│   │
-│   ├── moderation/
-│   │   ├── ModerationPanel.tsx    # Painel completo de curadoria
-│   │   └── components/
-│   │       ├── PhotoModeration.tsx    # Grid de fotos para aprovar/rejeitar
-│   │       ├── CommentModeration.tsx  # Lista de comentários pendentes
-│   │       ├── ModerationControls.tsx # Controles de estado do evento
-│   │       ├── PrintOrderModal.tsx    # Modal de detalhes do pedido
-│   │       └── PrintOrderModeration.tsx # Lista de pedidos de impressão
-│   │
-│   ├── operator/
-│   │   ├── OperatorPanel.tsx      # Painel de fila de impressão
-│   │   └── hooks/
-│   │       └── usePrintQueue.ts   # Subscribe à fila em tempo real
-│   │
-│   └── tv/
-│   │   └── TVView.tsx             # Live Wall — slideshow fullscreen + ranking
+│   ├── admin/                     # Dashboard principal do administrador geral do sistema
+│   ├── auth/                      # Página de login unificado
+│   ├── avaliador/                 # Área restrita do jurado técnico (stub de interface atual)
+│   ├── event/                     # Orquestração do Feed Público nas fases Pré/Live/Pós
+│   ├── eventAdmin/                # Painel de controle completo do cliente dono do evento
+│   ├── exhibitor/                 # Portal exclusivo do expositor para gerenciar seu stand
+│   ├── exhibitors/                # Área administrativa de controle de expositores pelo organizador
+│   ├── moderation/                # Painel de curadoria de fotos e comentários
+│   ├── operator/                  # Fila de controle de impressão (UI desativada)
+│   ├── partners/                  # Gestão de patrocinadores, apoiadores e serviços
+│   └── tv/                        # Exibição do telão da TV (Live Wall com carrossel e sorteios)
 │
-├── components/
-│   ├── ErrorBoundary.tsx          # Boundary global de erro
-│   └── NotificationsListener.tsx  # Ouve notificações em tempo real
-│
-└── constants/                     # Constantes globais (verificar conteúdo)
-
-supabase/
-├── config.toml                    # Configuração do projeto Supabase CLI
-└── functions/
-    └── get-r2-upload-url/
-        └── index.ts               # Edge Function: gera presigned URL para R2
+└── utils/
+    └── formatters.ts              # Auxiliares de sanitização de links sociais (WhatsApp, Insta, Web)
 ```
 
 ---
 
-## 🗺️ Rotas da Aplicação
+## 🔐 Autenticação — Fluxo Unificado
 
-| Rota | Acesso | Componente |
-|---|---|---|
-| `/` | Admin (Firebase Google Auth) | `AdminDashboard` |
-| `/admin` | — | Redireciona para `/` |
-| `/event/:slug` | Público | `EventPage` (3 views por status) |
-| `/moderation/:slug` | Admin | `ModerationPanel` |
-| `/operator/:slug` | Admin | `OperatorPanel` |
-| `/tv/:slug` | Público | `TVView` |
-| `*` | — | Redireciona para `/` |
+O ecossistema migrou completamente do Firebase Auth para o **Supabase Auth**.
+* **Tipos de Autenticação**: Provedor Google OAuth (Produção) + Magic Link com código OTP (Alternativa) + `BETA_MODE=true` (Desenvolvimento local por inserção direta de e-mail na tabela `users`).
+* **Como a Role é Definida**:
+  1. O administrador realiza o pré-cadastro do e-mail com a respectiva permissão na tabela `user_email_roles`.
+  2. No primeiro login do usuário, a Edge Function `create-event-role-user` (ou trigger de sincronização) consulta o pré-cadastro, cria a conta no Supabase Auth e insere o registro na tabela `users` com a role correspondente (`admin`, `event_admin`, `avaliador`, `expositor`).
+  3. O registro de pré-cadastro é removido e o controle de sessão passa a ler diretamente a coluna `role` da tabela `users`.
+  4. Novos usuários comuns sem pré-cadastro ganham automaticamente a role de `participant` (participante).
 
 ---
 
-## 🔐 Autenticação — Estado Atual
+## 🗄️ Banco de Dados — Schema Normalizado
 
-- **Firebase Auth (Google OAuth)** para todos os usuários (participantes e admins) via `authService.ts`
-- Hook: `onAuthStateChanged` → `signInWithPopup(googleProvider)`
-- Sincronização: `createUserIfNotExists()` → salva em `users` (Supabase) por `firebase_uid`
-- Identificador principal: `firebase_uid` (text)
-- O controle de acesso administrativo é feito checando `role = 'admin'` no usuário ou validando e-mail contra `admin_emails` do evento.
+O banco de dados PostgreSQL do Supabase opera com políticas ativas de RLS (Row Level Security) e tabelas normalizadas que substituem antigas estruturas JSONB:
 
----
+### Tabelas Principais
+* **`events`**: Guarda as definições de branding do evento (cores, logos, planos de fundo), status de fase (`pre`, `live`, `post`), parâmetros de peso para cálculo de pontuação (`public_evaluation_weight`, `juror_evaluation_weight`) e estados ativos de anúncios (`active_announcement_id`) e sorteio do telão.
+* **`users`**: Armazena as contas sincronizadas do Supabase Auth e o mapeamento de permissões (roles) e vínculos com stands virtuais (`exhibitor_id`) ou eventos (`event_id`).
+* **`user_email_roles`**: Tabela temporária de e-mails pré-cadastrados pelos organizadores.
+* **`exhibitors`**: Entidade B2B dos stands virtuais. Contém número do stand, nome, descrição, foto, contatos e campos acadêmicos (`tagline`, `ano`, `turma`, `members`).
+* **`exhibitor_categories`**: Tabela dedicada contendo as categorias dos expositores (Gastronomia, Tecnologia, Artesanato, etc.), cores e ícones que alimentam os filtros da UI.
+* **`products`**: Catálogo de produtos vinculados a stands de expositores com preços e arrays de imagens.
+* **`leads`**: Interesse em produtos por parte de participantes. Possui coluna `status` com valores estruturados em `novo`, `atendido`, `pago` e `retirado`.
+* **`partners`**: Tabela de parcerias unificada. Agrega patrocinadores, apoiadores e prestadores de serviços distinguíveis pela coluna `type`, além de guardar informações de contato interno, valor de patrocínio (`sponsorship_value`), ordem e flags de exibição (`show_on_feed`, `show_on_tv`).
+* **`posts`**: Fotos sociais da galeria enviadas por participantes, contendo estado de moderação (`pending`, `approved`, `rejected`) e flag de destaque oficial.
+* **`reactions`**: Reações normalizadas vinculando `post_id`, `user_id` e o caractere emoji de reação.
+* **`comments`**: Comentários associados a fotos sociais com moderação individual de status.
+* **`evaluation_categories`**: Categorias de avaliação técnica criadas por evento (Melhor Atendimento, Criatividade, etc.) com pesos customizáveis.
+* **`evaluations`**: Notas dadas pelo público comum (1 a 5 estrelas + comentário). Possui restrição de chave UNIQUE para garantir a regra `[RN1]` (uma avaliação por participante por stand).
+* **`juror_evaluations`**: Pontuações numéricas dadas por jurados especializados em cada categoria técnica por stand virtual.
+* **`raffle_tickets`**: Registro de bilhetes gerados para sorteios. UNIQUE impede flood de tickets por usuário.
+* **`raffle_prizes`**: Prêmios cadastrados para sorteio pelo organizador com referência ao bilhete ganhador (`winner_ticket_id`).
+* **`announcements`**: Cadastro de avisos textuais com cores e imagens, integrados a uploads de sons customizados em R2 (`audio_url`).
+* **`visits`**: Captura silenciosa de analytics. Grava cliques em links de contato, visualizações de produto e stand, registrando a fase ativa (`event_status`) no momento da ação.
+* **`audit_logs`**: Logs administrativos capturando diffs JSONB de alterações críticas feitas por organizadores.
 
-## 🗄️ Banco de Dados — Estado Real
-
-### Tabelas ativas (em uso)
-- **`events`** — completo, 40+ campos, inclui temas, TV, social, flags de controle
-- **`users`** — sincronização Firebase→Supabase por `firebase_uid`
-- **`notifications`** — notificações por `user_id`, com leitura em tempo real
-- **`posts`** — ✅ Tabela principal normalizada (substitui `photos`)
-- **`reactions`** — ✅ Tabela normalizada de reações
-- **`comments`** — ✅ Tabela normalizada de comentários
-- **`print_orders`** — usa `photo_ids` (array texto) — estrutura legada parcial (**INATIVO nesta versão**)
-- **`print_order_items`** — ✅ Estrutura pronta (FK: print_order_id + post_id) — implementação pendente nos services
-- **`evaluation_categories`** — ✅ Categorias de avaliação técnica por evento (name, weight, order_index)
-- **`evaluations`** — ✅ Avaliações do público (1-5 estrelas + comentário), UNIQUE(exhibitor_id, user_id)
-- **`juror_evaluations`** — ✅ Notas dos jurados por categoria, UNIQUE(exhibitor_id, user_id, category_id)
-- **`raffle_tickets`** — ✅ Tickets de sorteio (1 por participante por evento), UNIQUE(event_id, user_id)
-- **`visits`** — ✅ Analytics de visitas/cliques (relatório pós-evento, não afeta ranking)
-- **`view_exhibitor_rankings`** — ✅ View SQL: ranking ponderado público×peso + jurado×peso em tempo real
-
----
-
-## 🔗 Camada de Serviços
-
-| Serviço | Tabela(s) | Status |
-|---|---|---|
-| `eventService.ts` | `events` | ✅ Ativo |
-| `posts.ts` | `posts`, `reactions`, `comments` | ✅ Ativo e normalizado |
-| `printService.ts` | `print_orders` | ⛔ Inativo (impressão desativada nesta versão) |
-| `notificationService.ts` | `notifications` | ✅ Ativo |
-| `userService.ts` | `users` | ✅ Ativo (Firebase→Supabase sync) |
-| `storageService.ts` | Cloudflare R2 | ✅ Ativo |
-| `authService.ts` | Firebase Auth | ✅ Ativo |
-| `evaluationService.ts` | `evaluations`, `juror_evaluations`, `evaluation_categories`, `view_exhibitor_rankings` | ✅ Ativo |
-| `raffleService.ts` | `raffle_tickets` | ✅ Ativo |
-| `visitService.ts` | `visits` | ✅ Ativo |
+### Views de Banco de Dados
+* **`view_exhibitor_rankings`**: View SQL que calcula em tempo real o ranking ponderado dos expositores, integrando médias do público avaliador, médias pesadas de categorias dos jurados e aplicando os coeficientes do evento.
 
 ---
 
-## ☁️ Storage — Cloudflare R2
+## 📡 Realtime — Canais do Supabase
 
-**Fluxo de upload** (`storageService.ts`):
-1. Invoca Edge Function `get-r2-upload-url` com `{ fileName, contentType }`
-2. Recebe `{ url: presignedUrl, publicUrlBase }`
-3. `PUT` direto do browser para R2
-4. Monta URL pública: `${VITE_R2_PUBLIC_URL}/${fileName}`
-
-**Variável de ambiente**: `VITE_R2_PUBLIC_URL`
-
----
-
-## 📡 Realtime — Padrão de Canais
-
-Todos os serviços usam o mesmo padrão:
-```ts
-supabase.channel(`public:{tabela}:{campo}=eq.${valor}`)
-  .on('postgres_changes', { event: '*', schema: 'public', table: '{tabela}', filter: '...' }, cb)
-  .subscribe()
-```
-
-Canais ativos:
-- `public:events` — dashboard admin
-- `public:events:slug=eq.{slug}` — página do evento
-- `public:posts:event_id=eq.{id}` — feed
-- `public:print_orders:event_id=eq.{id}` — operador
-- `public:notifications:user_id=eq.{id}` — notificações
+A plataforma adota o padrão de subscrição a canais com consultas resilientes baseadas em refetch completo no callback de alteração para evitar dessincronização de payloads parciais:
+* `public:events` — Dashboard admin geral
+* `public:events:slug=eq.{slug}` — Transmissão do estado da TV e avisos em tempo real
+* `public:event_data:{id}` — Orquestração de comentários, reações e novos posts no feed live
+* `public:exhibitors:event_id=eq.{id}` — Alterações de stands virtuais
+* `public:print_orders` — Inserção de novas requisições de impressão na fila do operador
+* `public:notifications:user_id=eq.{id}` — Central de mensagens instantâneas do usuário
 
 ---
 
-## ⚠️ WIP / Dívida Técnica
+## ⚠️ WIP e Dívida Técnica Mapeada
 
-| # | Item | Impacto | Prioridade |
-|---|---|---|---|
-| 1 | `print_orders` usa `photo_ids` array (não FK) | Médio — perda de integridade referencial | 🟡 Média |
-| 2 | Duplicata de views em `features/event/` (raiz vs `components/`) | Baixo — confusão de estrutura | 🟢 Baixa |
-| 3 | Migrar `print_orders` para usar `print_order_items` | Médio — integridade de dados | 🟡 Média |
+Abaixo constam os pontos de atenção atuais na transição da arquitetura:
+
+1. **Stub de Interface da Área de Avaliação**: O backend de avaliações técnicas (`evaluationService`) está concluído, mas o painel `/avaliador` necessita de interface final para preenchimento de notas de jurados.
+2. **Vínculo Avaliação → Ticket de Sorteio**: A lógica `[RN3]` (atribuir ticket ao registrar feedback) está mapeada em `raffleService`, mas não está conectada no acionamento do clique final no frontend.
+3. **Analytics e Tabela de Visitas**: A aba de visualizações de Parceiros ainda é um placeholder, pois a tabela `visits` rastreia exclusivamente interações de stands (`exhibitor_id`) e produtos (`product_id`), excluindo interações específicas com parceiros.
+4. **Acúmulo de Tipagens**: O pseudônimo de tipo `PhotoData` foi mantido para retrocompatibilidade em componentes legados do feed, coexistindo com o schema normalizado do tipo `PostData`.
+5. **Flags Inativas no Feed**: A lógica para que os carrosséis da TV e o Feed filtrem patrocinadores e parceiros com base nas flags `show_on_feed` e `show_on_tv` ainda precisa ser amarrada nos arquivos de visualização.
 
 ---
 
-## 🌍 Variáveis de Ambiente
+## 🌍 Variáveis de Ambiente (.env.local)
 
 ```env
-# Supabase
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+# Supabase Backend
+VITE_SUPABASE_URL=https://your-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-# Firebase
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_APP_ID=
+# Cloudflare R2 CDN Public Endpoint
+VITE_R2_PUBLIC_URL=https://pub-your-bucket-hash.r2.dev
 
-# Cloudflare R2
-VITE_R2_PUBLIC_URL=
-
-# AI
-GEMINI_API_KEY=
+# Configurações de Comportamento
+VITE_APP_URL=http://localhost:3000
+VITE_BETA_MODE=true # Define login simplificado por email sem autenticação externa de provedor
 ```
-
----
-
-## 📐 Convenções de Código
-
-- **Nomenclatura**: snake_case no BD, camelCase no TypeScript, mapeamento explícito em cada service
-- **Realtime**: sempre refetch completo no callback (não merge de payload) — padrão de segurança
-- **Supabase null-safe**: todos os serviços verificam `if (!supabase) return` antes de operar
-- **Imports de tipo**: `import type { ... }` para interfaces TypeScript
-- **Tailwind 4**: sem `tailwind.config.js` — configuração por CSS nativo
-
----
-
-## 🚦 Status do Projeto — Fase BMAD
-
-| Fase | Status |
-|---|---|
-| PRD | ✅ v4 validado |
-| Project Context | ✅ Este documento |
-| Arquitetura (CA) | ⏳ Em andamento |
-| UX Design (CU) | ⏳ Aguardando CA |
-| Epics & Stories (CE) | ⏳ Aguardando CA + CU |
-| Sprint Plan (SP) | ⏳ Aguardando CE |
