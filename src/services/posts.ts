@@ -72,9 +72,9 @@ async function attachInteractions(rows: any[]): Promise<any[]> {
   if (userIdSet.size > 0) {
     const { data: users } = await supabase
       .from('users')
-      .select('id, display_name')
+      .select('id, display_name, email')
       .in('id', [...userIdSet]);
-    (users || []).forEach(u => { if (u.display_name) userNames[u.id] = u.display_name; });
+    (users || []).forEach(u => { userNames[u.id] = u.display_name || u.email || 'Anônimo'; });
   }
 
   const reactionsByPost: Record<string, any[]> = {};

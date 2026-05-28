@@ -70,6 +70,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               const appUser = await syncUser(session.user);
               setUser(appUser);
+
+              // Redireciona para a página do evento após login via magic link
+              if (event === 'SIGNED_IN') {
+                const redirect = localStorage.getItem('magic_link_redirect');
+                if (redirect) {
+                  localStorage.removeItem('magic_link_redirect');
+                  // Só redireciona se estiver na raiz (Supabase ignorou o emailRedirectTo)
+                  if (window.location.pathname === '/' || window.location.pathname === '') {
+                    window.location.replace(redirect);
+                  }
+                }
+              }
             } catch (err) {
               console.warn('[AuthProvider] syncUser on auth change failed:', err);
             }
