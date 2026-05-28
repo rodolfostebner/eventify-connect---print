@@ -119,8 +119,8 @@ Exemplos:
 
 # REGRAS DE NEGOCIO
 
-- [RN1] ~~Participantes da feira só poderão comentar e avaliar o mesmo expositor uma quantidade x (definida no painel de administração do evento)~~ ✅ **Backend resolvido** — UNIQUE(exhibitor_id, user_id) na tabela `evaluations` garante 1 avaliação por participante por expositor. ⏳ **UI pendente** — tela de avaliação não implementada
-- [RN2] ~~Avaliações terão diferentes pesos e categorias, a ser definidas via Administração do Evento~~ ✅ **Backend resolvido** — `evaluation_categories.weight` + `events.public/juror_evaluation_weight`; CRUD em `evaluationService`. ⏳ **UI pendente** — cadastro de categorias/pesos no Admin do Evento não implementado
+- [RN1] ~~Participantes da feira só poderão comentar e avaliar o mesmo expositor uma quantidade x (definida no painel de administração do evento)~~ ✅ **Backend resolvido** — UNIQUE(exhibitor_id, user_id) na tabela `evaluations` garante 1 avaliação por participante por expositor. ⏳ **UI pendente** — tela de avaliação do público não implementada (ver [PD5])
+- [RN2] ~~Avaliações terão diferentes pesos e categorias, a ser definidas via Administração do Evento~~ ✅ **Resolvido** — `evaluation_categories.weight` + `events.public/juror_evaluation_weight`; CRUD + controles de status (encerrar/publicar) implementados na aba Config. Avaliação do EventAdmin.
 - [RN3] Participantes que registram avaliação são registrados em uma tabela para concorrer aos sorteios — ⚠️ **Não conectado** — tabela `raffle_tickets` e `raffleService.ensureRaffleTicket()` existem, mas nenhum código chama `ensureRaffleTicket` após `submitEvaluation`. O vínculo avaliação→ticket ainda não está implementado
 
 # PENDENCIA DE VIABILIDADE TECNICA
@@ -134,7 +134,9 @@ Exemplos:
 - ~~[PD1] Tela de sorteios~~ ✅ **Implementado** — CRUD de prêmios no EventAdmin (aba Sorteio), picker de produto por expositor, controles de telão (Mostrar prêmio → Sortear!), animação de tambor giratório no TVView com revelação do ganhador. Ganhador persistido em `raffle_prizes.winner_ticket_id` + histórico consultável.
 - [PD2] ~~Regra para sorteios~~ ✅ **Backend resolvido** — Modelo simplificado: 1 único ticket por participante por evento. UNIQUE(event_id, user_id) na tabela `raffle_tickets`.
 - [PD3] Administradores poderão registrar fotos para enriquecer feed?
-- [PD4] Criaremos uma tela para marketing da escola? 
+- [PD4] Criaremos uma tela para marketing da escola?
+- [PD5] **Avaliação da comunidade UI** — backend pronto (`evaluations` com 1-5 estrelas + comentário, UNIQUE por usuário/expositor). Falta a tela de avaliação acessível ao participante durante o evento live (provavelmente no ExhibitorDetailModal ou LiveEventView). O card do avaliador já exibe resumo agregado dos dados existentes.
+- [PD6] **Ranking no pós-evento** — `events.evaluation_status = 'published'` sinaliza que o ranking deve ser exibido. Falta consumir `view_exhibitor_rankings` na `PostEventView` quando status = published. Definir layout: lista rankeada simples, pódio top-3, ou tabela completa.
 
 ---
 

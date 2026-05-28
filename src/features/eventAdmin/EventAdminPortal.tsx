@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Eye, LayoutDashboard, ShieldCheck, Printer, Store, Star, Play, Pause, CheckCircle2,
   ChevronDown, Palette, Save, X as CloseIcon, FileClock, Info, Loader2, Plus,
+  Lock, Unlock, Trophy, AlertTriangle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -10,7 +11,7 @@ import { toast } from 'sonner';
 import { AppHeader } from '../../components/AppHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { cn } from '../../lib/utils';
-import type { AuditLog, EventData, EvaluationCategory, UserEmailRole, Announcement } from '../../types';
+import type { AuditLog, EventData, EvaluationCategory, UserEmailRole, Announcement, ExhibitorRanking } from '../../types';
 import { getEventById, getEventBySlug, updateEvent } from '../../services/eventService';
 import { diffObjects, getEventAuditLogs, logChange } from '../../services/auditService';
 import { getEventDashboard, type DashboardData } from '../../services/dashboardService';
@@ -18,6 +19,7 @@ import { HBarChart, PieChart } from './components/DashboardCharts';
 import { SorteioTab } from './components/SorteioTab';
 import {
   getEvaluationCategories, createEvaluationCategory, updateEvaluationCategory, deleteEvaluationCategory,
+  setEvaluationStatus, getExhibitorRankings,
 } from '../../services/evaluationService';
 import {
   getExhibitorCategories, createExhibitorCategory, updateExhibitorCategory, deleteExhibitorCategory,
@@ -165,6 +167,286 @@ const ACTION_LABELS: Record<string, string> = {
   update_event: 'Edição de dados',
   update_status: 'Mudança de fase',
 };
+
+// ─── Controle das Avaliações ──────────────────────────────────────────────────
+
+const EVAL_STATUS_LABELS: Record<string, string> = {
+  open: 'Avaliações Abertas',
+  closed: 'Avaliações Encerradas',
+  published: 'Resultado Publicado',
+};
+
+const EVAL_STATUS_COLORS: Record<string, string> = {
+  open: 'bg-green-100 text-green-700',
+  closed: 'bg-amber-100 text-amber-700',
+  published: 'bg-blue-100 text-blue-700',
+};
+
+function ControleAvaliacoesSection({
+  event,
+  onEventUpdate,
+}: {
+  event: EventData;
+  onEventUpdate: (e: EventData) => void;
+}) {
+  const status = event.evaluation_status ?? 'open';
+  const [acting, setActing] = useState(false);
+  const [showRanking, setShowRanking] = useState(false);
+  const [ranking, setRanking] = useState<ExhibitorRanking[]>([]);
+  const [rankingLoading, setRankingLoading] = useState(false);
+
+  // Pesos editáveis inline
+  const [pubWeight, setPubWeight] = useState(String(event.public_evaluation_weight ?? 0.40));
+  const [jurWeight, setJurWeight] = useState(String(event.juror_evaluation_weight ?? 0.60));
+  const [savingWeights, setSavingWeights] = useState(false);
+
+  const doSetStatus = async (next: 'open' | 'closed' | 'published') => {
+    setActing(true);
+    try {
+      await setEvaluationStatus(event.id, next);
+      onEventUpdate({ ...event, evaluation_status: next });
+      toast.success(
+        next === 'open' ? 'Avaliações reabertas.'
+          : next === 'closed' ? 'Avaliações encerradas.'
+          : 'Resultado publicado! Disponível no pós-evento.',
+      );
+    } catch {
+      toast.error('Erro ao atualizar estado das avaliações.');
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const handleEncerrar = async () => {
+    if (!confirm('Encerrar avaliações? Os avaliadores não poderão mais submeter ou alterar notas.')) return;
+    await doSetStatus('closed');
+  };
+
+  const handlePublicar = async () => {
+    if (!confirm('Publicar o ranking? Ele ficará visível na tela de pós-evento e as avaliações serão encerradas definitivamente.')) return;
+    await doSetStatus('published');
+  };
+
+  const handleReabrir = async () => {
+    if (status === 'published') {
+      if (!confirm('Atenção: o ranking já foi publicado na tela de pós-evento. Deseja continuar?')) return;
+      if (!confirm('Confirmação final: o ranking ficará indisponível no pós-evento até ser publicado novamente. Reabrir avaliações?')) return;
+    } else {
+      if (!confirm('Reabrir avaliações? Os avaliadores poderão alterar suas notas.')) return;
+    }
+    await doSetStatus('open');
+  };
+
+  const handleLoadRanking = async () => {
+    setRankingLoading(true);
+    setShowRanking(true);
+    try {
+      const data = await getExhibitorRankings(event.id);
+      setRanking(data.sort((a, b) => b.final_score - a.final_score));
+    } catch {
+      toast.error('Erro ao carregar ranking.');
+      setShowRanking(false);
+    } finally {
+      setRankingLoading(false);
+    }
+  };
+
+  const handleSaveWeights = async () => {
+    const pub = parseFloat(pubWeight);
+    const jur = parseFloat(jurWeight);
+    if (isNaN(pub) || isNaN(jur) || pub < 0 || jur < 0) {
+      toast.error('Pesos inválidos.'); return;
+    }
+    if (pub + jur > 1.001) {
+      toast.error('A soma dos pesos não pode ser maior que 1.'); return;
+    }
+    setSavingWeights(true);
+    try {
+      await import('../../services/eventService').then(({ updateEvent: ue }) =>
+        ue(event.id, { public_evaluation_weight: pub, juror_evaluation_weight: jur }),
+      );
+      onEventUpdate({ ...event, public_evaluation_weight: pub, juror_evaluation_weight: jur });
+      toast.success('Pesos salvos.');
+    } catch {
+      toast.error('Erro ao salvar pesos.');
+    } finally {
+      setSavingWeights(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Status e ações */}
+      <div className="border border-neutral-200 rounded-2xl p-5 space-y-4 bg-white">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-sm font-bold text-neutral-800">Estado das Avaliações</p>
+            <p className="text-[10px] text-neutral-400 mt-0.5">
+              Controla se avaliadores podem enviar notas e quando o ranking é publicado.
+            </p>
+          </div>
+          <span className={cn('text-[11px] font-bold uppercase tracking-wider px-3 py-1 rounded-full', EVAL_STATUS_COLORS[status])}>
+            {EVAL_STATUS_LABELS[status]}
+          </span>
+        </div>
+
+        <div className="flex flex-wrap gap-2 border-t border-neutral-100 pt-4">
+          {status === 'open' && (
+            <button
+              onClick={handleEncerrar}
+              disabled={acting}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors disabled:opacity-50"
+            >
+              <Lock className="w-3.5 h-3.5" /> Encerrar Avaliações
+            </button>
+          )}
+
+          {(status === 'closed' || status === 'published') && (
+            <>
+              <button
+                onClick={handleLoadRanking}
+                disabled={rankingLoading}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-700 text-white text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                {rankingLoading
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Trophy className="w-3.5 h-3.5" />
+                }
+                {showRanking ? 'Atualizar Ranking' : 'Calcular Ranking'}
+              </button>
+
+              <button
+                onClick={handleReabrir}
+                disabled={acting}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-neutral-700 text-xs font-bold transition-colors disabled:opacity-50"
+              >
+                <Unlock className="w-3.5 h-3.5" /> Reabrir Avaliações
+                {status === 'published' && <AlertTriangle className="w-3 h-3 text-amber-500 ml-0.5" />}
+              </button>
+
+              {status === 'closed' && (
+                <button
+                  onClick={handlePublicar}
+                  disabled={acting}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors disabled:opacity-50"
+                >
+                  <Star className="w-3.5 h-3.5" /> Publicar Resultado
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Preview do Ranking */}
+        {showRanking && (
+          <div className="border-t border-neutral-100 pt-4">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-3">
+              Pré-visualização do Ranking — {ranking.length} expositor{ranking.length !== 1 ? 'es' : ''}
+            </p>
+            {rankingLoading ? (
+              <div className="flex justify-center py-6">
+                <Loader2 className="w-5 h-5 animate-spin text-neutral-300" />
+              </div>
+            ) : ranking.length === 0 ? (
+              <p className="text-xs text-neutral-400 text-center py-4">
+                Nenhuma avaliação registrada ainda.
+              </p>
+            ) : (
+              <div className="overflow-x-auto border border-neutral-100 rounded-xl">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-neutral-50 text-[10px] uppercase text-neutral-400 font-bold tracking-wider">
+                    <tr>
+                      <th className="px-3 py-2 w-8">#</th>
+                      <th className="px-3 py-2">Expositor</th>
+                      <th className="px-3 py-2 text-right">Jurados</th>
+                      <th className="px-3 py-2 text-right">Público</th>
+                      <th className="px-3 py-2 text-right font-black">Final</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-100">
+                    {ranking.map((r, i) => (
+                      <tr key={r.exhibitor_id} className={cn('hover:bg-neutral-50', i < 3 && 'font-semibold')}>
+                        <td className="px-3 py-2 tabular-nums text-neutral-400">
+                          {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                        </td>
+                        <td className="px-3 py-2 text-neutral-900">
+                          {r.exhibitor_name}
+                          <span className="ml-1.5 text-[10px] text-neutral-400 font-normal">
+                            #{r.exhibitor_number}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums text-neutral-600">
+                          {Number(r.juror_score).toFixed(2)}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums text-neutral-600">
+                          {Number(r.public_score).toFixed(2)}
+                        </td>
+                        <td className="px-3 py-2 text-right tabular-nums font-black text-neutral-900">
+                          {Number(r.final_score).toFixed(2)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Pesos de avaliação */}
+      <div className="border border-neutral-200 rounded-2xl p-5 bg-white space-y-3">
+        <div>
+          <p className="text-sm font-bold text-neutral-800">Pesos do Ranking</p>
+          <p className="text-[10px] text-neutral-400 mt-0.5">
+            Define quanto cada fonte contribui para a nota final. A soma deve ser ≤ 1.
+          </p>
+        </div>
+        <div className="flex items-end gap-3 flex-wrap">
+          <div className="flex-1 min-w-[120px]">
+            <Label>Visitantes (público)</Label>
+            <input
+              type="number" min="0" max="1" step="0.05"
+              value={pubWeight}
+              onChange={e => setPubWeight(e.target.value)}
+              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/20 tabular-nums"
+            />
+          </div>
+          <div className="flex-1 min-w-[120px]">
+            <Label>Avaliadores (jurados)</Label>
+            <input
+              type="number" min="0" max="1" step="0.05"
+              value={jurWeight}
+              onChange={e => setJurWeight(e.target.value)}
+              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/20 tabular-nums"
+            />
+          </div>
+          <button
+            onClick={handleSaveWeights}
+            disabled={savingWeights}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-900 hover:bg-neutral-700 text-white text-xs font-bold transition-colors disabled:opacity-50 shrink-0"
+          >
+            {savingWeights ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            Salvar pesos
+          </button>
+        </div>
+        {(() => {
+          const sum = (parseFloat(pubWeight) || 0) + (parseFloat(jurWeight) || 0);
+          if (sum > 1.001) return (
+            <p className="text-[11px] text-red-500 font-medium">
+              Soma atual: {sum.toFixed(2)} — não pode exceder 1.
+            </p>
+          );
+          return (
+            <p className="text-[11px] text-neutral-400">
+              Soma atual: {sum.toFixed(2)} {sum < 0.999 ? `(${((1 - sum) * 100).toFixed(0)}% não ponderado)` : '✓'}
+            </p>
+          );
+        })()}
+      </div>
+    </div>
+  );
+}
 
 // ─── Categorias de Avaliação ──────────────────────────────────────────────────
 
@@ -1562,6 +1844,7 @@ export default function EventAdminPortal() {
     { label: 'Operador', icon: Printer, path: `/operator/${event.slug}`, color: 'text-violet-600 bg-violet-50 border-violet-100 hover:bg-violet-100' },
     { label: 'Expositores', icon: Store, path: `/expositores/${event.slug}`, color: 'text-amber-600 bg-amber-50 border-amber-100 hover:bg-amber-100' },
     { label: 'Parceiros', icon: Star, path: `/parceiros/${event.slug}`, color: 'text-yellow-600 bg-yellow-50 border-yellow-100 hover:bg-yellow-100' },
+    { label: 'Avaliação', icon: Trophy, path: `/avaliacao/${event.slug}`, color: 'text-green-600 bg-green-50 border-green-100 hover:bg-green-100' },
   ];
 
   return (
@@ -1868,6 +2151,8 @@ export default function EventAdminPortal() {
             {/* Aba 4 — Config. Avaliação */}
             {activeTab === 'avaliacao' && (
               <div className="space-y-8 max-w-3xl">
+                <ControleAvaliacoesSection event={event} onEventUpdate={setEvent} />
+                <div className="border-t border-neutral-100" />
                 <CategoriasAvaliacaoSection eventId={event.id} />
                 <div className="border-t border-neutral-100" />
                 <AvaliadorSection eventId={event.id} />

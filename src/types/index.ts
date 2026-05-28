@@ -58,6 +58,7 @@ export interface EventData {
   exhibitors_estimation?: number;
   public_evaluation_weight?: number;
   juror_evaluation_weight?: number;
+  evaluation_status?: 'open' | 'closed' | 'published';
   app_description?: string;
   app_whatsapp?: string;
   app_instagram?: string;

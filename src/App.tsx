@@ -52,6 +52,8 @@ function App() {
 
         {/* Portal Avaliador */}
         <Route path="/avaliador" element={isAvaliador ? <AvaliadorPageComponent /> : <Navigate to="/login" replace />} />
+        {/* Visão de avaliação para admin/event_admin (leitura) */}
+        <Route path="/avaliacao/:slug" element={(isAdmin || isEventAdmin) ? <AvaliadorPageComponent /> : <Navigate to="/login" replace />} />
 
         {/* Rotas Admin Geral */}
         <Route path="/" element={<AdminDashboard user={user} />} />

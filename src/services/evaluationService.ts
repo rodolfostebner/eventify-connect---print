@@ -131,13 +131,8 @@ export async function submitJurorEvaluations(
   if (!supabase) throw new Error('Supabase não inicializado');
   const { error } = await supabase
     .from('juror_evaluations')
-    .insert(evaluations);
-  if (error) {
-    if (error.code === '23505') {
-      throw new Error('Você já avaliou este expositor nesta(s) categoria(s).');
-    }
-    throw error;
-  }
+    .upsert(evaluations, { onConflict: 'exhibitor_id,user_id,category_id' });
+  if (error) throw error;
 }
 
 export async function getJurorEvaluationsForExhibitor(
@@ -152,6 +147,64 @@ export async function getJurorEvaluationsForExhibitor(
     .eq('user_id', userId);
   if (error) throw error;
   return (data || []) as JurorEvaluation[];
+}
+
+export async function getJurorEvaluationsForEvent(
+  eventId: string,
+  userId: string,
+): Promise<JurorEvaluation[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('juror_evaluations')
+    .select('*')
+    .eq('event_id', eventId)
+    .eq('user_id', userId);
+  if (error) throw error;
+  return (data || []) as JurorEvaluation[];
+}
+
+// ─── Controle de Status das Avaliações ───────────────────────────────────────
+
+export async function setEvaluationStatus(
+  eventId: string,
+  status: 'open' | 'closed' | 'published',
+): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase
+    .from('events')
+    .update({ evaluation_status: status })
+    .eq('id', eventId);
+  if (error) throw error;
+}
+
+// ─── Dados Públicos do Expositor (para card do avaliador) ────────────────────
+
+export interface ExhibitorPublicStats {
+  evaluation_count: number;
+  avg_stars: number | null;
+  visitors_pre: number;
+  visitors_live: number;
+}
+
+export async function getExhibitorPublicStats(exhibitorId: string): Promise<ExhibitorPublicStats> {
+  if (!supabase) return { evaluation_count: 0, avg_stars: null, visitors_pre: 0, visitors_live: 0 };
+  const [{ data: evalData }, { data: visitData }] = await Promise.all([
+    supabase.from('evaluations').select('stars').eq('exhibitor_id', exhibitorId),
+    supabase
+      .from('visits')
+      .select('session_id,event_status')
+      .eq('exhibitor_id', exhibitorId)
+      .eq('action', 'view_stand'),
+  ]);
+  const evals = (evalData || []) as { stars: number }[];
+  const visits = (visitData || []) as { session_id: string | null; event_status: string | null }[];
+  const evaluation_count = evals.length;
+  const avg_stars = evaluation_count > 0
+    ? evals.reduce((s, e) => s + e.stars, 0) / evaluation_count
+    : null;
+  const preSet = new Set(visits.filter(v => v.event_status === 'pre' && v.session_id).map(v => v.session_id));
+  const liveSet = new Set(visits.filter(v => v.event_status === 'live' && v.session_id).map(v => v.session_id));
+  return { evaluation_count, avg_stars, visitors_pre: preSet.size, visitors_live: liveSet.size };
 }
 
 // ─── Ranking (View) ──────────────────────────────────────────────────────────
