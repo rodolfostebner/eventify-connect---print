@@ -7,6 +7,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '../../../../lib/utils';
 import type { EventData, PhotoData, AppUser, PhotoComment } from '../../../../types';
 import { reactToPost, commentOnPost, deletePost, deleteComment } from '../../../../services/posts';
+import { viewTracker } from '../../../../services/viewTracker';
 
 function formatRelativeTime(dateString?: string) {
   if (!dateString) return 'agora';
@@ -68,6 +69,8 @@ export const TimelinePostCard = memo(function TimelinePostCard({
     
     try {
       await reactToPost(photo.id, emoji, user.id, hasReacted ? -1 : 1);
+      // Registra a visualização explicitamente ao reagir
+      viewTracker.trackView(photo.id, user.id);
     } catch (err) {
       console.error(err);
       toast.error('Erro ao reagir.');
@@ -94,6 +97,9 @@ export const TimelinePostCard = memo(function TimelinePostCard({
         text: trimmedText,
         status: (event.comment_moderation_enabled === false || isQuickComment) ? 'approved' : 'pending'
       });
+      // Registra a visualização ao comentar
+      viewTracker.trackView(photo.id, user.id);
+      
       setNewComment('');
       const status = (event.comment_moderation_enabled === false || isQuickComment) ? 'approved' : 'pending';
       toast.success(status === 'approved' ? 'Comentário enviado!' : 'Comentário enviado para moderação.');
@@ -259,7 +265,12 @@ export const TimelinePostCard = memo(function TimelinePostCard({
           {/* Toggle para mostrar todos os comentários se passar de 1 */}
           {approvedComments.length > 1 && (
             <button
-              onClick={() => setShowAllComments(!showAllComments)}
+              onClick={() => {
+                setShowAllComments(!showAllComments);
+                if (!showAllComments && user) {
+                  viewTracker.trackView(photo.id, user.id);
+                }
+              }}
               className="text-[10px] font-black uppercase tracking-wider text-neutral-400 hover:text-neutral-600 transition-colors mt-2 cursor-pointer"
             >
               {showAllComments 

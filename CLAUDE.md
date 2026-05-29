@@ -85,6 +85,7 @@ src/
     userService.ts         # syncUser, findOrCreateUserByEmail, CRUD users, pré-cadastro email roles
     eventService.ts        # CRUD eventos + subscriptions realtime
     posts.ts               # CRUD posts + reactions + comments (tabelas posts, reactions, comments)
+    viewTracker.ts         # Tracker singleton de visualizações em lote e sem duplicados por sessão
     printService.ts        # Pedidos de impressao (usa photo_ids array — legado parcial — INATIVO)
     storageService.ts      # Upload R2 via Edge Function get-r2-upload-url
     notificationService.ts # CRUD + subscribe notificacoes

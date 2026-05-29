@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { motion } from 'motion/react';
 import type { EventData, PhotoData, AppUser } from '../../../../types';
 import { likePost, commentOnPost, reactToPost, deletePost, deleteComment, recordPhotoView } from '../../../../services/posts';
+import { viewTracker } from '../../../../services/viewTracker';
 import { InteractionBar } from './InteractionBar';
 import { PhotoModal } from './PhotoModal';
 
@@ -134,9 +135,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
     setShowDetails(true);
     // Grava visualização única se o usuário estiver logado e não for o autor do post
     if (user && user.id !== photo.user_id) {
-      recordPhotoView(photo.id, user.id).catch(err => {
-        console.error('Erro ao registrar visualização:', err);
-      });
+      viewTracker.trackView(photo.id, user.id);
     }
   }, [user, photo.id, photo.user_id]);
 

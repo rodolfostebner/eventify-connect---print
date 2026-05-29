@@ -510,21 +510,6 @@ export default function EventPage({ user }: { user: AppUser | null }) {
   };
 
 
-  const exhibitorItems = dbExhibitors.map(ex => ({
-    id: ex.id,
-    name: ex.name,
-    logo: ex.logo_url ?? undefined,
-    photo: ex.photo_url ?? undefined,
-    bio: ex.description ?? '',
-    message: ex.message ?? undefined,
-    final_message: ex.final_message ?? undefined,
-    socials: {
-      instagram: ex.instagram_url ?? undefined,
-      whatsapp: ex.whatsapp ?? undefined,
-      website: ex.website_url ?? undefined,
-    },
-  }));
-
   const sponsorItems = dbSponsors.map(s => ({
     id: s.id,
     name: s.name,
@@ -538,20 +523,6 @@ export default function EventPage({ user }: { user: AppUser | null }) {
   }));
 
   const handleLogin = () => setIsLoginViewOpen(true);
-
-  const handleSidebarExhibitorSocialClick = useCallback(
-    (item: { id?: string }, type: SocialLinkType) => {
-      if (!item.id || !event) return;
-      void trackVisit({
-        eventId: event.id,
-        exhibitorId: item.id,
-        userId: user?.id,
-        action: `click_${type}` as const,
-        eventStatus: event.status,
-      });
-    },
-    [event?.id, event?.status, user?.id],
-  );
 
   const getBackgroundStyle = () => {
     if (!event) return {};
@@ -759,70 +730,28 @@ export default function EventPage({ user }: { user: AppUser | null }) {
                   );
                 })()}
 
-                {/* Printing Options - MOVED UP */}
-                {event.status === 'live' && (
-                  <section className="bg-neutral-50 rounded-2xl p-6 md:p-8 border border-neutral-100 space-y-8">
+                {/* Quadro do Dono do Evento (Organização) */}
+                {(event.owner_photo || event.owner_text) && (
+                  <section className="bg-neutral-50 rounded-2xl p-6 md:p-8 border border-neutral-100 space-y-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-neutral-900 rounded-2xl flex items-center justify-center text-white shadow-xl">
-                        <Star className="w-6 h-6 fill-yellow-400 text-yellow-400" />
+                      {event.owner_photo ? (
+                        <img src={event.owner_photo} className="w-12 h-12 rounded-2xl object-cover shadow-xl" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-12 h-12 bg-neutral-900 rounded-2xl flex items-center justify-center text-white shadow-xl text-2xl">🏢</div>
+                      )}
+                      <div>
+                        <h2 className="text-lg font-black tracking-tight">Organização</h2>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Dono do Evento</p>
                       </div>
-                      <h2 className="text-lg font-black tracking-tight">Monte seu Álbum</h2>
                     </div>
-
-                    <div className="space-y-3">
-                      {[
-                        { id: 'photos_only', label: 'Apenas fotos (10 adesivos)', icon: '📸' },
-                        { id: 'photos_album', label: 'Fotos + Álbum físico', icon: '📖' },
-                        { id: 'photos_album_stickers', label: 'Fotos + Álbum + Stickers', icon: '✨' }
-                      ].map((opt) => (
-                        <button
-                          key={opt.id}
-                          onClick={() => setPrintOption(opt.id as any)}
-                          className={cn(
-                            "w-full p-4 rounded-xl border-2 transition-all flex items-center justify-between group",
-                            printOption === opt.id ? "border-neutral-900 bg-white" : "border-transparent bg-white hover:border-neutral-200"
-                          )}
-                        >
-                          <div className="flex items-center gap-4">
-                            <span className="text-2xl">{opt.icon}</span>
-                            <span className="text-xs font-black">{opt.label}</span>
-                          </div>
-                          {printOption === opt.id && <Check className="w-4 h-4 text-neutral-900" />}
-                        </button>
-                      ))}
-                    </div>
-
-                    {!isSelectingForPrint ? (
-                      <button
-                        onClick={() => {
-                          setIsSelectingForPrint(true);
-                          setIsSidebarOpen(false);
-                        }}
-                        className="w-full py-4 bg-neutral-900 text-white rounded-xl font-black text-xs shadow-xl active:scale-95 transition-all"
-                      >
-                        Começar Seleção (0/10)
-                      </button>
-                    ) : (
-                      <button
-                        onClick={handleSubmitPrintOrder}
-                        disabled={selectedPrintPhotos.length !== 10 || isSubmittingPrint}
-                        className="w-full py-4 bg-green-600 text-white rounded-xl font-black text-xs shadow-xl active:scale-95 transition-all disabled:opacity-50"
-                      >
-                        {isSubmittingPrint ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Confirmar Pedido'}
-                      </button>
+                    {event.owner_text && (
+                      <p className="text-xs text-neutral-500 leading-relaxed font-medium whitespace-pre-line">{event.owner_text}</p>
                     )}
                   </section>
                 )}
 
                 {/* Partners in Sidebar */}
                 <section className="space-y-6 px-2">
-                  <PartnerSection
-                    title="Expositores"
-                    items={exhibitorItems}
-                    icon={<Users className="w-4 h-4" />}
-                    columns={1}
-                    onItemSocialClick={handleSidebarExhibitorSocialClick}
-                  />
                   <PartnerSection
                     title="Patrocinadores"
                     items={sponsorItems}
