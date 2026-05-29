@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Star, Briefcase } from 'lucide-react';
+import { Star, Briefcase, LayoutGrid, Rows3, Camera } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { useEventPhotos } from '../hooks/useEventPhotos';
 import { useCategoryGroups } from '../hooks/useCategoryGroups';
@@ -7,6 +7,7 @@ import { useSlideshow } from '../hooks/useSlideshow';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { FeaturedSlideshow } from './Feed/FeaturedSlideshow';
 import { FeedGrid } from './Feed/FeedGrid';
+import { TimelineFeed } from './Feed/TimelineFeed';
 import { UploadFAB } from './Feed/UploadFAB';
 import { LoginBanner } from './Feed/LoginBanner';
 import { PartnerSection } from './PartnerSection';
@@ -16,6 +17,7 @@ import { getExhibitors } from '../../../services/exhibitorService';
 import { getPartners } from '../../../services/partnerService';
 import { getExhibitorCategories } from '../../../services/exhibitorCategoryService';
 import type { EventData, AppUser, Exhibitor, Partner, ExhibitorCategory } from '../../../types';
+import { cn } from '../../../lib/utils';
 
 type Tab = 'expositores' | 'patrocinadores' | 'fotos';
 
@@ -30,6 +32,9 @@ interface Props {
 
 export const LiveEventView = ({ event, user, onLogin, isSelectingForPrint, selectedPrintPhotos, togglePhotoSelection }: Props) => {
   const [tab, setTab] = useState<Tab>('fotos');
+  const [viewMode, setViewMode] = useState<'grid' | 'timeline'>(() => {
+    return (localStorage.getItem('eventify_feed_view_mode') as 'grid' | 'timeline') || 'grid';
+  });
   const [exhibitors, setExhibitors] = useState<Exhibitor[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [categories, setCategories] = useState<ExhibitorCategory[]>([]);
@@ -62,6 +67,11 @@ export const LiveEventView = ({ event, user, onLogin, isSelectingForPrint, selec
     { key: 'expositores', label: 'Expositores', count: exhibitors.length },
     { key: 'patrocinadores', label: 'Patrocinadores', count: sponsors.length },
   ];
+
+  const handleViewModeChange = (mode: 'grid' | 'timeline') => {
+    setViewMode(mode);
+    localStorage.setItem('eventify_feed_view_mode', mode);
+  };
 
   return (
     <div className="min-h-screen bg-[#F5F5F7]">
@@ -113,16 +123,66 @@ export const LiveEventView = ({ event, user, onLogin, isSelectingForPrint, selec
               onSetPhotoIndex={setCurrentPhotoIndex}
             />
             {!user && <LoginBanner onLogin={onLogin} />}
-            <FeedGrid
-              event={event}
-              user={user}
-              onLogin={onLogin}
-              officialPhotos={officialPhotos}
-              galleryPhotos={galleryPhotos}
-              isSelectingForPrint={isSelectingForPrint}
-              selectedPrintPhotos={selectedPrintPhotos}
-              togglePhotoSelection={togglePhotoSelection}
-            />
+            {/* Cabeçalho do Feed com seletor de layout no padrão de Expositores */}
+            <div className="flex items-center justify-between px-2 max-w-xl mx-auto mt-4">
+              <div className="flex flex-col">
+                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-[#2D2D3F] flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-neutral-400" /> Feed do Evento
+                </h2>
+                <span className="text-[11px] text-[#94949E] font-medium mt-1">
+                  {photos.length} {photos.length === 1 ? 'foto' : 'fotos'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-0.5 bg-[#F0F0F4] rounded-lg p-0.5 shrink-0">
+                <button
+                  onClick={() => handleViewModeChange('grid')}
+                  title="Grade"
+                  className={`px-3 py-1 rounded-md text-[12px] transition-all flex items-center justify-center cursor-pointer ${
+                    viewMode === 'grid'
+                      ? 'bg-white text-[#2D2D3F] shadow-sm font-bold'
+                      : 'text-[#94949E] hover:text-[#5A5A6E]'
+                  }`}
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={() => handleViewModeChange('timeline')}
+                  title="Linha do Tempo"
+                  className={`px-3 py-1 rounded-md text-[12px] transition-all flex items-center justify-center cursor-pointer ${
+                    viewMode === 'timeline'
+                      ? 'bg-white text-[#2D2D3F] shadow-sm font-bold'
+                      : 'text-[#94949E] hover:text-[#5A5A6E]'
+                  }`}
+                >
+                  <Rows3 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {viewMode === 'grid' ? (
+              <FeedGrid
+                event={event}
+                user={user}
+                onLogin={onLogin}
+                officialPhotos={officialPhotos}
+                galleryPhotos={galleryPhotos}
+                isSelectingForPrint={isSelectingForPrint}
+                selectedPrintPhotos={selectedPrintPhotos}
+                togglePhotoSelection={togglePhotoSelection}
+              />
+            ) : (
+              <TimelineFeed
+                event={event}
+                user={user}
+                onLogin={onLogin}
+                officialPhotos={officialPhotos}
+                galleryPhotos={galleryPhotos}
+                isSelectingForPrint={isSelectingForPrint}
+                selectedPrintPhotos={selectedPrintPhotos}
+                togglePhotoSelection={togglePhotoSelection}
+              />
+            )}
           </div>
         )}
 

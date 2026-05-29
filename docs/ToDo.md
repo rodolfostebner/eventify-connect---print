@@ -120,8 +120,7 @@ Exemplos:
 # REGRAS DE NEGOCIO
 
 - [RN1] ~~Participantes da feira só poderão comentar e avaliar o mesmo expositor uma quantidade x (definida no painel de administração do evento)~~ ✅ **Backend resolvido** — UNIQUE(exhibitor_id, user_id) na tabela `evaluations` garante 1 avaliação por participante por expositor. ⏳ **UI pendente** — tela de avaliação do público não implementada (ver [PD5])
-- [RN2] ~~Avaliações terão diferentes pesos e categorias, a ser definidas via Administração do Evento~~ ✅ **Resolvido** — `evaluation_categories.weight` + `events.public/juror_evaluation_weight`; CRUD + controles de status (encerrar/publicar) implementados na aba Config. Avaliação do EventAdmin.
-- [RN3] Participantes que registram avaliação são registrados em uma tabela para concorrer aos sorteios — ⚠️ **Não conectado** — tabela `raffle_tickets` e `raffleService.ensureRaffleTicket()` existem, mas nenhum código chama `ensureRaffleTicket` após `submitEvaluation`. O vínculo avaliação→ticket ainda não está implementado
+- [RN2] ~~Avaliações terão diferentes pesos e categorias, a ser definidas via Administração do Evento~~ ✅ **Resolvido** — `ev- [RN3] ~~Participantes que registram avaliação são registrados em uma tabela para concorrer aos sorteios~~ ✅ **Resolvido** — O bilhete de sorteio (`raffle_tickets`) é gerado automaticamente na primeira avaliação efetuada pelo participante (`EvaluationModal.tsx`).
 
 # PENDENCIA DE VIABILIDADE TECNICA
 
@@ -131,11 +130,11 @@ Exemplos:
 
 # PENDENTE DE DEFINIÇÃO
 
-- ~~[PD1] Tela de sorteios~~ ✅ **Implementado** — CRUD de prêmios no EventAdmin (aba Sorteio), picker de produto por expositor, controles de telão (Mostrar prêmio → Sortear!), animação de tambor giratório no TVView com revelação do ganhador. Ganhador persistido em `raffle_prizes.winner_ticket_id` + histórico consultável.
+- ~~[PD1] Tela de sorteios~~ ✅ **Implementado** — CRUD de prêmios no EventAdmin (aba Sorteio), picker de produto por expositor, controles de telão (Mostrar prêmio → Sortear!), animação de tambor giratório no TVView com revelação do ganhador. Ganhador persistido in `raffle_prizes.winner_ticket_id` + histórico consultável.
 - [PD2] ~~Regra para sorteios~~ ✅ **Backend resolvido** — Modelo simplificado: 1 único ticket por participante por evento. UNIQUE(event_id, user_id) na tabela `raffle_tickets`.
 - [PD3] Administradores poderão registrar fotos para enriquecer feed?
 - [PD4] Criaremos uma tela para marketing da escola?
-- [PD5] **Avaliação da comunidade UI** — backend pronto (`evaluations` com 1-5 estrelas + comentário, UNIQUE por usuário/expositor). Falta a tela de avaliação acessível ao participante durante o evento live (provavelmente no ExhibitorDetailModal ou LiveEventView). O card do avaliador já exibe resumo agregado dos dados existentes.
+- [PD5] ~~Avaliação da comunidade UI~~ ✅ **Implementado** — Tela e modais de avaliações e comentários integrados ao `ExhibitorDetailModal` e reativos em tempo real.
 - [PD6] **Ranking no pós-evento** — `events.evaluation_status = 'published'` sinaliza que o ranking deve ser exibido. Falta consumir `view_exhibitor_rankings` na `PostEventView` quando status = published. Definir layout: lista rankeada simples, pódio top-3, ou tabela completa.
 
 ---
@@ -146,14 +145,14 @@ Exemplos:
 
 | Feature | Status | Observação |
 |---------|--------|------------|
-| Feed — Redesign v2 (layout novo) | ✅ Implementado | PreEventView/LiveEventView/PostEventView reescritos com novo design (ExhibitorCard 3 tamanhos, ExhibitorList com filtro por categoria + toggle de tamanho, ExhibitorDetailModal, EventWelcomeModal) |
+| Feed — Redesign v2 (layout novo) | ✅ Implementado | PreEventView/LiveEventView/PostEventView reescritos com novo design. No Live, o participante pode alternar livremente entre a visualização de Grade (Grid) e Linha do Tempo (Timeline) vertical no estilo Instagram/Facebook, com comentários inline, atalhos rápidos e reações dinâmicas. |
 | Feed — Expositores + catálogo | ✅ Implementado | ExhibitorDetailModal como primeira tela (hero, stats, fotos de produtos, integrantes); abre ExhibitorCatalogModal internamente via botão "Confira o catálogo" |
 | Feed — Boas-vindas (splash) | ✅ Implementado | EventWelcomeModal: exibe foto/texto do evento por 5s na abertura, uma vez por sessão (sessionStorage) |
 | Feed — Fotos dos participantes | ✅ Implementado | Ainda na tabela `photos` legada |
 | Feed — Patrocinadores | ✅ Implementado | Tabela dedicada `sponsors`, carrossel de fotos, dados do banco |
 | Feed — Contador pré-evento responsivo | ✅ Implementado | Ajustado para mobile |
 | Feed — Registro de clicks/visitas | ✅ Implementado | `trackVisit()` instrumentado nos cliques do feed; aba Visitas no painel admin e portal do expositor |
-| Feed — Sorteios | 🔶 Parcial | Ticket criado por participante ok; vínculo avaliação→ticket [RN3] ainda não implementado |
+| Feed — Sorteios | ✅ Implementado | Ticket criado por participante e vinculado automaticamente à primeira avaliação [RN3] |
 | Expositores — CRUD + produtos + usuários | ✅ Implementado | Painel admin `/expositores/:slug` |
 | Expositores — Foto do stand (photo_url) | ✅ Implementado | Upload no painel admin e portal do expositor |
 | Expositores — Leads de pré-venda | ✅ Implementado | Status (novo/atendido/pago/retirado) + exportação CSV/Excel. Aba renomeada para "Interessados" no painel admin e portal do expositor |
@@ -181,9 +180,9 @@ Exemplos:
 | Dashboard de métricas do evento | ✅ Implementado | Seção Dashboard do `/eventadmin`: Métricas Gerais (previstos vs cadastrados, média produtos/expositor, média valor produto, completos/incompletos, visitas únicas/total por fase) + Visitas (top/bottom 10 expositores e produtos, pizza por categoria). Gráficos CSS/SVG. ⚠️ Visitas zeradas até `trackVisit()` ser instrumentado [PVT2] |
 | Config de pesos de avaliação (EventAdmin) | ✅ Implementado | Campos Peso Avaliação Visitantes/Jurados (`public/juror_evaluation_weight`) com validação soma ≤ 1, + Expositores Previstos (`exhibitors_estimation`) |
 | Visitas — coluna de fase (pre/live/post) | ✅ Backend pronto | `visits.event_status` + `trackVisit(eventStatus)` prontos; falta instrumentar os cliques [PVT2] |
-| Administração do Evento — Avaliadores/Categorias/Pesos | 🔶 Backend pronto, UI pendente | CRUD de categorias/pesos in `evaluationService`; falta tela de cadastro |
-| Sistema de Sorteios | ✅ Implementado | `raffle_prizes` (nova tabela) com CRUD no EventAdmin, picker de produto por expositor (nome/descrição/foto do produto), `drawPrize()` persiste ganhador, `setTvRaffleState()` controla telão. Vínculo avaliação→ticket [RN3] ainda pendente |
-| Sistema de Avaliação | 🔶 Backend pronto, UI pendente | Duplicado da linha acima; backend ok, UI pendente |
+| Administração do Evento — Avaliadores/Categorias/Pesos | ✅ Implementado | Gerenciamento de Avaliadores, Categorias técnicas e pesos operacionais na aba Config. Avaliação do `/eventadmin` |
+| Sistema de Sorteios | ✅ Implementado | `raffle_prizes` (nova tabela) com CRUD no EventAdmin, picker de produto por expositor, drawPrize() persiste ganhador, setTvRaffleState() controla telão e bilhete gerado na avaliação [RN3] |
+| Sistema de Avaliação | ✅ Implementado | Totalmente funcional na UI de detalhes do expositor |
 | Cadastro de Avisos | ✅ Implementado | Módulo completo com CRUD no Admin, biblioteca de upload de sons no R2 (máx. 3 por evento), dropdown seletor de áudio (silencioso/synth/custom) e envio realtime inteligente |
 | Moderação fotos e comentários | ✅ Implementado | |
 

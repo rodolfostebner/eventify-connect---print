@@ -132,79 +132,75 @@ export const PhotoModal = ({
             </div>
 
             <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center font-bold text-neutral-500">
-                      {photo.user_name?.[0]?.toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-black">{photo.user_name}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">Postado agora</p>
-                        <span className="text-[10px] text-neutral-300 font-black">•</span>
-                        <div className="flex items-center gap-1 text-[10px] text-neutral-400 font-bold">
-                          <span>{photo.views_count || 0} {photo.views_count === 1 ? 'view' : 'views'}</span>
-                        </div>
+              {/* Perfil do Usuário */}
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center font-bold text-neutral-500 shrink-0">
+                    {photo.user_name?.[0]?.toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-black truncate pr-2 text-neutral-800" title={photo.user_name}>
+                      {photo.user_name}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">Postado agora</p>
+                      <span className="text-[10px] text-neutral-300 font-black">•</span>
+                      <div className="flex items-center gap-1 text-[10px] text-neutral-400 font-bold">
+                        <span>{photo.views_count || 0} {photo.views_count === 1 ? 'view' : 'views'}</span>
                       </div>
                     </div>
                   </div>
-                  
-                  {(isAdmin || (user && photo.user_id === user.id)) && onDeletePhoto && (
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm('Tem certeza que deseja deletar esta foto?')) {
-                          onDeletePhoto();
-                        }
-                      }}
-                      className="p-2 text-neutral-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                      title="Deletar Foto"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  )}
                 </div>
                 
-              <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between border-b border-neutral-50 pb-2">
-                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-300">
-                    Reações (Máx. 2 por foto)
-                  </h4>
-                </div>
-                <div className="grid grid-cols-4 gap-2 w-full">
-                  {['🔥', '😂', '❤️', '🎸'].map(emoji => {
-                    const hasReacted = user ? photo.reacted_users?.includes(`${user.id}_${emoji}`) : false;
-                    const count = photo.reaction_counts?.[emoji] || 0;
-                    return (
-                      <button
-                        key={emoji}
-                        onClick={() => onReact(emoji)}
-                        className={cn(
-                          "flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all font-black cursor-pointer gap-1",
-                          hasReacted
-                            ? "bg-neutral-100 border-neutral-300 text-neutral-600 scale-105 shadow-sm"
-                            : "bg-neutral-50 border-neutral-100 text-neutral-400 hover:bg-neutral-100"
-                        )}
-                      >
-                        <span className="text-xl leading-none">{emoji}</span>
-                        <span className={cn(
-                          "text-[10px] font-bold leading-none",
-                          hasReacted ? "text-neutral-600" : "text-neutral-400"
-                        )}>
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+                {(isAdmin || (user && photo.user_id === user.id)) && onDeletePhoto && (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm('Tem certeza que deseja deletar esta foto?')) {
+                        onDeletePhoto();
+                      }
+                    }}
+                    className="p-2 text-neutral-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all shrink-0"
+                    title="Deletar Foto"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                )}
               </div>
 
+              {/* Bloco de Reações */}
+              <div className="grid grid-cols-4 gap-2 w-full">
+                {['🔥', '😂', '❤️', '🎸'].map(emoji => {
+                  const hasReacted = user ? photo.reacted_users?.includes(`${user.id}_${emoji}`) : false;
+                  const count = photo.reaction_counts?.[emoji] || 0;
+                  return (
+                    <button
+                      key={emoji}
+                      onClick={() => onReact(emoji)}
+                      className={cn(
+                        "flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all font-black cursor-pointer gap-1",
+                        hasReacted
+                          ? "bg-neutral-100 border-neutral-300 text-neutral-600 scale-105 shadow-sm"
+                          : "bg-neutral-50 border-neutral-100 text-neutral-400 hover:bg-neutral-100"
+                      )}
+                    >
+                      <span className="text-xl leading-none">{emoji}</span>
+                      <span className={cn(
+                        "text-[10px] font-bold leading-none",
+                        hasReacted ? "text-neutral-600" : "text-neutral-400"
+                      )}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Seção de Comentários */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-neutral-50 pb-2">
                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-300">
-                    Comentários ({approvedComments.length}) <span className="text-[9px] text-neutral-400 normal-case font-normal ml-1">(Máx. 2 por participante)</span>
+                    Comentários ({approvedComments.length})
                   </h4>
                 </div>
                 
@@ -250,7 +246,7 @@ export const PhotoModal = ({
           <div className="p-4 bg-neutral-50 border-t border-neutral-100">
             <form onSubmit={onAddComment} className="relative">
               <input
-                placeholder={user ? "Adicione um comentário... (Máx. 2 por foto)" : "Faça login para comentar"}
+                placeholder={user ? "Adicione um comentário..." : "Faça login para comentar"}
                 disabled={!user || isSubmitting}
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}

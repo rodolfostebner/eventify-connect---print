@@ -54,12 +54,7 @@ export const FeedGrid = ({
 
       {/* Main Feed Section */}
       <section className="space-y-6">
-        <div className="flex items-center justify-between px-2">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-neutral-400 flex items-center gap-2">
-            <Camera className="w-4 h-4" /> Feed do Evento
-          </h2>
-          <span className="text-[10px] font-bold text-neutral-400 bg-neutral-50 px-2 py-0.5 rounded-full">{galleryPhotos.length} fotos</span>
-        </div>
+
 
         {galleryPhotos.length === 0 ? (
           <div className="text-center py-24 bg-neutral-50/50 border-2 border-dashed border-neutral-100 rounded-2xl">
