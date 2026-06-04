@@ -408,6 +408,7 @@ Canais ativos:
 - Moderacao: aprovar/rejeitar fotos e comentarios
 - Gerenciar pedidos de impressao
 - Upload de fotos oficiais
+- Gerenciar leads de contato da landing page (aba APP_LEADS)
 
 ### Expositor (Supabase Auth — credenciais geradas pelo admin)
 - Editar perfil do stand: nome, descricao, logo, contatos (Instagram, WhatsApp, Website)
