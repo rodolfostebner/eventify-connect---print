@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Mail, Loader2, CheckCircle2, FlaskConical } from 'lucide-react';
+import { Mail, Loader2, FlaskConical, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { loginWithGoogle, loginWithMagicLink } from '../../services/authService';
 import { useAuth, BETA_MODE } from '../../hooks/useAuth';
@@ -16,10 +16,12 @@ const ROLE_REDIRECT: Record<string, string> = {
 export default function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, loading, loginBeta } = useAuth();
+  const { user, loading, verifyOtp, loginBeta } = useAuth();
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   const redirectTo = searchParams.get('redirect') || '/';
 
@@ -45,9 +47,24 @@ export default function LoginPage() {
       await loginWithMagicLink(email.trim());
       setSent(true);
     } catch {
-      toast.error('Erro ao enviar link. Verifique o e-mail e tente novamente.');
+      toast.error('Erro ao enviar código. Verifique o e-mail e tente novamente.');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = code.replace(/\D/g, '');
+    if (token.length < 6) return;
+    setVerifying(true);
+    try {
+      await verifyOtp(email.trim(), token);
+      // Sucesso: o useEffect que observa `user` redireciona.
+    } catch {
+      toast.error('Código inválido ou expirado. Confira ou peça um novo.');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -88,7 +105,7 @@ export default function LoginPage() {
                 <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Modo Beta</span>
               </div>
             ) : (
-              <p className="text-sm text-neutral-500">Entre com Google ou receba um link no seu e-mail</p>
+              <p className="text-sm text-neutral-500">Entre com Google ou receba um código no seu e-mail</p>
             )}
           </div>
 
@@ -122,15 +139,51 @@ export default function LoginPage() {
               </button>
             </form>
           ) : sent ? (
-            /* ── Magic link enviado ── */
-            <div className="bg-green-50 rounded-2xl p-6 text-center space-y-2 border border-green-100">
-              <CheckCircle2 className="w-10 h-10 text-green-600 mx-auto" />
-              <p className="font-bold text-green-900">Link enviado!</p>
-              <p className="text-xs text-green-700">Verifique <strong>{email}</strong> e clique no link para entrar.</p>
-              <button onClick={() => setSent(false)} className="text-xs text-green-600 hover:text-green-700 underline mt-2">
-                Voltar
+            /* ── Código enviado: digitar OTP ── */
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+              <div className="text-center space-y-1">
+                <div className="w-12 h-12 bg-neutral-900 rounded-xl flex items-center justify-center mx-auto mb-1 text-white">
+                  <KeyRound className="w-5 h-5" />
+                </div>
+                <p className="font-bold text-neutral-900">Código enviado!</p>
+                <p className="text-xs text-neutral-500">
+                  Digite o código de 6 dígitos enviado para <strong>{email}</strong>.
+                </p>
+              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                autoFocus
+                disabled={verifying}
+                placeholder="000000"
+                value={code}
+                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full px-3 py-3 text-center text-2xl font-bold tracking-[0.5em] border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900/20 bg-neutral-50"
+              />
+              <button
+                type="submit"
+                disabled={verifying || code.length < 6}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-neutral-900 text-white text-sm font-bold hover:bg-neutral-700 disabled:opacity-50 transition-colors"
+              >
+                {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {verifying ? 'Entrando...' : 'Entrar'}
               </button>
-            </div>
+              <div className="flex items-center justify-between text-xs">
+                <button type="button" onClick={() => { setSent(false); setCode(''); }} className="text-neutral-500 hover:text-neutral-700 underline">
+                  Voltar
+                </button>
+                <button
+                  type="button"
+                  disabled={sending}
+                  onClick={() => handleMagicLink({ preventDefault: () => {} } as React.FormEvent)}
+                  className="text-neutral-900 font-bold hover:underline disabled:opacity-50"
+                >
+                  {sending ? 'Reenviando...' : 'Reenviar código'}
+                </button>
+              </div>
+            </form>
           ) : (
             /* ── Login normal: Google + Magic Link ── */
             <>
@@ -173,7 +226,7 @@ export default function LoginPage() {
                   className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-neutral-900 text-white text-sm font-bold hover:bg-neutral-700 disabled:opacity-50 transition-colors"
                 >
                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                  {sending ? 'Enviando...' : 'Receber link por e-mail'}
+                  {sending ? 'Enviando...' : 'Receber código por e-mail'}
                 </button>
               </form>
             </>

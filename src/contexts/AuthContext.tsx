@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 import { supabase } from '../lib/supabase/client';
 import { syncUser, findOrCreateUserByEmail } from '../services/userService';
-import { loginWithGoogle, loginWithMagicLink, logout as doLogout } from '../services/authService';
+import { loginWithGoogle, loginWithMagicLink, verifyEmailOtp, logout as doLogout } from '../services/authService';
 import type { AppUser } from '../types';
 
 export const BETA_MODE = import.meta.env.VITE_BETA_MODE === 'true';
@@ -21,6 +21,7 @@ interface AuthContextValue {
   loading: boolean;
   login: () => Promise<void>;
   loginMagic: (email: string) => Promise<void>;
+  verifyOtp: (email: string, token: string) => Promise<void>;
   loginBeta: (email: string) => Promise<AppUser | null>;
   logout: () => void | Promise<void>;
 }
@@ -115,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       login: loginWithGoogle,
       loginMagic: loginWithMagicLink,
+      verifyOtp: verifyEmailOtp,
       loginBeta,
       logout: BETA_MODE ? logoutBeta : doLogout,
     }}>

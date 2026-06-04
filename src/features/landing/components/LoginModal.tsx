@@ -19,10 +19,12 @@ const ROLE_REDIRECT: Record<string, string> = {
 
 export function LoginModal({ isOpen, onClose, isDark }: LoginModalProps) {
   const navigate = useNavigate();
-  const { user, login, loginMagic, loginBeta } = useAuth();
+  const { user, login, loginMagic, verifyOtp, loginBeta } = useAuth();
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
 
   // If user is already authenticated, redirect them
@@ -77,12 +79,28 @@ export function LoginModal({ isOpen, onClose, isDark }: LoginModalProps) {
     try {
       await loginMagic(email.trim());
       setSent(true);
-      toast.success('Link de acesso enviado por e-mail!');
+      toast.success('Código enviado por e-mail!');
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao enviar link. Verifique o e-mail e tente novamente.');
+      toast.error('Erro ao enviar código. Verifique o e-mail e tente novamente.');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = code.replace(/\D/g, '');
+    if (token.length < 6) return;
+    setVerifying(true);
+    try {
+      await verifyOtp(email.trim(), token);
+      // Sucesso: o useEffect que observa `user` fecha o modal e redireciona.
+    } catch (err) {
+      console.error(err);
+      toast.error('Código inválido ou expirado. Confira ou peça um novo.');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -162,7 +180,7 @@ export function LoginModal({ isOpen, onClose, isDark }: LoginModalProps) {
             </div>
           ) : (
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-[280px]">
-              Entre com Google ou receba um link no seu e-mail
+              Entre com Google ou receba um código no seu e-mail
             </p>
           )}
         </div>
@@ -199,19 +217,51 @@ export function LoginModal({ isOpen, onClose, isDark }: LoginModalProps) {
               </button>
             </form>
           ) : sent ? (
-            <div className="bg-green-500/10 rounded-2xl p-6 text-center space-y-2 border border-green-500/20">
-              <span className="text-3xl">✉️</span>
-              <p className="font-bold text-green-800 dark:text-green-300">Link enviado!</p>
-              <p className="text-xs text-green-700 dark:text-green-400">
-                Verifique <strong>{email}</strong> e clique no link para entrar.
-              </p>
+            <form onSubmit={handleVerifyCode} className="space-y-4">
+              <div className="text-center space-y-1">
+                <span className="text-3xl">✉️</span>
+                <p className="font-bold text-gray-900 dark:text-white">Código enviado!</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Digite o código de 6 dígitos enviado para <strong>{email}</strong>.
+                </p>
+              </div>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                autoFocus
+                disabled={verifying}
+                placeholder="000000"
+                value={code}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full bg-[#F8FAFC]/90 dark:bg-[#1A1816]/90 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 rounded-2xl px-4 py-3.5 text-center text-2xl font-bold tracking-[0.5em] focus:outline-none focus:border-[#F0A795] transition-colors"
+              />
               <button
-                onClick={() => setSent(false)}
-                className="text-xs text-green-600 hover:text-green-700 underline mt-2"
+                type="submit"
+                disabled={verifying || code.length < 6}
+                className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:hover:bg-white dark:text-gray-900 text-white font-semibold py-3.5 rounded-2xl transition-all text-sm shadow-sm disabled:opacity-50"
               >
-                Voltar
+                {verifying ? 'Entrando...' : 'Entrar'}
               </button>
-            </div>
+              <div className="flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={() => { setSent(false); setCode(''); }}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 underline"
+                >
+                  Voltar
+                </button>
+                <button
+                  type="button"
+                  disabled={sending}
+                  onClick={() => handleMagicLink({ preventDefault: () => {} } as React.FormEvent)}
+                  className="text-[#F0A795] hover:text-[#E5A899] font-semibold disabled:opacity-50"
+                >
+                  {sending ? 'Reenviando...' : 'Reenviar código'}
+                </button>
+              </div>
+            </form>
           ) : (
             <>
               {/* Botão Google */}
@@ -279,7 +329,7 @@ export function LoginModal({ isOpen, onClose, isDark }: LoginModalProps) {
                       d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"
                     />
                   </svg>
-                  {sending ? 'Enviando...' : 'Receber link por e-mail'}
+                  {sending ? 'Enviando...' : 'Receber código por e-mail'}
                 </button>
               </form>
             </>

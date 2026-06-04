@@ -28,7 +28,7 @@
 <body style="margin:0; padding:0; background-color:#F5ECE2;">
   <!-- Preheader (texto de prévia oculto) -->
   <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:#F5ECE2; font-size:1px; line-height:1px;">
-    Seu link de acesso ao Eventify chegou — clique para entrar com segurança.
+    Seu código de acesso ao Eventify chegou — use-o na tela de login.
   </div>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
@@ -80,36 +80,36 @@
                 Seu acesso chegou ✨
               </h1>
               <p style="margin:0; font-size:16px; line-height:1.6; color:#6B6560; text-align:center; font-family:'Outfit', Arial, sans-serif;">
-                Toque no botão abaixo para entrar no <strong style="color:#1A1816;">Eventify</strong> com segurança.
-                Este link é pessoal e expira em <strong style="color:#1A1816;">1 hora</strong>.
+                Use o código abaixo para entrar no <strong style="color:#1A1816;">Eventify</strong>.
+                Digite-o na tela de login. Ele é pessoal e expira em <strong style="color:#1A1816;">1 hora</strong>.
               </p>
             </td>
           </tr>
 
-          <!-- Botão CTA -->
+          <!-- Código de acesso (OTP) -->
           <tr>
             <td align="center" style="padding:28px 40px 8px 40px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
                 <tr>
-                  <td align="center" bgcolor="#111827" style="border-radius:999px;">
-                    <a class="btn" href="{{ .ConfirmationURL }}" target="_blank"
-                       style="display:inline-block; padding:16px 44px; font-family:'Outfit', Arial, sans-serif; font-size:16px; font-weight:700; color:#FFFFFF; background-color:#111827; border-radius:999px;">
-                      Entrar no Eventify &nbsp;&rarr;
-                    </a>
+                  <td align="center" bgcolor="#FBEDE8"
+                      style="border:1px solid #F3D9CF; border-radius:18px; padding:22px 36px;">
+                    <p style="margin:0 0 8px 0; font-family:'Outfit', Arial, sans-serif; font-size:11px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:#B07A68;">
+                      Seu código de acesso
+                    </p>
+                    <p style="margin:0; font-family:'Outfit', Arial, Helvetica, sans-serif; font-size:40px; font-weight:800; letter-spacing:10px; color:#1A1816; line-height:1;">
+                      {{ .Token }}
+                    </p>
                   </td>
                 </tr>
               </table>
             </td>
           </tr>
 
-          <!-- Link alternativo -->
+          <!-- Instrução -->
           <tr>
-            <td class="px" style="padding:18px 48px 0 48px; font-family:'Outfit', Arial, sans-serif;">
-              <p style="margin:0 0 6px 0; font-size:12px; color:#9A938C; text-align:center;">
-                Se o botão não funcionar, copie e cole este endereço no navegador:
-              </p>
-              <p style="margin:0; font-size:12px; line-height:1.5; text-align:center; word-break:break-all;">
-                <a href="{{ .ConfirmationURL }}" style="color:#E5896F; font-weight:600;">{{ .ConfirmationURL }}</a>
+            <td class="px" style="padding:16px 48px 0 48px; font-family:'Outfit', Arial, sans-serif;">
+              <p style="margin:0; font-size:12px; line-height:1.5; color:#9A938C; text-align:center;">
+                Digite este código na tela de login do Eventify para concluir o acesso.
               </p>
             </td>
           </tr>
@@ -125,7 +125,7 @@
           <tr>
             <td class="px" style="padding:18px 48px 32px 48px; font-family:'Outfit', Arial, sans-serif;">
               <p style="margin:0; font-size:12px; line-height:1.6; color:#9A938C; text-align:center;">
-                Você recebeu este e-mail porque alguém solicitou um link de acesso para
+                Você recebeu este e-mail porque alguém solicitou um código de acesso para
                 <strong style="color:#6B6560;">{{ .Email }}</strong>.
                 Se não foi você, pode ignorar esta mensagem com tranquilidade — nenhuma ação será feita.
               </p>

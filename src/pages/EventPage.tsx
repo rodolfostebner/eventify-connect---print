@@ -27,10 +27,12 @@ import { PartnerSection } from '../features/event/components/PartnerSection';
 import type { SocialLinkType } from '../features/event/components/SocialLinks';
 
 function LoginModal({ onClose }: { onClose: () => void }) {
-  const { loginBeta } = useAuth();
+  const { verifyOtp, loginBeta } = useAuth();
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [code, setCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   const handleBetaLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -52,14 +54,27 @@ function LoginModal({ onClose }: { onClose: () => void }) {
     if (!email.trim()) return;
     setSending(true);
     try {
-      // Salva a URL atual para redirecionar após a autenticação via magic link
-      localStorage.setItem('magic_link_redirect', window.location.href);
       await loginWithMagicLink(email.trim(), window.location.href);
       setSent(true);
     } catch {
-      toast.error('Erro ao enviar link. Tente novamente.');
+      toast.error('Erro ao enviar código. Tente novamente.');
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: FormEvent) => {
+    e.preventDefault();
+    const token = code.replace(/\D/g, '');
+    if (token.length < 6) return;
+    setVerifying(true);
+    try {
+      await verifyOtp(email.trim(), token);
+      onClose();
+    } catch {
+      toast.error('Código inválido ou expirado. Confira ou peça um novo.');
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -102,12 +117,44 @@ function LoginModal({ onClose }: { onClose: () => void }) {
             </button>
           </form>
         ) : sent ? (
-          <div className="bg-green-50 rounded-2xl p-5 text-center space-y-2 border border-green-100">
-            <CheckCircle2 className="w-8 h-8 text-green-600 mx-auto" />
-            <p className="font-bold text-green-900 text-sm">Link enviado!</p>
-            <p className="text-xs text-green-700">Verifique <strong>{email}</strong></p>
-            <button onClick={() => setSent(false)} className="text-xs text-green-600 hover:text-green-700 underline">Voltar</button>
-          </div>
+          <form onSubmit={handleVerifyCode} className="space-y-3">
+            <div className="text-center space-y-1">
+              <CheckCircle2 className="w-8 h-8 text-neutral-900 mx-auto" />
+              <p className="font-bold text-neutral-900 text-sm">Código enviado!</p>
+              <p className="text-xs text-neutral-500">Digite o código de 6 dígitos enviado para <strong>{email}</strong></p>
+            </div>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              autoFocus
+              disabled={verifying}
+              placeholder="000000"
+              value={code}
+              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl text-center text-2xl font-black tracking-[0.5em] focus:ring-2 focus:ring-neutral-900 outline-none"
+            />
+            <button
+              type="submit"
+              disabled={verifying || code.length < 6}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-neutral-900 text-white rounded-xl font-black text-sm hover:bg-neutral-800 disabled:opacity-50 transition-colors"
+            >
+              {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              {verifying ? 'Entrando...' : 'Entrar'}
+            </button>
+            <div className="flex items-center justify-between text-xs">
+              <button type="button" onClick={() => { setSent(false); setCode(''); }} className="text-neutral-500 hover:text-neutral-700 underline">Voltar</button>
+              <button
+                type="button"
+                disabled={sending}
+                onClick={() => handleMagicLink({ preventDefault: () => {} } as FormEvent)}
+                className="text-neutral-900 font-bold hover:underline disabled:opacity-50"
+              >
+                {sending ? 'Reenviando...' : 'Reenviar código'}
+              </button>
+            </div>
+          </form>
         ) : (
           <div className="space-y-4">
             <button
@@ -144,7 +191,7 @@ function LoginModal({ onClose }: { onClose: () => void }) {
                 className="w-full flex items-center justify-center gap-2 py-3 bg-neutral-900 text-white rounded-xl font-black text-sm hover:bg-neutral-800 disabled:opacity-50 transition-colors"
               >
                 {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
-                {sending ? 'Enviando...' : 'Receber link por e-mail'}
+                {sending ? 'Enviando...' : 'Receber código por e-mail'}
               </button>
             </form>
           </div>
