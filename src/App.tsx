@@ -10,7 +10,7 @@ import ExhibitorPortalPage from "./pages/ExhibitorPortalPage"
 import PartnerPanelPage from "./pages/PartnerPanelPage"
 import EventAdminPortalPage from "./pages/EventAdminPortalPage"
 import AvaliadorPageComponent from "./pages/AvaliadorPage"
-import LoginPage from "./pages/LoginPage"
+import LandingPage from "./pages/LandingPage"
 import { Toaster } from "sonner"
 import { NotificationsListener } from "./components/NotificationsListener"
 
@@ -37,7 +37,7 @@ function App() {
       <NotificationsListener />
       <Routes>
         {/* Login unificado */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<LandingPage openLogin={true} />} />
 
         {/* Rotas públicas */}
         <Route path="/event/:slug" element={<EventPage user={user} />} />
@@ -56,7 +56,7 @@ function App() {
         <Route path="/avaliacao/:slug" element={(isAdmin || isEventAdmin) ? <AvaliadorPageComponent /> : <Navigate to="/login" replace />} />
 
         {/* Rotas Admin Geral */}
-        <Route path="/" element={<AdminDashboard user={user} />} />
+        <Route path="/" element={user ? <AdminDashboard user={user} /> : <LandingPage />} />
         <Route path="/admin" element={<Navigate to="/" replace />} />
         <Route path="/moderation/:slug" element={(isAdmin || isEventAdmin) ? <ModerationPanel user={user} /> : <Navigate to="/login" replace />} />
         <Route path="/operator/:slug" element={isAdmin ? <OperatorPanel user={user} /> : <Navigate to="/login" replace />} />
@@ -71,3 +71,4 @@ function App() {
 }
 
 export default App
+

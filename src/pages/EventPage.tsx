@@ -15,6 +15,7 @@ import { trackVisit } from '../services/visitService';
 import { cn } from '../lib/utils';
 import type { Exhibitor, Partner } from '../types';
 import { supabase } from '../lib/supabase/client';
+import { landingConfig } from '../features/landing/landingConfig';
 
 
 // Modular Components
@@ -186,6 +187,18 @@ export default function EventPage({ user }: { user: AppUser | null }) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [copiedPix, setCopiedPix] = useState(false);
+
+  const copySidebarPixKey = async () => {
+    try {
+      await navigator.clipboard.writeText(landingConfig.links.pixKey);
+      setCopiedPix(true);
+      setTimeout(() => setCopiedPix(false), 2500);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao copiar chave Pix.');
+    }
+  };
 
   const togglePushNotifications = () => {
     const newValue = !pushEnabled;
@@ -689,28 +702,58 @@ export default function EventPage({ user }: { user: AppUser | null }) {
                   </button>
                 </div>
 
-                <section className="bg-neutral-50 rounded-2xl p-6 md:p-8 border border-neutral-100 space-y-6">
-                   <div className="flex items-center gap-4">
-                    {event.app_logo ? (
-                      <img src={event.app_logo} className="w-12 h-12 rounded-2xl object-cover shadow-xl" />
-                    ) : (
-                      <div className="w-12 h-12 bg-neutral-900 rounded-2xl flex items-center justify-center text-white shadow-xl text-2xl">🐨</div>
-                    )}
-                    <div>
-                      <h2 className="text-lg font-black tracking-tight">Memories Hub</h2>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">By Koala's</p>
+                <section className="bg-neutral-50 rounded-2xl p-5 md:p-6 border border-neutral-100 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <a
+                      href="/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block w-[72px] h-[72px] rounded-xl overflow-hidden shadow-md hover:scale-105 transition-transform duration-200 bg-white p-1.5 shrink-0"
+                      title="Visitar Landing Page"
+                    >
+                      <img src="/landing/Logo0.png" className="w-full h-full object-contain" alt="Eventify Logo" />
+                    </a>
+                    <div className="flex flex-col gap-1 pt-2.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-outfit font-black text-xl text-gray-800 tracking-tight leading-tight">Eventify</span>
+                        <span className="text-[9px] bg-[#F0A795]/15 px-2 py-0.5 rounded-full text-[#F0A795] font-bold tracking-wider uppercase leading-none">MemoriesHub</span>
+                      </div>
+                      <p className="text-[11px] text-neutral-500 leading-tight font-semibold italic">
+                        "Onde cada memória do seu evento<br />
+                        se conecta em tempo real."
+                      </p>
                     </div>
                   </div>
-                  {event.app_description && (
-                    <p className="text-xs text-neutral-500 leading-relaxed font-medium">{event.app_description}</p>
-                  )}
-                  {event.app_instagram || event.app_whatsapp || event.app_website ? (
-                    <div className="flex gap-3 pt-2">
-                       {event.app_instagram && <a href={`https://instagram.com/${event.app_instagram.replace('@','')}`} target="_blank" className="p-2 bg-white rounded-full border border-neutral-100 shadow-sm"><Instagram className="w-4 h-4" /></a>}
-                       {event.app_whatsapp && <a href={`https://wa.me/${event.app_whatsapp}`} target="_blank" className="p-2 bg-white rounded-full border border-neutral-100 shadow-sm"><Phone className="w-4 h-4" /></a>}
-                       {event.app_website && <a href={event.app_website} target="_blank" className="p-2 bg-white rounded-full border border-neutral-100 shadow-sm"><Globe className="w-4 h-4" /></a>}
+                  {event.app_website && (
+                    <div className="flex gap-3 pt-1">
+                       <a href={event.app_website} target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded-full border border-neutral-100 shadow-sm" title="Website"><Globe className="w-4 h-4" /></a>
                     </div>
-                  ) : null}
+                  )}
+
+                  {/* Pix Coffee Card (Sugestão Compacta) */}
+                  <div className="w-full max-w-[280px] mx-auto p-4 rounded-2xl border border-neutral-200/60 bg-white shadow-sm flex flex-col items-center gap-2.5 text-center transition-all duration-300 hover:shadow-md mt-2">
+                    <div className="font-outfit font-bold text-xs text-neutral-800 text-center leading-normal px-1">
+                      <span className="inline-block mr-1 align-middle text-sm">☕</span>
+                      Gostou do app? Nos pague um chocolate quente!
+                    </div>
+                    <p className="text-[10px] text-neutral-500 max-w-[200px] leading-normal">
+                      Sua ajuda mantém o projeto ativo. Copie a chave Pix:
+                    </p>
+                    <div className="flex flex-col gap-2 w-full mt-0.5">
+                      <input
+                        type="text"
+                        readOnly
+                        value={landingConfig.links.pixKey}
+                        className="bg-neutral-50 border border-neutral-200/60 text-xs font-mono px-3 py-2 rounded-lg focus:outline-none w-full text-center text-neutral-600 select-all"
+                      />
+                      <button
+                        onClick={copySidebarPixKey}
+                        className="w-full bg-[#F0A795]/15 hover:bg-[#F0A795]/25 text-[#F0A795] font-extrabold text-xs py-2 rounded-lg border border-[#F0A795]/20 transition-all active:scale-95 flex items-center justify-center gap-1"
+                      >
+                        {copiedPix ? 'Copiado! 🙏🏻🫶🐨' : 'Copiar Chave'}
+                      </button>
+                    </div>
+                  </div>
                 </section>
 
                 {/* Acesso rápido por role */}

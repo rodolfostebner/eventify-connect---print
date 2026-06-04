@@ -157,9 +157,18 @@ export function EvaluationListModal({
                     </div>
 
                     {evalItem.comment && (
-                      <p className="text-xs text-[#2D2D3F] leading-relaxed pl-1">
-                        {evalItem.comment}
-                      </p>
+                      <>
+                        {(!evalItem.comment_status || evalItem.comment_status === 'approved') && (
+                          <p className="text-xs text-[#2D2D3F] leading-relaxed pl-1">
+                            {evalItem.comment}
+                          </p>
+                        )}
+                        {evalItem.comment_status === 'pending' && (
+                          <p className="text-xs text-amber-600 italic pl-1 font-medium bg-amber-50/50 py-1 px-2 rounded-lg border border-amber-100/50 inline-block">
+                            Comentário em análise pela moderação
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
                 );

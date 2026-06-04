@@ -62,9 +62,11 @@ export function EvaluationModal({
     setErrorMsg(null);
 
     try {
+      const commentStatus = event.comment_moderation_enabled && comment.trim() ? 'pending' : 'approved';
+
       if (existingEvaluation) {
         // Atualiza avaliação existente
-        await updateEvaluation(existingEvaluation.id, stars, comment.trim() || null);
+        await updateEvaluation(existingEvaluation.id, stars, comment.trim() || null, commentStatus);
       } else {
         // Cria nova avaliação
         await submitEvaluation({
@@ -73,6 +75,7 @@ export function EvaluationModal({
           user_id: user.id,
           stars,
           comment: comment.trim() || null,
+          comment_status: commentStatus,
         });
 
         // Tenta gerar o cupom de sorteio ao avaliar pela primeira vez
@@ -191,9 +194,16 @@ export function EvaluationModal({
 
               {/* Comentário */}
               <div className="space-y-1.5">
-                <label htmlFor="comment" className="text-[11px] font-black uppercase tracking-wider text-[#94949E]">
-                  Comentário (opcional)
-                </label>
+                <div className="flex justify-between items-center">
+                  <label htmlFor="comment" className="text-[11px] font-black uppercase tracking-wider text-[#94949E]">
+                    Comentário (opcional)
+                  </label>
+                  {event.comment_moderation_enabled && comment.trim() && (
+                    <span className="text-[10px] text-amber-500 font-semibold italic animate-pulse">
+                      Comentário passará por moderação
+                    </span>
+                  )}
+                </div>
                 <textarea
                   id="comment"
                   value={comment}

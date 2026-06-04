@@ -5,7 +5,7 @@ import type { Exhibitor, ExhibitorCategory, AppUser, EventData, Product, Evaluat
 import { trackVisit } from '../../../services/visitService';
 import { getProducts } from '../../../services/productService';
 import { ExhibitorCatalogModal } from './ExhibitorCatalogModal';
-import { getExhibitorEvaluations } from '../../../services/evaluationService';
+import { getExhibitorEvaluations, subscribeToEvaluations } from '../../../services/evaluationService';
 import { ExhibitorRatingSummary } from '../../evaluation/components/ExhibitorRatingSummary';
 import { EvaluationModal } from '../../evaluation/components/EvaluationModal';
 import { EvaluationListModal } from '../../evaluation/components/EvaluationListModal';
@@ -37,7 +37,15 @@ export function ExhibitorDetailModal({ exhibitor, categories, event, user, onClo
   useEffect(() => {
     getProducts(exhibitor.id).then(setProducts).catch(() => {});
     loadEvaluations();
-  }, [exhibitor.id]);
+
+    const unsubscribe = subscribeToEvaluations(event.id, () => {
+      loadEvaluations();
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [exhibitor.id, event.id]);
 
   const category = categories.find(c => c.id === exhibitor.category_id)
     ?? categories.find(c => c.name.toLowerCase() === exhibitor.category?.toLowerCase());

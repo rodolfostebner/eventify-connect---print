@@ -111,7 +111,8 @@ src/
   pages/                   # Re-exportam features/ (thin wrappers)
     AdminDashboard.tsx
     EventPage.tsx
-    LoginPage.tsx
+    LandingPage.tsx          # Wrapper para LandingPage premium
+    LoginPage.tsx            # Login unificado legado (substituído por modal da Landing)
     ModerationPanel.tsx
     OperatorPanel.tsx
     TVView.tsx
@@ -122,12 +123,26 @@ src/
     AvaliadorPage.tsx        # Avaliador: painel de avaliacao (stub)
 
   features/
+    landing/
+      LandingPage.tsx       # Orquestrador da Landing Page premium
+      landingConfig.ts      # Config centralizada tipada (logos, tutoriais, Pix)
+      components/
+        LandingHeader.tsx   # Header fixo (nav, toggles, CTAs)
+        HeroSection.tsx     # Hero + mockup de celular animado
+        MarqueeFeed.tsx     # Carrossel infinito de fotos
+        DualPathSection.tsx # Seção B2C/B2B com cards interativos
+        ContactForm.tsx     # Form captador de lead (salva no Supabase)
+        PixCard.tsx         # Card Pix de doação com clipboard copy e botão home
+        LandingFooter.tsx   # Rodapé (citação e links)
+        LoginModal.tsx      # Modal glassmorphic responsivo de login (Supabase Auth)
+
     admin/
       AdminDashboard.tsx   # Lista + CRUD eventos, modais
       components/
         BrandingModal.tsx  # Editor de tema (cores, gradientes, padroes)
         EventCard.tsx      # Card do evento no dashboard
         ShareModal.tsx     # Compartilhar links do evento
+        ContactLeadsPanel.tsx # Gerenciar leads de contato da landing page
       hooks/
         useAdminEvents.ts  # State da lista de eventos
         useBrandingForm.ts # Form state do branding
@@ -166,7 +181,7 @@ src/
       ExhibitorPanel.tsx   # Admin: sidebar com lista + detail (tabs: dados/produtos/usuarios/leads)
 
     auth/
-      LoginPage.tsx        # Login unificado: Google OAuth + Magic Link + Beta mode
+      LoginPage.tsx        # Login unificado legado: Google OAuth + Magic Link + Beta mode
 
     exhibitor/
       ExhibitorPortal.tsx  # Portal do expositor (tabs: perfil/produtos/leads)
@@ -231,8 +246,8 @@ docs/
 
 | Rota | Acesso | Componente | Status |
 |------|--------|------------|--------|
-| `/login` | Publico | LoginPage | Ativo |
-| `/` | Admin | AdminDashboard | Ativo |
+| `/login` | Publico | LandingPage (com modal de login aberto) | Ativo |
+| `/` | Publico / Admin | LandingPage (não logado) / AdminDashboard (admin logado) | Ativo |
 | `/admin` | — | Redireciona para `/` | — |
 | `/event/:slug` | Publico | EventPage (3 views por status) | Ativo |
 | `/tv/:slug` | Publico | TVView (slideshow fullscreen) | Ativo |

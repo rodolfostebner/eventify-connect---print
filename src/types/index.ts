@@ -314,10 +314,15 @@ export interface Evaluation {
   user_id: string;
   stars: number; // 1–5
   comment?: string | null;
+  comment_status?: 'pending' | 'approved' | 'rejected';
   created_at: string;
   user?: {
     display_name: string | null;
     photo_url?: string | null;
+  };
+  exhibitor?: {
+    name: string;
+    logo_url?: string | null;
   };
 }
 

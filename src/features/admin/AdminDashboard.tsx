@@ -1,27 +1,56 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
-  LayoutDashboard, Plus, LogOut, Calendar, Settings, Eye, Trash2,
-  Play, Pause, ShieldCheck, Palette, X as CloseIcon, Share2, Copy, Check,
-  Upload, Loader2, FileText, CheckCircle2, Users, ChevronDown,
-} from 'lucide-react';
-import { UsersPanel } from './components/UsersPanel';
-import { EventCard } from './components/EventCard';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../../lib/utils';
-import { toast } from 'sonner';
-import type { EventData, ExhibitorSponsor } from '../../types';
-import { subscribeToEvents, createEvent, updateEvent, inactivateEvent, uploadEventSummary } from '../../services/eventService';
-import { useAuth } from '../../hooks/useAuth';
-import type { AppUser } from '../../types';
+  LayoutDashboard,
+  Plus,
+  LogOut,
+  Calendar,
+  Settings,
+  Eye,
+  Trash2,
+  Play,
+  Pause,
+  ShieldCheck,
+  Palette,
+  X as CloseIcon,
+  Share2,
+  Copy,
+  Check,
+  Upload,
+  Loader2,
+  FileText,
+  CheckCircle2,
+  Users,
+  ChevronDown,
+} from "lucide-react";
+import { UsersPanel } from "./components/UsersPanel";
+import { EventCard } from "./components/EventCard";
+import { ContactLeadsPanel } from "./components/ContactLeadsPanel";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { motion, AnimatePresence } from "motion/react";
+import { cn } from "../../lib/utils";
+import { toast } from "sonner";
+import type { EventData, ExhibitorSponsor } from "../../types";
+import {
+  subscribeToEvents,
+  createEvent,
+  updateEvent,
+  inactivateEvent,
+  uploadEventSummary,
+} from "../../services/eventService";
+import { useAuth } from "../../hooks/useAuth";
+import type { AppUser } from "../../types";
 
 // ─── Accordion ────────────────────────────────────────────────────────────────
 
 function AccordionSection({
-  id, title, openId, onToggle, children,
+  id,
+  title,
+  openId,
+  onToggle,
+  children,
 }: {
   id: string;
   title: string;
@@ -38,13 +67,14 @@ function AccordionSection({
         className="w-full flex items-center justify-between px-4 py-3.5 bg-neutral-50 hover:bg-neutral-100 transition-colors text-left"
       >
         <span className="text-xs font-bold text-neutral-800">{title}</span>
-        <ChevronDown className={cn('w-4 h-4 text-neutral-400 transition-transform duration-200', isOpen && 'rotate-180')} />
+        <ChevronDown
+          className={cn(
+            "w-4 h-4 text-neutral-400 transition-transform duration-200",
+            isOpen && "rotate-180",
+          )}
+        />
       </button>
-      {isOpen && (
-        <div className="px-4 pb-4 pt-3 space-y-4">
-          {children}
-        </div>
-      )}
+      {isOpen && <div className="px-4 pb-4 pt-3 space-y-4">{children}</div>}
     </div>
   );
 }
@@ -56,9 +86,17 @@ function Toggle({ value, onChange }: { value: boolean; onChange: () => void }) {
     <button
       type="button"
       onClick={onChange}
-      className={cn('w-12 h-6 rounded-full transition-all relative shrink-0', value ? 'bg-green-500' : 'bg-neutral-300')}
+      className={cn(
+        "w-12 h-6 rounded-full transition-all relative shrink-0",
+        value ? "bg-green-500" : "bg-neutral-300",
+      )}
     >
-      <div className={cn('absolute top-1 w-4 h-4 bg-white rounded-full transition-all', value ? 'right-1' : 'left-1')} />
+      <div
+        className={cn(
+          "absolute top-1 w-4 h-4 bg-white rounded-full transition-all",
+          value ? "right-1" : "left-1",
+        )}
+      />
     </button>
   );
 }
@@ -75,61 +113,64 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
   const [copied, setCopied] = useState(false);
   const [isUploadingSummary, setIsUploadingSummary] = useState(false);
   const summaryFileInputRef = useRef<HTMLInputElement>(null);
-  const [newEventName, setNewEventName] = useState('');
-  const [newEventSlug, setNewEventSlug] = useState('');
+  const [newEventName, setNewEventName] = useState("");
+  const [newEventSlug, setNewEventSlug] = useState("");
   const [creatingNew, setCreatingNew] = useState(false);
-  const [activeTab, setActiveTab] = useState<'events' | 'users'>('events');
-  const [openSection, setOpenSection] = useState<string | null>('dados');
+  const [activeTab, setActiveTab] = useState<"events" | "users" | "leads">(
+    "events",
+  );
+  const [openSection, setOpenSection] = useState<string | null>("dados");
 
-  const toggleSection = (id: string) => setOpenSection(s => s === id ? null : id);
+  const toggleSection = (id: string) =>
+    setOpenSection((s) => (s === id ? null : id));
 
   const [brandingForm, setBrandingForm] = useState({
-    name: '',
-    logo_url: '',
-    primary_color: '#000000',
-    secondary_color: '#ffffff',
-    bg_type: 'color' as 'color' | 'gradient' | 'pattern',
-    bg_value: '#f5f5f5',
-    bg_gradient_from: '#f5f7fa',
-    bg_gradient_to: '#c3cfe2',
-    bg_pattern_bg: '#f5f5f5',
-    bg_pattern_fg: '#e5e5e5',
-    tv_bg_type: 'color' as 'color' | 'gradient' | 'pattern',
-    tv_bg_value: '#0a0a0a',
-    tv_bg_gradient_from: '#0a0a0a',
-    tv_bg_gradient_to: '#1a1a1a',
-    tv_bg_pattern_bg: '#0a0a0a',
-    tv_bg_pattern_fg: '#1a1a1a',
-    tv_primary_color: '#ffffff',
-    tv_secondary_color: '#000000',
+    name: "",
+    logo_url: "",
+    primary_color: "#000000",
+    secondary_color: "#ffffff",
+    bg_type: "color" as "color" | "gradient" | "pattern",
+    bg_value: "#f5f5f5",
+    bg_gradient_from: "#f5f7fa",
+    bg_gradient_to: "#c3cfe2",
+    bg_pattern_bg: "#f5f5f5",
+    bg_pattern_fg: "#e5e5e5",
+    tv_bg_type: "color" as "color" | "gradient" | "pattern",
+    tv_bg_value: "#0a0a0a",
+    tv_bg_gradient_from: "#0a0a0a",
+    tv_bg_gradient_to: "#1a1a1a",
+    tv_bg_pattern_bg: "#0a0a0a",
+    tv_bg_pattern_fg: "#1a1a1a",
+    tv_primary_color: "#ffffff",
+    tv_secondary_color: "#000000",
     comment_moderation_enabled: true,
-    owner_text: '',
-    owner_photo: '',
-    post_event_message: '',
-    summary_file_url: '',
+    owner_text: "",
+    owner_photo: "",
+    post_event_message: "",
+    summary_file_url: "",
     has_official_photos: false,
     services: [] as ExhibitorSponsor[],
-    date: '',
+    date: "",
     custom_comments: [] as string[],
-    upload_source: 'both' as 'camera' | 'gallery' | 'both',
-    app_description: '',
-    app_whatsapp: '',
-    app_instagram: '',
-    app_website: '',
-    app_logo: '',
+    upload_source: "both" as "camera" | "gallery" | "both",
+    app_description: "",
+    app_whatsapp: "",
+    app_instagram: "",
+    app_website: "",
+    app_logo: "",
   });
 
   useEffect(() => {
     if (!user) return;
-    if (user.role !== 'admin') {
-      if (user.role === 'event_admin') {
-        navigate('/eventadmin', { replace: true });
-      } else if (user.role === 'expositor') {
-        navigate('/expositor', { replace: true });
-      } else if (user.role === 'avaliador') {
-        navigate('/avaliador', { replace: true });
-      } else if (user.role === 'participant') {
-        const lastSlug = localStorage.getItem('last_event_slug');
+    if (user.role !== "admin") {
+      if (user.role === "event_admin") {
+        navigate("/eventadmin", { replace: true });
+      } else if (user.role === "expositor") {
+        navigate("/expositor", { replace: true });
+      } else if (user.role === "avaliador") {
+        navigate("/avaliador", { replace: true });
+      } else if (user.role === "participant") {
+        const lastSlug = localStorage.getItem("last_event_slug");
         if (lastSlug) {
           navigate(`/event/${lastSlug}`, { replace: true });
         }
@@ -138,26 +179,29 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
     }
     return subscribeToEvents(
       (eventList) => setEvents(eventList),
-      (error) => console.error('Error fetching events:', error),
+      (error) => console.error("Error fetching events:", error),
     );
   }, [user, navigate]);
 
-  const updateStatus = async (eventId: string, status: 'pre' | 'live' | 'post') => {
+  const updateStatus = async (
+    eventId: string,
+    status: "pre" | "live" | "post",
+  ) => {
     try {
       await updateEvent(eventId, { status });
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao atualizar status do evento.');
+      toast.error("Erro ao atualizar status do evento.");
     }
   };
 
   const handleInactivateEvent = async (eventId: string) => {
     try {
       await inactivateEvent(eventId);
-      toast.success('Evento inativado com sucesso.');
+      toast.success("Evento inativado com sucesso.");
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao inativar evento.');
+      toast.error("Erro ao inativar evento.");
     }
   };
 
@@ -165,41 +209,44 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
   // Mantido para referência — não é mais acionado pela engrenagem do card.
   const openBrandingModal = (event: EventData) => {
     setEditingEvent(event);
-    setOpenSection('dados');
+    setOpenSection("dados");
     setBrandingForm({
-      name: event.name || '',
-      logo_url: event.logo_url || '',
-      primary_color: event.primary_color || '#000000',
-      secondary_color: event.secondary_color || '#ffffff',
-      bg_type: event.bg_type || 'color',
-      bg_value: event.bg_value || '#f5f5f5',
-      bg_gradient_from: event.bg_gradient_from || '#f5f7fa',
-      bg_gradient_to: event.bg_gradient_to || '#c3cfe2',
-      bg_pattern_bg: event.bg_pattern_bg || '#f5f5f5',
-      bg_pattern_fg: event.bg_pattern_fg || '#e5e5e5',
-      tv_bg_type: event.tv_bg_type || 'color',
-      tv_bg_value: event.tv_bg_value || '#0a0a0a',
-      tv_bg_gradient_from: event.tv_bg_gradient_from || '#0a0a0a',
-      tv_bg_gradient_to: event.tv_bg_gradient_to || '#1a1a1a',
-      tv_bg_pattern_bg: event.tv_bg_pattern_bg || '#0a0a0a',
-      tv_bg_pattern_fg: event.tv_bg_pattern_fg || '#1a1a1a',
-      tv_primary_color: event.tv_primary_color || '#ffffff',
-      tv_secondary_color: event.tv_secondary_color || '#000000',
-      comment_moderation_enabled: event.comment_moderation_enabled !== undefined ? event.comment_moderation_enabled : true,
-      owner_text: event.owner_text || '',
-      owner_photo: event.owner_photo || '',
-      post_event_message: event.post_event_message || '',
-      summary_file_url: event.summary_file_url || '',
+      name: event.name || "",
+      logo_url: event.logo_url || "",
+      primary_color: event.primary_color || "#000000",
+      secondary_color: event.secondary_color || "#ffffff",
+      bg_type: event.bg_type || "color",
+      bg_value: event.bg_value || "#f5f5f5",
+      bg_gradient_from: event.bg_gradient_from || "#f5f7fa",
+      bg_gradient_to: event.bg_gradient_to || "#c3cfe2",
+      bg_pattern_bg: event.bg_pattern_bg || "#f5f5f5",
+      bg_pattern_fg: event.bg_pattern_fg || "#e5e5e5",
+      tv_bg_type: event.tv_bg_type || "color",
+      tv_bg_value: event.tv_bg_value || "#0a0a0a",
+      tv_bg_gradient_from: event.tv_bg_gradient_from || "#0a0a0a",
+      tv_bg_gradient_to: event.tv_bg_gradient_to || "#1a1a1a",
+      tv_bg_pattern_bg: event.tv_bg_pattern_bg || "#0a0a0a",
+      tv_bg_pattern_fg: event.tv_bg_pattern_fg || "#1a1a1a",
+      tv_primary_color: event.tv_primary_color || "#ffffff",
+      tv_secondary_color: event.tv_secondary_color || "#000000",
+      comment_moderation_enabled:
+        event.comment_moderation_enabled !== undefined
+          ? event.comment_moderation_enabled
+          : true,
+      owner_text: event.owner_text || "",
+      owner_photo: event.owner_photo || "",
+      post_event_message: event.post_event_message || "",
+      summary_file_url: event.summary_file_url || "",
       has_official_photos: event.has_official_photos || false,
       services: event.services || [],
-      date: event.date || '',
+      date: event.date || "",
       custom_comments: event.custom_comments || [],
-      upload_source: event.upload_source || 'both',
-      app_description: event.app_description || '',
-      app_whatsapp: event.app_whatsapp || '',
-      app_instagram: event.app_instagram || '',
-      app_website: event.app_website || '',
-      app_logo: event.app_logo || '',
+      upload_source: event.upload_source || "both",
+      app_description: event.app_description || "",
+      app_whatsapp: event.app_whatsapp || "",
+      app_instagram: event.app_instagram || "",
+      app_website: event.app_website || "",
+      app_logo: event.app_logo || "",
     });
   };
 
@@ -211,7 +258,7 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
       setEditingEvent(null);
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao salvar personalização.');
+      toast.error("Erro ao salvar personalização.");
     }
     setLoading(false);
   };
@@ -219,7 +266,7 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
   const createDemoEvent = async () => {
     if (!user) return;
     if (!newEventName || !newEventSlug) {
-      toast.error('Preencha o nome e o slug do evento.');
+      toast.error("Preencha o nome e o slug do evento.");
       return;
     }
     setLoading(true);
@@ -229,48 +276,55 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
         slug: newEventSlug,
         date: new Date().toISOString(),
         countdown_active: true,
-        status: 'pre',
+        status: "pre",
         services: [],
       });
       toast.success(`Evento criado! Acesse /evento/${newEventSlug}`);
-      setNewEventName('');
-      setNewEventSlug('');
+      setNewEventName("");
+      setNewEventSlug("");
       setCreatingNew(false);
     } catch (e: any) {
-      if (e?.message === 'SLUG_TAKEN') {
-        toast.error('Este slug já está em uso. Escolha outro.');
+      if (e?.message === "SLUG_TAKEN") {
+        toast.error("Este slug já está em uso. Escolha outro.");
       } else {
         console.error(e);
-        toast.error('Erro ao criar evento. Verifique as regras de segurança.');
+        toast.error("Erro ao criar evento. Verifique as regras de segurança.");
       }
     }
     setLoading(false);
   };
 
-  const handleSummaryFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSummaryFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file || !editingEvent) return;
     setIsUploadingSummary(true);
     try {
       const url = await uploadEventSummary(editingEvent.id, file);
       setBrandingForm({ ...brandingForm, summary_file_url: url });
-      toast.success('Arquivo enviado com sucesso!');
+      toast.success("Arquivo enviado com sucesso!");
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao fazer upload do arquivo.');
+      toast.error("Erro ao fazer upload do arquivo.");
     } finally {
       setIsUploadingSummary(false);
     }
   };
 
-  if (!user || user.role !== 'admin') {
+  if (!user || user.role !== "admin") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-50 p-4">
         <div className="max-w-sm w-full bg-white p-8 rounded-3xl shadow-xl shadow-neutral-200 text-center">
           <LayoutDashboard className="w-12 h-12 mx-auto text-neutral-900 mb-6" />
           <h1 className="text-2xl font-bold mb-2">Painel Admin</h1>
-          <p className="text-neutral-500 mb-8 text-sm">Acesso restrito a administradores.</p>
-          <a href="/login" className="block w-full py-4 bg-neutral-900 text-white rounded-2xl font-bold hover:bg-neutral-800 transition-colors">
+          <p className="text-neutral-500 mb-8 text-sm">
+            Acesso restrito a administradores.
+          </p>
+          <a
+            href="/login"
+            className="block w-full py-4 bg-neutral-900 text-white rounded-2xl font-bold hover:bg-neutral-800 transition-colors"
+          >
             Fazer login
           </a>
         </div>
@@ -284,19 +338,30 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
       <header className="bg-white border-b border-neutral-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div>
           <h1 className="text-xl font-bold text-neutral-900">Dashboard</h1>
-          <p className="text-xs text-neutral-400">Bem-vindo, {user.display_name}</p>
+          <p className="text-xs text-neutral-400">
+            Bem-vindo, {user.display_name}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <img
-            src={user.photo_url || `https://ui-avatars.com/api/?name=${user.display_name || 'A'}&background=random`}
+            src={
+              user.photo_url ||
+              `https://ui-avatars.com/api/?name=${user.display_name || "A"}&background=random`
+            }
             className="w-9 h-9 rounded-full border border-neutral-200"
             referrerPolicy="no-referrer"
-            onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${user.display_name || 'A'}&background=random`; }}
+            onError={(e) => {
+              e.currentTarget.src = `https://ui-avatars.com/api/?name=${user.display_name || "A"}&background=random`;
+            }}
           />
-          <button onClick={logout} className="p-2 text-neutral-400 hover:text-red-500 transition-colors" title="Sair">
+          <button
+            onClick={logout}
+            className="p-2 text-neutral-400 hover:text-red-500 transition-colors"
+            title="Sair"
+          >
             <LogOut className="w-5 h-5" />
           </button>
-          {activeTab === 'events' && (
+          {activeTab === "events" && (
             <button
               onClick={() => setCreatingNew(true)}
               title="Novo evento"
@@ -311,18 +376,21 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
       {/* Tab nav */}
       <div className="border-b border-neutral-100 bg-white px-6">
         <div className="flex gap-0 max-w-full">
-          {([
-            { id: 'events', label: 'Eventos', icon: Calendar },
-            { id: 'users',  label: 'Usuários', icon: Users },
-          ] as const).map(({ id, label, icon: Icon }) => (
+          {(
+            [
+              { id: "events", label: "Eventos", icon: Calendar },
+              { id: "users", label: "Usuários", icon: Users },
+              { id: "leads", label: "APP_LEADS", icon: FileText },
+            ] as const
+          ).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setActiveTab(id)}
               className={cn(
-                'flex items-center gap-2 px-5 py-3.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all',
+                "flex items-center gap-2 px-5 py-3.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all",
                 activeTab === id
-                  ? 'border-neutral-900 text-neutral-900'
-                  : 'border-transparent text-neutral-400 hover:text-neutral-700',
+                  ? "border-neutral-900 text-neutral-900"
+                  : "border-transparent text-neutral-400 hover:text-neutral-700",
               )}
             >
               <Icon className="w-4 h-4" />
@@ -333,31 +401,44 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
       </div>
 
       <main className="p-6 space-y-6">
-        {activeTab === 'users' && <UsersPanel events={events} />}
+        {activeTab === "users" && <UsersPanel events={events} />}
+        {activeTab === "leads" && <ContactLeadsPanel />}
 
-        {activeTab === 'events' && (
+        {activeTab === "events" && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {creatingNew && (
               <div className="bg-white rounded-2xl border-2 border-dashed border-neutral-200 p-5 space-y-3 shadow-sm">
-                <p className="text-sm font-bold text-neutral-900">Novo Evento</p>
+                <p className="text-sm font-bold text-neutral-900">
+                  Novo Evento
+                </p>
                 <div>
-                  <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Nome</label>
+                  <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">
+                    Nome
+                  </label>
                   <input
                     type="text"
                     value={newEventName}
                     onChange={(e) => setNewEventName(e.target.value)}
                     placeholder="Ex: Feira de Negócios 2026"
                     autoFocus
-                    onKeyDown={(e) => e.key === 'Enter' && createDemoEvent()}
+                    onKeyDown={(e) => e.key === "Enter" && createDemoEvent()}
                     className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Slug (URL)</label>
+                  <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">
+                    Slug (URL)
+                  </label>
                   <input
                     type="text"
                     value={newEventSlug}
-                    onChange={(e) => setNewEventSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                    onChange={(e) =>
+                      setNewEventSlug(
+                        e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9-]/g, "-"),
+                      )
+                    }
                     placeholder="feira-negocios-2026"
                     className="w-full px-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
                   />
@@ -368,10 +449,14 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                     disabled={loading || !newEventName || !newEventSlug}
                     className="flex-1 py-2 bg-neutral-900 text-white text-sm font-bold rounded-lg disabled:opacity-50 hover:bg-neutral-700 transition-colors"
                   >
-                    {loading ? 'Criando...' : 'Criar'}
+                    {loading ? "Criando..." : "Criar"}
                   </button>
                   <button
-                    onClick={() => { setCreatingNew(false); setNewEventName(''); setNewEventSlug(''); }}
+                    onClick={() => {
+                      setCreatingNew(false);
+                      setNewEventName("");
+                      setNewEventSlug("");
+                    }}
                     className="px-4 py-2 bg-neutral-100 text-neutral-600 text-sm font-bold rounded-lg hover:bg-neutral-200 transition-colors"
                   >
                     Cancelar
@@ -395,7 +480,9 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
               <div className="col-span-full flex flex-col items-center justify-center py-24 text-neutral-300">
                 <Calendar className="w-12 h-12 mb-3" />
                 <p className="text-sm font-semibold">Nenhum evento ainda</p>
-                <p className="text-xs mt-1">Clique no + para criar seu primeiro evento</p>
+                <p className="text-xs mt-1">
+                  Clique no + para criar seu primeiro evento
+                </p>
               </div>
             )}
           </div>
@@ -421,7 +508,9 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold">Acesso do Participante</h3>
-                <button onClick={() => setSharingEvent(null)}><CloseIcon className="w-6 h-6 text-neutral-400" /></button>
+                <button onClick={() => setSharingEvent(null)}>
+                  <CloseIcon className="w-6 h-6 text-neutral-400" />
+                </button>
               </div>
               <div className="space-y-6">
                 <div className="bg-neutral-50 p-6 rounded-3xl border border-neutral-100 flex flex-col items-center">
@@ -430,10 +519,14 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                     alt="QR Code"
                     className="w-48 h-48 rounded-2xl shadow-sm mb-4"
                   />
-                  <p className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">Aponte a câmera para acessar</p>
+                  <p className="text-[10px] font-bold uppercase text-neutral-400 tracking-widest">
+                    Aponte a câmera para acessar
+                  </p>
                 </div>
                 <div className="text-left">
-                  <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Link de Acesso</label>
+                  <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                    Link de Acesso
+                  </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -443,19 +536,27 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                     />
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/evento/${sharingEvent.slug}`);
+                        navigator.clipboard.writeText(
+                          `${window.location.origin}/evento/${sharingEvent.slug}`,
+                        );
                         setCopied(true);
                         setTimeout(() => setCopied(false), 2000);
                       }}
                       className="p-3 bg-neutral-900 text-white rounded-xl hover:bg-neutral-800 transition-colors"
                     >
-                      {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                      {copied ? (
+                        <Check className="w-5 h-5" />
+                      ) : (
+                        <Copy className="w-5 h-5" />
+                      )}
                     </button>
                   </div>
                 </div>
                 <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-left">
                   <p className="text-xs text-blue-700 leading-relaxed">
-                    <strong>Dica:</strong> Imprima este QR Code e coloque em locais visíveis do evento para que os participantes possam postar fotos e interagir.
+                    <strong>Dica:</strong> Imprima este QR Code e coloque em
+                    locais visíveis do evento para que os participantes possam
+                    postar fotos e interagir.
                   </p>
                 </div>
               </div>
@@ -483,42 +584,80 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold">Configurar Evento</h3>
-                <button onClick={() => setEditingEvent(null)}><CloseIcon className="w-6 h-6 text-neutral-400" /></button>
+                <button onClick={() => setEditingEvent(null)}>
+                  <CloseIcon className="w-6 h-6 text-neutral-400" />
+                </button>
               </div>
 
               <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
-
                 {/* ── Dados Básicos ── */}
-                <AccordionSection id="dados" title="Dados Básicos" openId={openSection} onToggle={toggleSection}>
+                <AccordionSection
+                  id="dados"
+                  title="Dados Básicos"
+                  openId={openSection}
+                  onToggle={toggleSection}
+                >
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Nome do Evento</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                      Nome do Evento
+                    </label>
                     <input
                       type="text"
                       value={brandingForm.name}
-                      onChange={(e) => setBrandingForm({ ...brandingForm, name: e.target.value })}
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          name: e.target.value,
+                        })
+                      }
                       placeholder="Nome do Evento"
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Data do Evento</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                      Data do Evento
+                    </label>
                     <input
                       type="datetime-local"
-                      value={typeof brandingForm.date === 'string' ? brandingForm.date.slice(0, 16) : ''}
-                      onChange={(e) => setBrandingForm({ ...brandingForm, date: e.target.value ? new Date(e.target.value).toISOString() : '' })}
+                      value={
+                        typeof brandingForm.date === "string"
+                          ? brandingForm.date.slice(0, 16)
+                          : ""
+                      }
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          date: e.target.value
+                            ? new Date(e.target.value).toISOString()
+                            : "",
+                        })
+                      }
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
                     />
                   </div>
                 </AccordionSection>
 
                 {/* ── Visual ── */}
-                <AccordionSection id="visual" title="Visual" openId={openSection} onToggle={toggleSection}>
+                <AccordionSection
+                  id="visual"
+                  title="Visual"
+                  openId={openSection}
+                  onToggle={toggleSection}
+                >
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">URL da Logo</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                      URL da Logo
+                    </label>
                     <input
                       type="text"
                       value={brandingForm.logo_url}
-                      onChange={(e) => setBrandingForm({ ...brandingForm, logo_url: e.target.value })}
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          logo_url: e.target.value,
+                        })
+                      }
                       placeholder="https://exemplo.com/logo.png"
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
                     />
@@ -526,63 +665,238 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Cor Primária</label>
+                      <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                        Cor Primária
+                      </label>
                       <div className="flex gap-2">
-                        <input type="color" value={brandingForm.primary_color} onChange={(e) => setBrandingForm({ ...brandingForm, primary_color: e.target.value })} className="w-10 h-10 rounded-lg overflow-hidden border-none cursor-pointer" />
-                        <input type="text" value={brandingForm.primary_color} onChange={(e) => setBrandingForm({ ...brandingForm, primary_color: e.target.value })} className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs" />
+                        <input
+                          type="color"
+                          value={brandingForm.primary_color}
+                          onChange={(e) =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              primary_color: e.target.value,
+                            })
+                          }
+                          className="w-10 h-10 rounded-lg overflow-hidden border-none cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={brandingForm.primary_color}
+                          onChange={(e) =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              primary_color: e.target.value,
+                            })
+                          }
+                          className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs"
+                        />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Cor Secundária</label>
+                      <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                        Cor Secundária
+                      </label>
                       <div className="flex gap-2">
-                        <input type="color" value={brandingForm.secondary_color} onChange={(e) => setBrandingForm({ ...brandingForm, secondary_color: e.target.value })} className="w-10 h-10 rounded-lg overflow-hidden border-none cursor-pointer" />
-                        <input type="text" value={brandingForm.secondary_color} onChange={(e) => setBrandingForm({ ...brandingForm, secondary_color: e.target.value })} className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs" />
+                        <input
+                          type="color"
+                          value={brandingForm.secondary_color}
+                          onChange={(e) =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              secondary_color: e.target.value,
+                            })
+                          }
+                          className="w-10 h-10 rounded-lg overflow-hidden border-none cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={brandingForm.secondary_color}
+                          onChange={(e) =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              secondary_color: e.target.value,
+                            })
+                          }
+                          className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs"
+                        />
                       </div>
                     </div>
                   </div>
 
                   {/* Fundo */}
                   <div className="space-y-3 p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400">Plano de Fundo</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400">
+                      Plano de Fundo
+                    </label>
                     <div className="flex gap-2">
-                      {(['color', 'gradient', 'pattern'] as const).map((t) => (
-                        <button key={t} type="button" onClick={() => setBrandingForm({ ...brandingForm, bg_type: t })} className={cn('flex-1 py-2 rounded-lg text-[10px] font-bold uppercase transition-all', brandingForm.bg_type === t ? 'bg-neutral-900 text-white' : 'bg-white text-neutral-500 border border-neutral-200')}>
-                          {t === 'color' ? 'Cor' : t === 'gradient' ? 'Degradê' : 'Padrão'}
+                      {(["color", "gradient", "pattern"] as const).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() =>
+                            setBrandingForm({ ...brandingForm, bg_type: t })
+                          }
+                          className={cn(
+                            "flex-1 py-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                            brandingForm.bg_type === t
+                              ? "bg-neutral-900 text-white"
+                              : "bg-white text-neutral-500 border border-neutral-200",
+                          )}
+                        >
+                          {t === "color"
+                            ? "Cor"
+                            : t === "gradient"
+                              ? "Degradê"
+                              : "Padrão"}
                         </button>
                       ))}
                     </div>
-                    {brandingForm.bg_type === 'color' && (
+                    {brandingForm.bg_type === "color" && (
                       <div className="flex gap-2">
-                        <input type="color" value={brandingForm.bg_value} onChange={(e) => setBrandingForm({ ...brandingForm, bg_value: e.target.value })} className="w-10 h-10 rounded-lg overflow-hidden border-none cursor-pointer" />
-                        <input type="text" value={brandingForm.bg_value} onChange={(e) => setBrandingForm({ ...brandingForm, bg_value: e.target.value })} className="flex-1 bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs" />
+                        <input
+                          type="color"
+                          value={brandingForm.bg_value}
+                          onChange={(e) =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              bg_value: e.target.value,
+                            })
+                          }
+                          className="w-10 h-10 rounded-lg overflow-hidden border-none cursor-pointer"
+                        />
+                        <input
+                          type="text"
+                          value={brandingForm.bg_value}
+                          onChange={(e) =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              bg_value: e.target.value,
+                            })
+                          }
+                          className="flex-1 bg-white border border-neutral-200 rounded-xl px-3 py-2 text-xs"
+                        />
                       </div>
                     )}
-                    {brandingForm.bg_type === 'gradient' && (
+                    {brandingForm.bg_type === "gradient" && (
                       <div className="space-y-3">
-                        <select value={brandingForm.bg_value} onChange={(e) => setBrandingForm({ ...brandingForm, bg_value: e.target.value })} className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3 text-sm">
+                        <select
+                          value={brandingForm.bg_value}
+                          onChange={(e) =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              bg_value: e.target.value,
+                            })
+                          }
+                          className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3 text-sm"
+                        >
                           <option value="custom">Personalizado</option>
-                          <option value="linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)">Suave</option>
-                          <option value="linear-gradient(to right, #ffecd2 0%, #fcb69f 100%)">Pôr do Sol</option>
-                          <option value="linear-gradient(to top, #a18cd1 0%, #fbc2eb 100%)">Lavanda</option>
-                          <option value="linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%)">Oceano</option>
-                          <option value="linear-gradient(to right, #4facfe 0%, #00f2fe 100%)">Céu Azul</option>
+                          <option value="linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)">
+                            Suave
+                          </option>
+                          <option value="linear-gradient(to right, #ffecd2 0%, #fcb69f 100%)">
+                            Pôr do Sol
+                          </option>
+                          <option value="linear-gradient(to top, #a18cd1 0%, #fbc2eb 100%)">
+                            Lavanda
+                          </option>
+                          <option value="linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%)">
+                            Oceano
+                          </option>
+                          <option value="linear-gradient(to right, #4facfe 0%, #00f2fe 100%)">
+                            Céu Azul
+                          </option>
                         </select>
-                        {brandingForm.bg_value === 'custom' && (
+                        {brandingForm.bg_value === "custom" && (
                           <div className="grid grid-cols-2 gap-2">
-                            <div className="space-y-1"><label className="text-[8px] uppercase font-bold text-neutral-400">De</label><input type="color" value={brandingForm.bg_gradient_from} onChange={(e) => setBrandingForm({ ...brandingForm, bg_gradient_from: e.target.value })} className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer" /></div>
-                            <div className="space-y-1"><label className="text-[8px] uppercase font-bold text-neutral-400">Para</label><input type="color" value={brandingForm.bg_gradient_to} onChange={(e) => setBrandingForm({ ...brandingForm, bg_gradient_to: e.target.value })} className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer" /></div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] uppercase font-bold text-neutral-400">
+                                De
+                              </label>
+                              <input
+                                type="color"
+                                value={brandingForm.bg_gradient_from}
+                                onChange={(e) =>
+                                  setBrandingForm({
+                                    ...brandingForm,
+                                    bg_gradient_from: e.target.value,
+                                  })
+                                }
+                                className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] uppercase font-bold text-neutral-400">
+                                Para
+                              </label>
+                              <input
+                                type="color"
+                                value={brandingForm.bg_gradient_to}
+                                onChange={(e) =>
+                                  setBrandingForm({
+                                    ...brandingForm,
+                                    bg_gradient_to: e.target.value,
+                                  })
+                                }
+                                className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                              />
+                            </div>
                           </div>
                         )}
                       </div>
                     )}
-                    {brandingForm.bg_type === 'pattern' && (
+                    {brandingForm.bg_type === "pattern" && (
                       <div className="space-y-3">
-                        <select value={brandingForm.bg_value} onChange={(e) => setBrandingForm({ ...brandingForm, bg_value: e.target.value })} className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3 text-sm">
-                          <option value="dots">Pontos</option><option value="grid">Grade</option><option value="diagonal">Diagonal</option><option value="waves">Ondas</option><option value="circuit">Circuito</option><option value="hexagons">Hexágonos</option>
+                        <select
+                          value={brandingForm.bg_value}
+                          onChange={(e) =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              bg_value: e.target.value,
+                            })
+                          }
+                          className="w-full bg-white border border-neutral-200 rounded-xl px-4 py-3 text-sm"
+                        >
+                          <option value="dots">Pontos</option>
+                          <option value="grid">Grade</option>
+                          <option value="diagonal">Diagonal</option>
+                          <option value="waves">Ondas</option>
+                          <option value="circuit">Circuito</option>
+                          <option value="hexagons">Hexágonos</option>
                         </select>
                         <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1"><label className="text-[8px] uppercase font-bold text-neutral-400">Cor Fundo</label><input type="color" value={brandingForm.bg_pattern_bg} onChange={(e) => setBrandingForm({ ...brandingForm, bg_pattern_bg: e.target.value })} className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer" /></div>
-                          <div className="space-y-1"><label className="text-[8px] uppercase font-bold text-neutral-400">Cor Padrão</label><input type="color" value={brandingForm.bg_pattern_fg} onChange={(e) => setBrandingForm({ ...brandingForm, bg_pattern_fg: e.target.value })} className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer" /></div>
+                          <div className="space-y-1">
+                            <label className="text-[8px] uppercase font-bold text-neutral-400">
+                              Cor Fundo
+                            </label>
+                            <input
+                              type="color"
+                              value={brandingForm.bg_pattern_bg}
+                              onChange={(e) =>
+                                setBrandingForm({
+                                  ...brandingForm,
+                                  bg_pattern_bg: e.target.value,
+                                })
+                              }
+                              className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[8px] uppercase font-bold text-neutral-400">
+                              Cor Padrão
+                            </label>
+                            <input
+                              type="color"
+                              value={brandingForm.bg_pattern_fg}
+                              onChange={(e) =>
+                                setBrandingForm({
+                                  ...brandingForm,
+                                  bg_pattern_fg: e.target.value,
+                                })
+                              }
+                              className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                            />
+                          </div>
                         </div>
                       </div>
                     )}
@@ -592,36 +906,157 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                   <div className="space-y-3 p-4 bg-neutral-900 rounded-2xl border border-white/10 text-white">
                     <div className="flex items-center gap-2">
                       <Palette className="w-4 h-4 text-blue-400" />
-                      <label className="block text-[10px] font-bold uppercase text-blue-400">Personalização da TV</label>
+                      <label className="block text-[10px] font-bold uppercase text-blue-400">
+                        Personalização da TV
+                      </label>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div><label className="block text-[8px] font-bold uppercase text-neutral-500 mb-1">Cor Primária TV</label><input type="color" value={brandingForm.tv_primary_color} onChange={(e) => setBrandingForm({ ...brandingForm, tv_primary_color: e.target.value })} className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer" /></div>
-                      <div><label className="block text-[8px] font-bold uppercase text-neutral-500 mb-1">Cor Secundária TV</label><input type="color" value={brandingForm.tv_secondary_color} onChange={(e) => setBrandingForm({ ...brandingForm, tv_secondary_color: e.target.value })} className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer" /></div>
+                      <div>
+                        <label className="block text-[8px] font-bold uppercase text-neutral-500 mb-1">
+                          Cor Primária TV
+                        </label>
+                        <input
+                          type="color"
+                          value={brandingForm.tv_primary_color}
+                          onChange={(e) =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              tv_primary_color: e.target.value,
+                            })
+                          }
+                          className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[8px] font-bold uppercase text-neutral-500 mb-1">
+                          Cor Secundária TV
+                        </label>
+                        <input
+                          type="color"
+                          value={brandingForm.tv_secondary_color}
+                          onChange={(e) =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              tv_secondary_color: e.target.value,
+                            })
+                          }
+                          className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                        />
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="block text-[8px] font-bold uppercase text-neutral-500">Fundo da TV</label>
+                      <label className="block text-[8px] font-bold uppercase text-neutral-500">
+                        Fundo da TV
+                      </label>
                       <div className="flex gap-2">
-                        {(['color', 'gradient', 'pattern'] as const).map((t) => (
-                          <button key={t} type="button" onClick={() => setBrandingForm({ ...brandingForm, tv_bg_type: t })} className={cn('flex-1 py-1.5 rounded-lg text-[8px] font-bold uppercase transition-all', brandingForm.tv_bg_type === t ? 'bg-blue-500 text-white' : 'bg-neutral-800 text-neutral-400 border border-white/5')}>
-                            {t === 'color' ? 'Cor' : t === 'gradient' ? 'Degradê' : 'Padrão'}
-                          </button>
-                        ))}
+                        {(["color", "gradient", "pattern"] as const).map(
+                          (t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() =>
+                                setBrandingForm({
+                                  ...brandingForm,
+                                  tv_bg_type: t,
+                                })
+                              }
+                              className={cn(
+                                "flex-1 py-1.5 rounded-lg text-[8px] font-bold uppercase transition-all",
+                                brandingForm.tv_bg_type === t
+                                  ? "bg-blue-500 text-white"
+                                  : "bg-neutral-800 text-neutral-400 border border-white/5",
+                              )}
+                            >
+                              {t === "color"
+                                ? "Cor"
+                                : t === "gradient"
+                                  ? "Degradê"
+                                  : "Padrão"}
+                            </button>
+                          ),
+                        )}
                       </div>
-                      {brandingForm.tv_bg_type === 'color' && <input type="color" value={brandingForm.tv_bg_value} onChange={(e) => setBrandingForm({ ...brandingForm, tv_bg_value: e.target.value })} className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer" />}
-                      {brandingForm.tv_bg_type === 'gradient' && (
+                      {brandingForm.tv_bg_type === "color" && (
+                        <input
+                          type="color"
+                          value={brandingForm.tv_bg_value}
+                          onChange={(e) =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              tv_bg_value: e.target.value,
+                            })
+                          }
+                          className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                        />
+                      )}
+                      {brandingForm.tv_bg_type === "gradient" && (
                         <div className="grid grid-cols-2 gap-2">
-                          <input type="color" value={brandingForm.tv_bg_gradient_from} onChange={(e) => setBrandingForm({ ...brandingForm, tv_bg_gradient_from: e.target.value })} className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer" />
-                          <input type="color" value={brandingForm.tv_bg_gradient_to} onChange={(e) => setBrandingForm({ ...brandingForm, tv_bg_gradient_to: e.target.value })} className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer" />
+                          <input
+                            type="color"
+                            value={brandingForm.tv_bg_gradient_from}
+                            onChange={(e) =>
+                              setBrandingForm({
+                                ...brandingForm,
+                                tv_bg_gradient_from: e.target.value,
+                              })
+                            }
+                            className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                          />
+                          <input
+                            type="color"
+                            value={brandingForm.tv_bg_gradient_to}
+                            onChange={(e) =>
+                              setBrandingForm({
+                                ...brandingForm,
+                                tv_bg_gradient_to: e.target.value,
+                              })
+                            }
+                            className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                          />
                         </div>
                       )}
-                      {brandingForm.tv_bg_type === 'pattern' && (
+                      {brandingForm.tv_bg_type === "pattern" && (
                         <div className="space-y-2">
-                          <select value={brandingForm.tv_bg_value} onChange={(e) => setBrandingForm({ ...brandingForm, tv_bg_value: e.target.value })} className="w-full bg-neutral-800 border border-white/5 rounded-xl px-3 py-2 text-xs text-white">
-                            <option value="dots">Pontos</option><option value="grid">Grade</option><option value="diagonal">Diagonal</option><option value="waves">Ondas</option><option value="circuit">Circuito</option><option value="hexagons">Hexágonos</option>
+                          <select
+                            value={brandingForm.tv_bg_value}
+                            onChange={(e) =>
+                              setBrandingForm({
+                                ...brandingForm,
+                                tv_bg_value: e.target.value,
+                              })
+                            }
+                            className="w-full bg-neutral-800 border border-white/5 rounded-xl px-3 py-2 text-xs text-white"
+                          >
+                            <option value="dots">Pontos</option>
+                            <option value="grid">Grade</option>
+                            <option value="diagonal">Diagonal</option>
+                            <option value="waves">Ondas</option>
+                            <option value="circuit">Circuito</option>
+                            <option value="hexagons">Hexágonos</option>
                           </select>
                           <div className="grid grid-cols-2 gap-2">
-                            <input type="color" value={brandingForm.tv_bg_pattern_bg} onChange={(e) => setBrandingForm({ ...brandingForm, tv_bg_pattern_bg: e.target.value })} className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer" />
-                            <input type="color" value={brandingForm.tv_bg_pattern_fg} onChange={(e) => setBrandingForm({ ...brandingForm, tv_bg_pattern_fg: e.target.value })} className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer" />
+                            <input
+                              type="color"
+                              value={brandingForm.tv_bg_pattern_bg}
+                              onChange={(e) =>
+                                setBrandingForm({
+                                  ...brandingForm,
+                                  tv_bg_pattern_bg: e.target.value,
+                                })
+                              }
+                              className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                            />
+                            <input
+                              type="color"
+                              value={brandingForm.tv_bg_pattern_fg}
+                              onChange={(e) =>
+                                setBrandingForm({
+                                  ...brandingForm,
+                                  tv_bg_pattern_fg: e.target.value,
+                                })
+                              }
+                              className="w-full h-8 rounded-lg overflow-hidden border-none cursor-pointer"
+                            />
                           </div>
                         </div>
                       )}
@@ -630,44 +1065,100 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
 
                   {/* Preview */}
                   <div className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
-                    <p className="text-[10px] font-bold uppercase text-neutral-400 mb-3">Preview de Cores</p>
+                    <p className="text-[10px] font-bold uppercase text-neutral-400 mb-3">
+                      Preview de Cores
+                    </p>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm" style={{ backgroundColor: brandingForm.primary_color }}>
-                        <Eye className="w-5 h-5" style={{ color: brandingForm.secondary_color }} />
+                      <div
+                        className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm"
+                        style={{ backgroundColor: brandingForm.primary_color }}
+                      >
+                        <Eye
+                          className="w-5 h-5"
+                          style={{ color: brandingForm.secondary_color }}
+                        />
                       </div>
                       <div className="flex-1 h-2 rounded-full bg-neutral-200 overflow-hidden">
-                        <div className="h-full" style={{ width: '60%', backgroundColor: brandingForm.primary_color }} />
+                        <div
+                          className="h-full"
+                          style={{
+                            width: "60%",
+                            backgroundColor: brandingForm.primary_color,
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
                 </AccordionSection>
 
                 {/* ── Configurações ── */}
-                <AccordionSection id="config" title="Configurações" openId={openSection} onToggle={toggleSection}>
+                <AccordionSection
+                  id="config"
+                  title="Configurações"
+                  openId={openSection}
+                  onToggle={toggleSection}
+                >
                   <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
                     <div>
-                      <p className="text-xs font-bold">Moderação de Comentários</p>
-                      <p className="text-[10px] text-neutral-400">Exigir aprovação manual</p>
+                      <p className="text-xs font-bold">
+                        Moderação de Comentários
+                      </p>
+                      <p className="text-[10px] text-neutral-400">
+                        Exigir aprovação manual
+                      </p>
                     </div>
-                    <Toggle value={brandingForm.comment_moderation_enabled} onChange={() => setBrandingForm({ ...brandingForm, comment_moderation_enabled: !brandingForm.comment_moderation_enabled })} />
+                    <Toggle
+                      value={brandingForm.comment_moderation_enabled}
+                      onChange={() =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          comment_moderation_enabled:
+                            !brandingForm.comment_moderation_enabled,
+                        })
+                      }
+                    />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Comentários Padrão (separados por vírgula)</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                      Comentários Padrão (separados por vírgula)
+                    </label>
                     <input
                       type="text"
-                      value={Array.isArray(brandingForm.custom_comments) ? brandingForm.custom_comments.join(', ') : ''}
-                      onChange={(e) => setBrandingForm({ ...brandingForm, custom_comments: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                      value={
+                        Array.isArray(brandingForm.custom_comments)
+                          ? brandingForm.custom_comments.join(", ")
+                          : ""
+                      }
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          custom_comments: e.target.value
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean),
+                        })
+                      }
                       placeholder="Lindo!, Adorei, Que momento!"
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Origem de Upload (Live)</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                      Origem de Upload (Live)
+                    </label>
                     <select
-                      value={brandingForm.upload_source || 'both'}
-                      onChange={(e) => setBrandingForm({ ...brandingForm, upload_source: e.target.value as 'camera' | 'gallery' | 'both' })}
+                      value={brandingForm.upload_source || "both"}
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          upload_source: e.target.value as
+                            | "camera"
+                            | "gallery"
+                            | "both",
+                        })
+                      }
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
                     >
                       <option value="both">Câmera e Galeria</option>
@@ -679,64 +1170,148 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                   <div className="flex items-center justify-between p-4 bg-neutral-50 rounded-2xl border border-neutral-100">
                     <div>
                       <p className="text-xs font-bold">Fotos Oficiais</p>
-                      <p className="text-[10px] text-neutral-400">Habilitar seção de fotos da equipe</p>
+                      <p className="text-[10px] text-neutral-400">
+                        Habilitar seção de fotos da equipe
+                      </p>
                     </div>
-                    <Toggle value={brandingForm.has_official_photos} onChange={() => setBrandingForm({ ...brandingForm, has_official_photos: !brandingForm.has_official_photos })} />
+                    <Toggle
+                      value={brandingForm.has_official_photos}
+                      onChange={() =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          has_official_photos:
+                            !brandingForm.has_official_photos,
+                        })
+                      }
+                    />
                   </div>
                 </AccordionSection>
 
                 {/* ── Mensagens ── */}
-                <AccordionSection id="mensagens" title="Mensagens" openId={openSection} onToggle={toggleSection}>
+                <AccordionSection
+                  id="mensagens"
+                  title="Mensagens"
+                  openId={openSection}
+                  onToggle={toggleSection}
+                >
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Nome do App (Menu Lateral)</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                      Nome do App (Menu Lateral)
+                    </label>
                     <input
                       type="text"
                       value={brandingForm.app_description}
-                      onChange={(e) => setBrandingForm({ ...brandingForm, app_description: e.target.value })}
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          app_description: e.target.value,
+                        })
+                      }
                       placeholder="Ex: Koala's Memories Hub"
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Logo do App (URL)</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                      Logo do App (URL)
+                    </label>
                     <input
                       type="text"
                       value={brandingForm.app_logo}
-                      onChange={(e) => setBrandingForm({ ...brandingForm, app_logo: e.target.value })}
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          app_logo: e.target.value,
+                        })
+                      }
                       placeholder="https://exemplo.com/app-logo.png"
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
                     />
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <input type="text" value={brandingForm.app_whatsapp} onChange={(e) => setBrandingForm({ ...brandingForm, app_whatsapp: e.target.value })} placeholder="WhatsApp App" className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs" />
-                    <input type="text" value={brandingForm.app_instagram} onChange={(e) => setBrandingForm({ ...brandingForm, app_instagram: e.target.value })} placeholder="Instagram App" className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs" />
-                    <input type="text" value={brandingForm.app_website} onChange={(e) => setBrandingForm({ ...brandingForm, app_website: e.target.value })} placeholder="Site App" className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs" />
+                    <input
+                      type="text"
+                      value={brandingForm.app_whatsapp}
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          app_whatsapp: e.target.value,
+                        })
+                      }
+                      placeholder="WhatsApp App"
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs"
+                    />
+                    <input
+                      type="text"
+                      value={brandingForm.app_instagram}
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          app_instagram: e.target.value,
+                        })
+                      }
+                      placeholder="Instagram App"
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs"
+                    />
+                    <input
+                      type="text"
+                      value={brandingForm.app_website}
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          app_website: e.target.value,
+                        })
+                      }
+                      placeholder="Site App"
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2 text-xs"
+                    />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Sobre o Dono/Evento</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                      Sobre o Dono/Evento
+                    </label>
                     <textarea
                       value={brandingForm.owner_text}
-                      onChange={(e) => setBrandingForm({ ...brandingForm, owner_text: e.target.value })}
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          owner_text: e.target.value,
+                        })
+                      }
                       placeholder="Conte um pouco sobre você ou sobre o evento..."
                       rows={4}
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm resize-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Foto/Logo do Dono (URL)</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                      Foto/Logo do Dono (URL)
+                    </label>
                     <input
                       type="text"
                       value={brandingForm.owner_photo}
-                      onChange={(e) => setBrandingForm({ ...brandingForm, owner_photo: e.target.value })}
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          owner_photo: e.target.value,
+                        })
+                      }
                       placeholder="https://exemplo.com/foto.jpg"
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Mensagem Pós-Evento</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                      Mensagem Pós-Evento
+                    </label>
                     <textarea
                       value={brandingForm.post_event_message}
-                      onChange={(e) => setBrandingForm({ ...brandingForm, post_event_message: e.target.value })}
+                      onChange={(e) =>
+                        setBrandingForm({
+                          ...brandingForm,
+                          post_event_message: e.target.value,
+                        })
+                      }
                       placeholder="Mensagem de agradecimento para a página de encerramento..."
                       rows={3}
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm resize-none"
@@ -745,9 +1320,16 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                 </AccordionSection>
 
                 {/* ── Outros ── */}
-                <AccordionSection id="outros" title="Outros" openId={openSection} onToggle={toggleSection}>
+                <AccordionSection
+                  id="outros"
+                  title="Outros"
+                  openId={openSection}
+                  onToggle={toggleSection}
+                >
                   <div>
-                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">Arquivo Resumo do Evento (PDF)</label>
+                    <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-2">
+                      Arquivo Resumo do Evento (PDF)
+                    </label>
                     <div className="flex items-center gap-3">
                       <input
                         type="file"
@@ -761,11 +1343,25 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                         disabled={isUploadingSummary}
                         className="flex-1 py-3 bg-white border border-neutral-200 rounded-xl text-xs font-bold flex items-center justify-center gap-2 hover:bg-neutral-50 transition-colors disabled:opacity-50"
                       >
-                        {isUploadingSummary ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                        {brandingForm.summary_file_url ? 'Alterar Arquivo' : 'Selecionar Arquivo'}
+                        {isUploadingSummary ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
+                        {brandingForm.summary_file_url
+                          ? "Alterar Arquivo"
+                          : "Selecionar Arquivo"}
                       </button>
                       {brandingForm.summary_file_url && (
-                        <button onClick={() => setBrandingForm({ ...brandingForm, summary_file_url: '' })} className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors">
+                        <button
+                          onClick={() =>
+                            setBrandingForm({
+                              ...brandingForm,
+                              summary_file_url: "",
+                            })
+                          }
+                          className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       )}
@@ -773,11 +1369,22 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                     {brandingForm.summary_file_url && (
                       <div className="mt-3 p-3 bg-green-50 rounded-xl border border-green-100 flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-green-600" />
-                        <span className="text-[10px] text-green-700 font-medium truncate flex-1">Arquivo pronto para download</span>
-                        <a href={brandingForm.summary_file_url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold text-green-700 underline">Ver</a>
+                        <span className="text-[10px] text-green-700 font-medium truncate flex-1">
+                          Arquivo pronto para download
+                        </span>
+                        <a
+                          href={brandingForm.summary_file_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] font-bold text-green-700 underline"
+                        >
+                          Ver
+                        </a>
                       </div>
                     )}
-                    <p className="text-[10px] text-neutral-400 mt-2">Será disponibilizado como lembrança ao final do evento.</p>
+                    <p className="text-[10px] text-neutral-400 mt-2">
+                      Será disponibilizado como lembrança ao final do evento.
+                    </p>
                   </div>
                 </AccordionSection>
 
@@ -786,7 +1393,7 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                   disabled={loading}
                   className="w-full py-4 bg-neutral-900 text-white rounded-2xl font-bold hover:bg-neutral-800 transition-colors disabled:opacity-50"
                 >
-                  {loading ? 'Salvando...' : 'Salvar Alterações'}
+                  {loading ? "Salvando..." : "Salvar Alterações"}
                 </button>
               </div>
             </motion.div>

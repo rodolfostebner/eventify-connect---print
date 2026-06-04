@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Eye, LayoutDashboard, ShieldCheck, Printer, Store, Star, Play, Pause, CheckCircle2,
   ChevronDown, Palette, Save, X as CloseIcon, FileClock, Info, Loader2, Plus,
-  Lock, Unlock, Trophy, AlertTriangle,
+  Lock, Unlock, Trophy, AlertTriangle, Upload,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -113,7 +113,7 @@ type EventForm = Pick<EventData,
   | 'logo_url' | 'primary_color' | 'secondary_color'
   | 'bg_type' | 'bg_value' | 'bg_gradient_from' | 'bg_gradient_to' | 'bg_pattern_bg' | 'bg_pattern_fg'
   | 'tv_bg_type' | 'tv_bg_value' | 'tv_primary_color' | 'tv_secondary_color'
-  | 'app_logo'
+  | 'owner_photo'
   | 'comment_moderation_enabled' | 'custom_comments' | 'upload_source' | 'has_official_photos'
   | 'exhibitors_estimation'
   | 'public_evaluation_weight' | 'juror_evaluation_weight'
@@ -138,7 +138,7 @@ function buildForm(e: EventData): EventForm {
     tv_bg_value: e.tv_bg_value || '#0a0a0a',
     tv_primary_color: e.tv_primary_color || '#ffffff',
     tv_secondary_color: e.tv_secondary_color || '#000000',
-    app_logo: e.app_logo || '',
+    owner_photo: e.owner_photo || '',
     comment_moderation_enabled: e.comment_moderation_enabled ?? true,
     custom_comments: e.custom_comments || [],
     upload_source: e.upload_source || 'both',
@@ -1055,8 +1055,8 @@ function AvaliadorSection({ eventId }: { eventId: string }) {
 import {
   getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement, triggerAnnouncement
 } from '../../services/announcementService';
-import { uploadAudio } from '../../services/storageService';
-import { Megaphone, Bell, Tv, Smartphone, Trash2, Edit3, Sparkles, Music, Upload, Volume2 } from 'lucide-react';
+import { uploadAudio, uploadImage } from '../../services/storageService';
+import { Megaphone, Bell, Tv, Smartphone, Trash2, Edit3, Sparkles, Music, Volume2 } from 'lucide-react';
 
 function AvisosSection({ event, onEventUpdate }: { event: EventData; onEventUpdate: (ev: EventData) => void }) {
   const eventId = event.id;
@@ -1701,6 +1701,25 @@ export default function EventAdminPortal() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [dashboardLoading, setDashboardLoading] = useState(false);
 
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const publicUrl = await uploadImage(file);
+      set('owner_photo', publicUrl);
+      toast.success('Foto de capa carregada com sucesso!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao fazer upload da imagem.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   const set = <K extends keyof EventForm>(key: K, value: EventForm[K]) =>
     setForm((f) => (f ? { ...f, [key]: value } : f));
 
@@ -1997,9 +2016,37 @@ export default function EventAdminPortal() {
                     <Label>Logo do Cliente (URL)</Label>
                     <input type="text" value={form.logo_url} onChange={(e) => set('logo_url', e.target.value)} placeholder="https://exemplo.com/logo.png" className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm" />
                   </div>
-                  <div>
-                    <Label>Logo do App (URL)</Label>
-                    <input type="text" value={form.app_logo} onChange={(e) => set('app_logo', e.target.value)} placeholder="https://exemplo.com/app-logo.png" className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm" />
+                   <div>
+                    <Label>Foto de Capa do Evento</Label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={form.owner_photo}
+                        onChange={(e) => set('owner_photo', e.target.value)}
+                        placeholder="URL da foto de capa..."
+                        className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
+                      />
+                      <input
+                        type="file"
+                        ref={photoInputRef}
+                        accept="image/*"
+                        onChange={handleUploadPhoto}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        disabled={uploadingPhoto}
+                        onClick={() => photoInputRef.current?.click()}
+                        className="px-4 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl transition-colors flex items-center justify-center min-w-[48px] disabled:opacity-50"
+                        title="Fazer Upload da Imagem"
+                      >
+                        {uploadingPhoto ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Upload className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <ColorField label="Cor Primária" value={form.primary_color!} onChange={(v) => set('primary_color', v)} />
                   <ColorField label="Cor Secundária" value={form.secondary_color!} onChange={(v) => set('secondary_color', v)} />

@@ -104,11 +104,40 @@ export async function updateEvaluation(
   id: string,
   stars: number,
   comment: string | null,
+  commentStatus?: 'pending' | 'approved' | 'rejected',
+): Promise<void> {
+  if (!supabase) return;
+  const payload: any = { stars, comment };
+  if (commentStatus) {
+    payload.comment_status = commentStatus;
+  }
+  const { error } = await supabase
+    .from('evaluations')
+    .update(payload)
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function getPendingEvaluations(eventId: string): Promise<Evaluation[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('evaluations')
+    .select('*, user:users(display_name, photo_url), exhibitor:exhibitors(name, logo_url)')
+    .eq('event_id', eventId)
+    .eq('comment_status', 'pending')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as Evaluation[];
+}
+
+export async function moderateEvaluationComment(
+  id: string,
+  status: 'approved' | 'rejected',
 ): Promise<void> {
   if (!supabase) return;
   const { error } = await supabase
     .from('evaluations')
-    .update({ stars, comment })
+    .update({ comment_status: status })
     .eq('id', id);
   if (error) throw error;
 }
@@ -226,15 +255,31 @@ export function subscribeToEvaluations(
   if (!supabase) return () => {};
   // Escuta mudanças em evaluations e juror_evaluations para atualizar ranking
   const channel = supabase
-    .channel(`public:evaluations:event_id=eq.${eventId}`)
+    .channel(`public:evaluations:${eventId}`)
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'evaluations', filter: `event_id=eq.${eventId}` },
+      { event: '*', schema: 'public', table: 'evaluations' },
       onUpdate,
     )
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'juror_evaluations', filter: `event_id=eq.${eventId}` },
+      { event: '*', schema: 'public', table: 'juror_evaluations' },
+      onUpdate,
+    )
+    .subscribe();
+  return () => { supabase.removeChannel(channel); };
+}
+
+export function subscribeToAllEvaluations(
+  eventId: string,
+  onUpdate: () => void,
+): () => void {
+  if (!supabase) return () => {};
+  const channel = supabase
+    .channel(`public:evaluations_moderation:${eventId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'evaluations' },
       onUpdate,
     )
     .subscribe();

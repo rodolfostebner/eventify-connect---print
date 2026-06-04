@@ -14,26 +14,31 @@ import { cn } from '../lib/utils';
 import { useModerationPhotos } from '../features/event/hooks/useModerationPhotos';
 import { usePrintOrders } from '../features/event/hooks/usePrintOrders';
 import { useAdminActions } from '../features/event/hooks/useAdminActions';
+import { useModerationEvaluations } from '../features/event/hooks/useModerationEvaluations';
 
 // Modular Components
 import { PhotoModeration } from '../features/moderation/components/PhotoModeration';
 import { CommentModeration } from '../features/moderation/components/CommentModeration';
+import { EvaluationModeration } from '../features/moderation/components/EvaluationModeration';
 import { PrintOrderModeration } from '../features/moderation/components/PrintOrderModeration';
 import { ModerationControls } from '../features/moderation/components/ModerationControls';
 import { PrintOrderModal } from '../features/moderation/components/PrintOrderModal';
+
+import { moderateEvaluationComment } from '../services/evaluationService';
 
 export default function ModerationPanel({ user }: { user: AppUser | null }) {
   const { logout } = useAuth();
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [event, setEvent] = useState<EventData | null>(null);
-  const [filter, setFilter] = useState<'photos' | 'comments' | 'prints' | 'controls'>('photos');
+  const [filter, setFilter] = useState<'photos' | 'comments' | 'evaluations' | 'prints' | 'controls'>('photos');
   const [selectedOrder, setSelectedOrder] = useState<PrintOrder | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Data Hooks
   const { photos, setPhotos, loading: loadingPhotos } = useModerationPhotos(event?.id);
   const { printOrders, loading: loadingPrints } = usePrintOrders(event?.id);
+  const { evaluations: pendingEvaluations } = useModerationEvaluations(event?.id);
   const { 
     uploading, 
     handleApprovePhoto, 
@@ -90,6 +95,16 @@ export default function ModerationPanel({ user }: { user: AppUser | null }) {
     } catch (err) {
       console.error(err);
       toast.error('Erro ao moderar comentário.');
+    }
+  };
+
+  const handleModerateEvaluation = async (id: string, action: 'approved' | 'rejected') => {
+    try {
+      await moderateEvaluationComment(id, action);
+      toast.success(action === 'approved' ? 'Comentário da avaliação aprovado!' : 'Comentário da avaliação removido!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao moderar comentário da avaliação.');
     }
   };
 
@@ -151,6 +166,7 @@ export default function ModerationPanel({ user }: { user: AppUser | null }) {
 
   const pendingPhotosCount = photos.filter(p => p.status === 'pending').length;
   const pendingCommentsCount = photos.flatMap(p => (p.comments || []).filter(c => c.status === 'pending')).length;
+  const pendingEvaluationsCount = pendingEvaluations.length;
   const pendingPrintsCount = printOrders.filter(o => o.status !== 'completed').length;
 
   if (loadingPhotos && !event) return (
@@ -197,7 +213,7 @@ export default function ModerationPanel({ user }: { user: AppUser | null }) {
         </div>
 
         <div className="flex gap-2 bg-neutral-100 p-1.5 rounded-[24px] w-fit shadow-inner">
-          {(['photos', 'comments', 'prints', 'controls'] as const).map((tab) => (
+          {(['photos', 'comments', 'evaluations', 'prints', 'controls'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
@@ -210,6 +226,7 @@ export default function ModerationPanel({ user }: { user: AppUser | null }) {
             >
               {tab === 'photos' && `Fotos (${pendingPhotosCount})`}
               {tab === 'comments' && `Comentários (${pendingCommentsCount})`}
+              {tab === 'evaluations' && `Avaliações (${pendingEvaluationsCount})`}
               {tab === 'prints' && `Pedidos (${pendingPrintsCount})`}
               {tab === 'controls' && 'Controles'}
             </button>
@@ -230,6 +247,13 @@ export default function ModerationPanel({ user }: { user: AppUser | null }) {
           <CommentModeration 
             photos={photos} 
             onModerateComment={handleModerateComment} 
+          />
+        )}
+
+        {filter === 'evaluations' && (
+          <EvaluationModeration 
+            evaluations={pendingEvaluations} 
+            onModerateComment={handleModerateEvaluation} 
           />
         )}
 
