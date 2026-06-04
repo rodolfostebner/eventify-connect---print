@@ -1,0 +1,27 @@
+# Tarefas: Implementação da Aba de Leads da Landing Page no Painel Administrativo
+
+- [x] Atualizar o serviço de banco de dados (`contactLeadService.ts`)
+  - [x] Atualizar a tipagem `ContactLead` para incluir `id`, `status` e `created_at`
+  - [x] Implementar a função `getContactLeads`
+  - [x] Implementar a função `updateContactLeadStatus`
+  - [x] Implementar a função `deleteContactLead`
+- [x] Criar o componente de visualização (`ContactLeadsPanel.tsx`)
+  - [x] Exibir o totalizador de leads
+  - [x] Renderizar tabela/lista responsiva dos leads com os campos (Nome, E-mail, Telefone, Evento, Data, Status)
+  - [x] Adicionar dropdown seletor de status com estilos visuais específicos para cada status
+  - [x] Adicionar botão de exclusão com diálogo de confirmação (`confirm`)
+  - [x] Adicionar barra de busca e filtros (por nome, e-mail, evento, status e data)
+  - [x] Adicionar funcionalidade de exportação em CSV
+- [x] Atualizar o Dashboard Administrativo (`AdminDashboard.tsx`)
+  - [x] Adicionar a aba `leads` ao estado `activeTab`
+  - [x] Adicionar o botão/link para a aba "Leads" no menu superior, ao lado de "Usuários"
+  - [x] Renderizar `<ContactLeadsPanel />` sob a aba correspondente
+- [x] Validar a implementação localmente
+  - [x] Verificar se os arquivos compilam sem erros de lint/TypeScript
+  - [x] Confirmar funcionalidade visual das alterações
+- [x] Atualizar Documentação (`CLAUDE.md`, `architecture.md`)
+- [x] Incluir hífen separador no número de telefone no formulário da Landing Page (`ContactForm.tsx`)
+- [x] Incluir hífen separador no número de telefone na tela de leads no admin (`ContactLeadsPanel.tsx`)
+- [x] Trocar o nome da Aba LEADS por APP_LEADS (`AdminDashboard.tsx`)
+- [x] Trocar a descrição de Leads da Landing Page para "Interessados da Landing page do app." (`ContactForm.tsx`, `LandingPage.tsx`, etc)
+- [x] Trocar o cabeçalho interno para "Interessados da Landing Page do App." (`ContactLeadsPanel.tsx`)
