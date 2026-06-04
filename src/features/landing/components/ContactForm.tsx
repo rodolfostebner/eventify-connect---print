@@ -95,8 +95,7 @@ export function ContactForm({ isDark }: ContactFormProps) {
           />
 
           <h2 className="font-outfit font-extrabold text-4xl md:text-5xl mb-4 text-gray-900 dark:text-white leading-tight">
-            Leve a experiência do Eventify para o seu evento, feira ou
-            exposição.
+            Interessados da Landing page do app.
           </h2>
           <p className="text-gray-600 dark:text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
             Transforme seu evento físico em uma experiência phygital interativa.
