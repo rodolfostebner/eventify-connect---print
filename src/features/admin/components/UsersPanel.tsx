@@ -348,6 +348,11 @@ export function UsersPanel({ events }: UsersPanelProps) {
                         {eventName(er.event_id)}
                       </span>
                     )}
+                    {er.exhibitor_id && (
+                      <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">
+                        {exhibitorMap.get(er.exhibitor_id) ?? '—'}
+                      </span>
+                    )}
                     <button
                       onClick={() => handleRemoveEmailRole(er.email)}
                       className="p-1.5 text-neutral-300 hover:text-red-500 transition-colors"

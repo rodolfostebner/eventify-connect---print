@@ -25,6 +25,20 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
   activeSyncUserId = authUser.id;
   activeSyncPromise = (async () => {
     try {
+      // Pré-cadastro de role/evento/stand definido pelo admin antes do login.
+      // Buscado uma vez e aplicado em QUALQUER caminho — inclusive quando o
+      // usuário já existe (ex.: logou antes como participante). Sem isto o
+      // pré-cadastro pendente era ignorado e o usuário permanecia participante.
+      const { data: preReg } = await supabase
+        .from('user_email_roles')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+
+      const consumePreReg = async () => {
+        if (preReg) await supabase!.from('user_email_roles').delete().eq('email', email);
+      };
+
       // 1. Busca pelo supabase_user_id — caminho rápido após o primeiro login
       const { data: byUid, error: uidError } = await supabase
         .from('users')
@@ -39,11 +53,18 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
       if (byUid) {
         const resolvedName = authUser.user_metadata?.full_name ?? byUid.display_name ?? email;
         const resolvedPhoto = authUser.user_metadata?.avatar_url ?? byUid.photo_url;
+        const rolePatch = preReg ? {
+          role: preReg.role as UserRole,
+          event_id: preReg.event_id ?? byUid.event_id ?? null,
+          exhibitor_id: preReg.exhibitor_id ?? byUid.exhibitor_id ?? null,
+        } : {};
         await supabase.from('users').update({
           display_name: resolvedName,
           photo_url: resolvedPhoto,
+          ...rolePatch,
         }).eq('supabase_user_id', authUser.id);
-        return { ...byUid, display_name: resolvedName, photo_url: resolvedPhoto } as AppUser;
+        await consumePreReg();
+        return { ...byUid, display_name: resolvedName, photo_url: resolvedPhoto, ...rolePatch } as AppUser;
       }
 
       // 2. Busca por email — limit(1) garante que funciona mesmo se houver duplicatas
@@ -59,22 +80,24 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
       if (byEmail) {
         const resolvedName = authUser.user_metadata?.full_name ?? byEmail.display_name ?? email;
         const resolvedPhoto = authUser.user_metadata?.avatar_url ?? byEmail.photo_url;
+        const rolePatch = preReg ? {
+          role: preReg.role as UserRole,
+          event_id: preReg.event_id ?? byEmail.event_id ?? null,
+          exhibitor_id: preReg.exhibitor_id ?? byEmail.exhibitor_id ?? null,
+        } : {};
         // Vincula o supabase_user_id ao registro existente (por id, não por email)
+        // e finaliza o pré-cadastro pendente, se houver.
         await supabase.from('users').update({
           supabase_user_id: authUser.id,
           display_name: resolvedName,
           photo_url: resolvedPhoto,
+          ...rolePatch,
         }).eq('id', byEmail.id);
-        return { ...byEmail, supabase_user_id: authUser.id, display_name: resolvedName, photo_url: resolvedPhoto } as AppUser;
+        await consumePreReg();
+        return { ...byEmail, supabase_user_id: authUser.id, display_name: resolvedName, photo_url: resolvedPhoto, ...rolePatch } as AppUser;
       }
 
-      // 3. Usuário novo — verifica pré-cadastro de role
-      const { data: preReg } = await supabase
-        .from('user_email_roles')
-        .select('*')
-        .eq('email', email)
-        .maybeSingle();
-
+      // 3. Usuário novo — aplica pré-cadastro de role/evento/stand
       const { data: created, error } = await supabase
         .from('users')
         .insert({
@@ -94,10 +117,7 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
         return null;
       }
 
-      if (preReg) {
-        await supabase.from('user_email_roles').delete().eq('email', email);
-      }
-
+      await consumePreReg();
       return created as AppUser;
     } catch (error) {
       console.error('[UserService] Erro na sincronização do usuário:', error);
@@ -206,8 +226,27 @@ export async function findOrCreateUserByEmail(email: string): Promise<AppUser | 
     .order('created_at', { ascending: true })
     .limit(1);
 
+  const { data: preReg } = await supabase
+    .from('user_email_roles')
+    .select('*')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
   if (rows?.[0]) {
     const existing = rows[0] as AppUser;
+    // Usuário já existe + há pré-cadastro pendente: finaliza o cadastro
+    // aplicando role/evento/stand (senão permaneceria como participante).
+    if (preReg) {
+      const patch = {
+        role: preReg.role as UserRole,
+        event_id: preReg.event_id ?? existing.event_id ?? null,
+        exhibitor_id: preReg.exhibitor_id ?? existing.exhibitor_id ?? null,
+        display_name: existing.display_name || normalizedEmail,
+      };
+      await supabase.from('users').update(patch).eq('id', existing.id);
+      await supabase.from('user_email_roles').delete().eq('email', normalizedEmail);
+      return { ...existing, ...patch } as AppUser;
+    }
     // Se display_name estiver vazio, atualiza com o email
     if (!existing.display_name) {
       await supabase.from('users').update({ display_name: normalizedEmail }).eq('id', existing.id);
@@ -215,12 +254,6 @@ export async function findOrCreateUserByEmail(email: string): Promise<AppUser | 
     }
     return existing;
   }
-
-  const { data: preReg } = await supabase
-    .from('user_email_roles')
-    .select('*')
-    .eq('email', normalizedEmail)
-    .maybeSingle();
 
   const { data: created, error } = await supabase
     .from('users')

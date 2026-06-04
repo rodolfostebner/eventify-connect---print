@@ -238,7 +238,7 @@ function ProductsTab({ exhibitorId }: { exhibitorId: string }) {
 
 // ─── Users Tab ────────────────────────────────────────────────────────────────
 
-function UsersTab({ exhibitorId }: { exhibitorId: string }) {
+function UsersTab({ exhibitorId, eventId }: { exhibitorId: string; eventId: string }) {
   const [linked, setLinked] = useState<ExhibitorLinkedUser[]>([]);
   const [pending, setPending] = useState<UserEmailRole[]>([]);
   const [loading, setLoading] = useState(true);
@@ -270,16 +270,17 @@ function UsersTab({ exhibitorId }: { exhibitorId: string }) {
           toast.error('Este usuário já está vinculado a outro stand.');
           return;
         }
-        // Usuário existe sem stand vinculado (ou já neste stand) — vincula diretamente
-        await updateUserRole(existing.id, 'expositor', existing.event_id ?? null, exhibitorId);
+        // Usuário existe sem stand vinculado (ou já neste stand) — vincula
+        // diretamente e define o evento do usuário como o evento do expositor.
+        await updateUserRole(existing.id, 'expositor', eventId, exhibitorId);
         toast.success('Usuário vinculado ao stand com sucesso!');
         setNewEmail('');
         setAdding(false);
         load();
         return;
       }
-      // Usuário não existe ainda — pré-cadastra para o primeiro login
-      await addEmailRole({ email, role: 'expositor', event_id: null, exhibitor_id: exhibitorId });
+      // Usuário não existe ainda — pré-cadastra (já com role e evento) para o primeiro login
+      await addEmailRole({ email, role: 'expositor', event_id: eventId, exhibitor_id: exhibitorId });
       toast.success('E-mail cadastrado — o expositor poderá entrar com Google ou link mágico.');
       setNewEmail('');
       setAdding(false);
@@ -1004,7 +1005,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
 
         {tab === 'produtos' && <ProductsTab exhibitorId={exhibitor.id} />}
         {tab === 'usuarios' && (
-          <UsersTab exhibitorId={exhibitor.id} />
+          <UsersTab exhibitorId={exhibitor.id} eventId={exhibitor.event_id} />
         )}
         {tab === 'leads' && <LeadsTab exhibitorId={exhibitor.id} exhibitorName={exhibitor.name} />}
         {tab === 'visualizacoes' && <VisualizacoesTab exhibitorId={exhibitor.id} />}

@@ -16,7 +16,7 @@ import { getProducts, createProduct, updateProduct, deactivateProduct } from '..
 import { getLeads, updateLeadStatus } from '../../services/leadService';
 import { uploadImage } from '../../services/storageService';
 import { getExhibitorVisitSummary, getTopProducts } from '../../services/visitService';
-import { addEmailRole, removeEmailRole, listEmailRoles } from '../../services/userService';
+import { addEmailRole, removeEmailRole, listEmailRoles, findUserByEmail, updateUserRole } from '../../services/userService';
 import type { ExhibitorLinkedUser } from '../../services/userService';
 import type { Product, Lead, LeadStatus, VisitAction, ExhibitorCategory, UserEmailRole } from '../../types';
 import { getExhibitorCategories } from '../../services/exhibitorCategoryService';
@@ -639,7 +639,7 @@ function LeadsTabExpositor({ exhibitorId, exhibitorName }: { exhibitorId: string
 
 // ─── Usuários Tab (Expositor) ─────────────────────────────────────────────────
 
-function UsuariosTab({ exhibitorId }: { exhibitorId: string }) {
+function UsuariosTab({ exhibitorId, eventId }: { exhibitorId: string; eventId: string }) {
   const [linked, setLinked] = useState<ExhibitorLinkedUser[]>([]);
   const [pending, setPending] = useState<UserEmailRole[]>([]);
   const [loading, setLoading] = useState(true);
@@ -661,10 +661,26 @@ function UsuariosTab({ exhibitorId }: { exhibitorId: string }) {
   useEffect(() => { load(); }, [exhibitorId]);
 
   const handleAdd = async () => {
-    if (!newEmail.trim()) return;
+    const email = newEmail.trim().toLowerCase();
+    if (!email) return;
     setSaving(true);
     try {
-      await addEmailRole({ email: newEmail.trim().toLowerCase(), role: 'expositor', event_id: null, exhibitor_id: exhibitorId });
+      const existing = await findUserByEmail(email);
+      if (existing) {
+        if (existing.exhibitor_id && existing.exhibitor_id !== exhibitorId) {
+          toast.error('Este usuário já está vinculado a outro stand.');
+          return;
+        }
+        // Usuário já existe — vincula direto ao stand e define o evento do expositor
+        await updateUserRole(existing.id, 'expositor', eventId, exhibitorId);
+        toast.success('Usuário vinculado ao stand com sucesso!');
+        setNewEmail('');
+        setAdding(false);
+        load();
+        return;
+      }
+      // Usuário não existe ainda — pré-cadastra (já com role e evento) para o primeiro login
+      await addEmailRole({ email, role: 'expositor', event_id: eventId, exhibitor_id: exhibitorId });
       toast.success('E-mail cadastrado — o usuário poderá entrar com Google ou link mágico.');
       setNewEmail('');
       setAdding(false);
@@ -1037,7 +1053,7 @@ export default function ExhibitorPortal() {
         )}
         {tab === 'produtos' && <ProdutosTab key={refreshKey} exhibitorId={exhibitor.id} />}
         {tab === 'leads' && <LeadsTabExpositor exhibitorId={exhibitor.id} exhibitorName={exhibitor.name} />}
-        {tab === 'usuarios' && <UsuariosTab exhibitorId={exhibitor.id} />}
+        {tab === 'usuarios' && <UsuariosTab exhibitorId={exhibitor.id} eventId={exhibitor.event_id} />}
         {tab === 'visualizacoes' && <VisualizacoesTab exhibitorId={exhibitor.id} />}
       </div>
     </div>
