@@ -27,7 +27,7 @@ export function DualPathSection() {
               {[
                 { num: '1', title: 'Compartilhe seus Momentos', desc: 'Escaneie o QR Code no evento e suba suas fotos direto no feed interativo, sem downloads de apps.' },
                 { num: '2', title: 'Deixe sua Avaliação', desc: 'Dê de 1 a 5 estrelas para os stands dos expositores e equipes de sua preferência.' },
-                { num: '3', title: 'Concorra a Prêmios', desc: 'Cada interação gera automaticamente um ticket único de sorteio que aparece na TV Wall em tempo real.' },
+                { num: '3', title: 'Concorra a Prêmios', desc: 'As interações no app geram tickets que são sorteados na TV Wall durante o evento.' },
               ].map(item => (
                 <li key={item.num} className="flex items-start gap-4">
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#F0A795]/10 border border-[#F0A795]/30 flex items-center justify-center text-xs text-[#F0A795] font-bold">{item.num}</span>
