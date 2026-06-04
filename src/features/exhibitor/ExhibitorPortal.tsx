@@ -4,7 +4,7 @@ import {
   Package, ShoppingBag, Phone, Save,
   Upload, X, Plus, Trash2, AlertCircle,
   BarChart2, Eye, Instagram, MessageCircle, Globe, Share2, ShoppingCart,
-  Users,
+  Users, LayoutGrid,
 } from 'lucide-react';
 import { AppHeader } from '../../components/AppHeader';
 import { toast } from 'sonner';
@@ -960,6 +960,7 @@ export default function ExhibitorPortal() {
   const { user, loading, logout } = useAuth();
   const [exhibitor, setExhibitor] = useState<import('../../types').Exhibitor | null>(null);
   const [categories, setCategories] = useState<ExhibitorCategory[]>([]);
+  const [eventSlug, setEventSlug] = useState<string | null>(null);
   const [loadingExhibitor, setLoadingExhibitor] = useState(true);
   const [tab, setTab] = useState<Tab>('perfil');
   const [refreshKey, setRefreshKey] = useState(0);
@@ -977,7 +978,10 @@ export default function ExhibitorPortal() {
         setExhibitor(ex);
         if (ex?.event_id) {
           getEventById(ex.event_id)
-            .then(ev => { if (ev?.id) getExhibitorCategories(ev.id).then(setCategories).catch(() => {}); })
+            .then(ev => {
+              if (ev?.slug) setEventSlug(ev.slug);
+              if (ev?.id) getExhibitorCategories(ev.id).then(setCategories).catch(() => {});
+            })
             .catch(() => {});
         }
       })
@@ -1025,7 +1029,21 @@ export default function ExhibitorPortal() {
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <AppHeader title="Área do Expositor" />
+      <AppHeader
+        title="Área do Expositor"
+        actions={
+          eventSlug && (
+            <button
+              onClick={() => navigate(`/event/${eventSlug}`)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-900 text-white text-xs sm:text-sm font-bold hover:bg-neutral-700 transition-colors"
+              title="Ir para o feed do evento"
+            >
+              <LayoutGrid className="w-4 h-4" />
+              <span className="hidden sm:inline">Ver feed</span>
+            </button>
+          )
+        }
+      />
 
       {/* Tabs */}
       <div className="bg-white border-b border-neutral-100 px-2 sm:px-4 overflow-x-auto">

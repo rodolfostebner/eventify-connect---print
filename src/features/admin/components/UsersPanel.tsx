@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Mail, UserCheck, Clock, Search, ChevronDown, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Mail, UserCheck, Clock, Search, ChevronDown, AlertCircle, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { cn } from '../../../lib/utils';
 import type { AppUser, UserRole, UserEmailRole, EventData } from '../../../types';
 import {
@@ -30,6 +32,23 @@ const ROLE_COLORS: Record<UserRole, string> = {
   participant: 'bg-neutral-100 text-neutral-600',
 };
 
+// Ordem hierárquica dos perfis para ordenação por "Perfil"
+const ROLE_RANK: Record<UserRole, number> = {
+  admin: 0,
+  event_admin: 1,
+  avaliador: 2,
+  expositor: 3,
+  participant: 4,
+};
+
+const fmtDate = (value: string | null | undefined) => {
+  if (!value) return '—';
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? '—' : format(d, 'dd/MM/yyyy', { locale: ptBR });
+};
+
+type UserSortKey = 'name' | 'email' | 'role' | 'created_at';
+
 interface UsersPanelProps {
   events: EventData[];
 }
@@ -43,6 +62,8 @@ export function UsersPanel({ events }: UsersPanelProps) {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [search, setSearch] = useState('');
   const [showParticipants, setShowParticipants] = useState(false);
+  const [sortKey, setSortKey] = useState<UserSortKey>('created_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('admin');
@@ -139,6 +160,7 @@ export function UsersPanel({ events }: UsersPanelProps) {
   };
 
   const handleRemoveEmailRole = async (email: string) => {
+    if (!confirm(`Remover o pré-cadastro de "${email}"? Esta ação não pode ser desfeita.`)) return;
     try {
       await removeEmailRole(email);
       setEmailRoles((prev) => prev.filter((r) => r.email !== email));
@@ -205,6 +227,56 @@ export function UsersPanel({ events }: UsersPanelProps) {
 
   const eventName = (id: string | null) =>
     events.find((e) => e.id === id)?.name ?? id ?? '—';
+
+  const toggleSort = (key: UserSortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
+
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    let cmp = 0;
+    switch (sortKey) {
+      case 'name':
+        cmp = (a.display_name ?? a.email).localeCompare(b.display_name ?? b.email, 'pt-BR');
+        break;
+      case 'email':
+        cmp = a.email.localeCompare(b.email, 'pt-BR');
+        break;
+      case 'role':
+        cmp = ROLE_RANK[a.role] - ROLE_RANK[b.role];
+        break;
+      case 'created_at':
+        cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        break;
+    }
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
+  const SortButton = ({ label, sortKey: key }: { label: string; sortKey: UserSortKey }) => {
+    const active = sortKey === key;
+    return (
+      <button
+        onClick={() => toggleSort(key)}
+        className={cn(
+          'flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors',
+          active
+            ? 'bg-neutral-900 text-white border-neutral-900'
+            : 'bg-neutral-50 text-neutral-500 border-neutral-200 hover:border-neutral-400',
+        )}
+      >
+        {label}
+        {active ? (
+          sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+        ) : (
+          <ArrowUpDown className="w-3 h-3 opacity-40" />
+        )}
+      </button>
+    );
+  };
 
   const eventSelector = (value: string, onChange: (v: string) => void, className: string) => (
     <select
@@ -337,7 +409,12 @@ export function UsersPanel({ events }: UsersPanelProps) {
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <Clock className="w-4 h-4 text-neutral-300 shrink-0" />
-                    <span className="text-sm font-medium truncate">{er.email}</span>
+                    <div className="min-w-0">
+                      <span className="block text-sm font-medium truncate">{er.email}</span>
+                      <span className="block text-[10px] text-neutral-400">
+                        Pré-cadastrado em {fmtDate(er.created_at)}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', ROLE_COLORS[er.role])}>
@@ -402,13 +479,21 @@ export function UsersPanel({ events }: UsersPanelProps) {
           </div>
         </div>
 
+        <div className="px-6 py-3 border-b border-neutral-50 flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wide mr-1">Ordenar por</span>
+          <SortButton label="Nome" sortKey="name" />
+          <SortButton label="E-mail" sortKey="email" />
+          <SortButton label="Perfil" sortKey="role" />
+          <SortButton label="Data de cadastro" sortKey="created_at" />
+        </div>
+
         <div className="divide-y divide-neutral-50">
           {loadingUsers ? (
             <p className="text-center py-12 text-xs text-neutral-400">Carregando usuários...</p>
-          ) : filteredUsers.length === 0 ? (
+          ) : sortedUsers.length === 0 ? (
             <p className="text-center py-12 text-xs text-neutral-400">Nenhum usuário encontrado.</p>
           ) : (
-            filteredUsers.map((u) => {
+            sortedUsers.map((u) => {
               const isEditing = editingUserId === u.id;
               return (
                 <div key={u.id} className="flex items-center gap-4 px-6 py-4 hover:bg-neutral-50/60 transition-colors">
@@ -424,6 +509,7 @@ export function UsersPanel({ events }: UsersPanelProps) {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold truncate">{u.display_name ?? '—'}</p>
                     <p className="text-[10px] text-neutral-400 truncate">{u.email}</p>
+                    <p className="text-[10px] text-neutral-300">Cadastrado em {fmtDate(u.created_at)}</p>
                   </div>
 
                   {isEditing ? (

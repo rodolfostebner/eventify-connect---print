@@ -113,6 +113,45 @@ export async function syncUser(authUser: SupabaseAuthUser): Promise<AppUser | nu
         .single();
 
       if (error) {
+        // Race condition / leitura desatualizada: outra chamada concorrente (ou
+        // um segundo evento de auth) já criou a linha entre o nosso SELECT e o
+        // INSERT, batendo na constraint única (supabase_user_id ou email).
+        // Em vez de retornar null — o que jogaria o usuário de volta ao login —
+        // re-buscamos a linha existente e a mesclamos.
+        if (error.code === '23505') {
+          const { data: existingByUid } = await supabase
+            .from('users')
+            .select('*')
+            .eq('supabase_user_id', authUser.id)
+            .maybeSingle();
+          let row = existingByUid;
+          if (!row) {
+            const { data: existingByEmail } = await supabase
+              .from('users')
+              .select('*')
+              .eq('email', email)
+              .order('created_at', { ascending: true })
+              .limit(1);
+            row = existingByEmail?.[0] ?? null;
+          }
+          if (row) {
+            const resolvedName = authUser.user_metadata?.full_name ?? row.display_name ?? email;
+            const resolvedPhoto = authUser.user_metadata?.avatar_url ?? row.photo_url;
+            const rolePatch = preReg ? {
+              role: preReg.role as UserRole,
+              event_id: preReg.event_id ?? row.event_id ?? null,
+              exhibitor_id: preReg.exhibitor_id ?? row.exhibitor_id ?? null,
+            } : {};
+            await supabase.from('users').update({
+              supabase_user_id: authUser.id,
+              display_name: resolvedName,
+              photo_url: resolvedPhoto,
+              ...rolePatch,
+            }).eq('id', row.id);
+            await consumePreReg();
+            return { ...row, supabase_user_id: authUser.id, display_name: resolvedName, photo_url: resolvedPhoto, ...rolePatch } as AppUser;
+          }
+        }
         console.error('[UserService] Erro ao criar usuário:', error);
         return null;
       }
