@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Plus, Trash2, Mail, UserCheck, Clock, Search, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, Mail, UserCheck, Clock, Search, ChevronDown, AlertCircle } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import type { AppUser, UserRole, UserEmailRole, EventData } from '../../../types';
 import {
   listUsers,
   updateUserRole,
+  deleteUser,
   listEmailRoles,
   addEmailRole,
   removeEmailRole,
 } from '../../../services/userService';
+import { getAllExhibitors } from '../../../services/exhibitorService';
+import { useAuth } from '../../../hooks/useAuth';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin Geral',
@@ -27,15 +30,16 @@ const ROLE_COLORS: Record<UserRole, string> = {
   participant: 'bg-neutral-100 text-neutral-600',
 };
 
-const EVENT_SCOPED_ROLES: UserRole[] = ['event_admin', 'avaliador'];
-
 interface UsersPanelProps {
   events: EventData[];
 }
 
 export function UsersPanel({ events }: UsersPanelProps) {
+  const { user: currentUser } = useAuth();
+  const isAdmin = currentUser?.role === 'admin';
   const [users, setUsers] = useState<AppUser[]>([]);
   const [emailRoles, setEmailRoles] = useState<UserEmailRole[]>([]);
+  const [exhibitorMap, setExhibitorMap] = useState<Map<string, string>>(new Map());
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [search, setSearch] = useState('');
   const [showParticipants, setShowParticipants] = useState(false);
@@ -44,30 +48,55 @@ export function UsersPanel({ events }: UsersPanelProps) {
   const [newRole, setNewRole] = useState<UserRole>('admin');
   const [newEventId, setNewEventId] = useState('');
   const [addingEmail, setAddingEmail] = useState(false);
+  const [existingUser, setExistingUser] = useState<AppUser | null>(null);
 
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState<UserRole>('participant');
   const [editEventId, setEditEventId] = useState('');
   const [savingUser, setSavingUser] = useState(false);
 
+  const activeEvents = events.filter(e => e.status === 'pre' || e.status === 'live');
+
+  // Auto-seleciona evento se houver apenas 1 ativo
   useEffect(() => {
-    Promise.all([listUsers(), listEmailRoles()])
-      .then(([u, er]) => {
+    if (activeEvents.length === 1) {
+      setNewEventId(activeEvents[0].id);
+    }
+  }, [events]);
+
+  useEffect(() => {
+    Promise.all([listUsers(), listEmailRoles(), getAllExhibitors()])
+      .then(([u, er, exs]) => {
         setUsers(u);
         setEmailRoles(er);
+        setExhibitorMap(new Map(exs.map(e => [e.id, e.name])));
       })
       .catch(console.error)
       .finally(() => setLoadingUsers(false));
   }, []);
 
   const handleAddEmailRole = async () => {
-    if (!newEmail.trim()) return;
+    const email = newEmail.trim().toLowerCase();
+    if (!email) return;
+    if (!newEventId) {
+      toast.error('Selecione um evento antes de continuar.');
+      return;
+    }
+
+    const found = users.find(u => u.email.toLowerCase() === email);
+    if (found) {
+      setExistingUser(found);
+      setEditRole(found.role);
+      setEditEventId(found.event_id ?? newEventId);
+      return;
+    }
+
     setAddingEmail(true);
     try {
       await addEmailRole({
-        email: newEmail.trim().toLowerCase(),
+        email,
         role: newRole,
-        event_id: EVENT_SCOPED_ROLES.includes(newRole) ? newEventId || null : null,
+        event_id: newEventId || null,
         exhibitor_id: null,
       });
       const updated = await listEmailRoles();
@@ -79,6 +108,33 @@ export function UsersPanel({ events }: UsersPanelProps) {
       toast.error('Erro ao cadastrar e-mail.');
     } finally {
       setAddingEmail(false);
+    }
+  };
+
+  const handleUpdateExistingUser = async () => {
+    if (!existingUser) return;
+    if (!editEventId) {
+      toast.error('Selecione um evento antes de continuar.');
+      return;
+    }
+    setSavingUser(true);
+    try {
+      await updateUserRole(existingUser.id, editRole, editEventId || null);
+      setUsers(prev =>
+        prev.map(u =>
+          u.id === existingUser.id
+            ? { ...u, role: editRole, event_id: editEventId || null }
+            : u,
+        ),
+      );
+      setExistingUser(null);
+      setNewEmail('');
+      toast.success('Perfil atualizado!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao atualizar perfil.');
+    } finally {
+      setSavingUser(false);
     }
   };
 
@@ -96,29 +152,37 @@ export function UsersPanel({ events }: UsersPanelProps) {
   const startEditUser = (user: AppUser) => {
     setEditingUserId(user.id);
     setEditRole(user.role);
-    setEditEventId(user.event_id ?? '');
+    // Mantém o evento do usuário; se não tiver e houver só 1 ativo, pré-seleciona
+    setEditEventId(user.event_id ?? (activeEvents.length === 1 ? activeEvents[0].id : ''));
   };
 
   const cancelEdit = () => {
     setEditingUserId(null);
   };
 
+  const handleDeleteUser = async (u: AppUser) => {
+    if (!confirm(`Excluir o usuário "${u.display_name ?? u.email}"? Esta ação não pode ser desfeita.`)) return;
+    try {
+      await deleteUser(u.id);
+      setUsers(prev => prev.filter(x => x.id !== u.id));
+      toast.success('Usuário excluído.');
+    } catch {
+      toast.error('Erro ao excluir usuário.');
+    }
+  };
+
   const saveUserRole = async (userId: string) => {
+    if (!editEventId) {
+      toast.error('Selecione um evento antes de salvar.');
+      return;
+    }
     setSavingUser(true);
     try {
-      await updateUserRole(
-        userId,
-        editRole,
-        EVENT_SCOPED_ROLES.includes(editRole) ? editEventId || null : null,
-      );
+      await updateUserRole(userId, editRole, editEventId || null);
       setUsers((prev) =>
         prev.map((u) =>
           u.id === userId
-            ? {
-                ...u,
-                role: editRole,
-                event_id: EVENT_SCOPED_ROLES.includes(editRole) ? editEventId || null : null,
-              }
+            ? { ...u, role: editRole, event_id: editEventId || null }
             : u,
         ),
       );
@@ -142,6 +206,19 @@ export function UsersPanel({ events }: UsersPanelProps) {
   const eventName = (id: string | null) =>
     events.find((e) => e.id === id)?.name ?? id ?? '—';
 
+  const eventSelector = (value: string, onChange: (v: string) => void, className: string) => (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={className}
+    >
+      <option value="">Selecionar evento... *</option>
+      {activeEvents.map((ev) => (
+        <option key={ev.id} value={ev.id}>{ev.name}</option>
+      ))}
+    </select>
+  );
+
   return (
     <div className="space-y-10">
       {/* Pre-registration */}
@@ -162,7 +239,7 @@ export function UsersPanel({ events }: UsersPanelProps) {
             <input
               type="email"
               value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
+              onChange={(e) => { setNewEmail(e.target.value); setExistingUser(null); }}
               onKeyDown={(e) => e.key === 'Enter' && handleAddEmailRole()}
               placeholder="email@dominio.com"
               className="flex-1 min-w-[200px] bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
@@ -175,24 +252,16 @@ export function UsersPanel({ events }: UsersPanelProps) {
               {(Object.keys(ROLE_LABELS) as UserRole[])
                 .filter((r) => r !== 'participant')
                 .map((r) => (
-                  <option key={r} value={r}>
-                    {ROLE_LABELS[r]}
-                  </option>
+                  <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                 ))}
             </select>
-            {EVENT_SCOPED_ROLES.includes(newRole) && (
-              <select
-                value={newEventId}
-                onChange={(e) => setNewEventId(e.target.value)}
-                className="bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
-              >
-                <option value="">Selecionar evento...</option>
-                {events.map((ev) => (
-                  <option key={ev.id} value={ev.id}>
-                    {ev.name}
-                  </option>
-                ))}
-              </select>
+            {eventSelector(
+              newEventId,
+              setNewEventId,
+              cn(
+                'bg-neutral-50 border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+                !newEventId ? 'border-red-200 text-red-400' : 'border-neutral-200',
+              ),
             )}
             <button
               onClick={handleAddEmailRole}
@@ -203,6 +272,58 @@ export function UsersPanel({ events }: UsersPanelProps) {
               {addingEmail ? 'Adicionando...' : 'Adicionar'}
             </button>
           </div>
+
+          {/* Existing user found */}
+          {existingUser && (
+            <div className="border border-amber-200 bg-amber-50 rounded-xl p-4 space-y-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-amber-800">Usuário já cadastrado</p>
+                  <p className="text-xs text-amber-600 mt-0.5">
+                    <span className="font-semibold">{existingUser.display_name ?? existingUser.email}</span>
+                    {' '}já existe como{' '}
+                    <span className={cn('font-bold px-1.5 py-0.5 rounded-full text-[10px]', ROLE_COLORS[existingUser.role])}>
+                      {ROLE_LABELS[existingUser.role]}
+                    </span>
+                    . Selecione o novo perfil e evento para alterar.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value as UserRole)}
+                  className="bg-white border border-amber-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                >
+                  {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
+                    <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                  ))}
+                </select>
+                {eventSelector(
+                  editEventId,
+                  setEditEventId,
+                  cn(
+                    'bg-white border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/30',
+                    !editEventId ? 'border-red-300 text-red-400' : 'border-amber-200',
+                  ),
+                )}
+                <button
+                  onClick={handleUpdateExistingUser}
+                  disabled={savingUser || !editEventId}
+                  className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-lg disabled:opacity-50 transition-colors"
+                >
+                  {savingUser ? 'Salvando...' : 'Alterar perfil'}
+                </button>
+                <button
+                  onClick={() => { setExistingUser(null); setNewEmail(''); }}
+                  className="px-4 py-1.5 bg-white border border-amber-200 text-amber-700 text-sm font-bold rounded-lg hover:bg-amber-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* List */}
           {emailRoles.length === 0 ? (
@@ -301,35 +422,27 @@ export function UsersPanel({ events }: UsersPanelProps) {
                   </div>
 
                   {isEditing ? (
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                       <select
                         value={editRole}
                         onChange={(e) => setEditRole(e.target.value as UserRole)}
                         className="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
                       >
                         {(Object.keys(ROLE_LABELS) as UserRole[]).map((r) => (
-                          <option key={r} value={r}>
-                            {ROLE_LABELS[r]}
-                          </option>
+                          <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                         ))}
                       </select>
-                      {EVENT_SCOPED_ROLES.includes(editRole) && (
-                        <select
-                          value={editEventId}
-                          onChange={(e) => setEditEventId(e.target.value)}
-                          className="bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900/10"
-                        >
-                          <option value="">Sem evento</option>
-                          {events.map((ev) => (
-                            <option key={ev.id} value={ev.id}>
-                              {ev.name}
-                            </option>
-                          ))}
-                        </select>
+                      {eventSelector(
+                        editEventId,
+                        setEditEventId,
+                        cn(
+                          'bg-neutral-50 border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-neutral-900/10',
+                          !editEventId ? 'border-red-200 text-red-400' : 'border-neutral-200',
+                        ),
                       )}
                       <button
                         onClick={() => saveUserRole(u.id)}
-                        disabled={savingUser}
+                        disabled={savingUser || !editEventId}
                         className="px-3 py-1.5 bg-neutral-900 text-white text-xs font-bold rounded-lg hover:bg-neutral-700 disabled:opacity-50 transition-colors"
                       >
                         {savingUser ? '...' : 'Salvar'}
@@ -348,6 +461,11 @@ export function UsersPanel({ events }: UsersPanelProps) {
                           {eventName(u.event_id)}
                         </span>
                       )}
+                      {u.role === 'expositor' && u.exhibitor_id && (
+                        <span className="hidden sm:block text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">
+                          {exhibitorMap.get(u.exhibitor_id) ?? '—'}
+                        </span>
+                      )}
                       <span className={cn('text-[10px] font-bold px-2.5 py-1 rounded-full', ROLE_COLORS[u.role])}>
                         {ROLE_LABELS[u.role]}
                       </span>
@@ -358,6 +476,15 @@ export function UsersPanel({ events }: UsersPanelProps) {
                       >
                         <ChevronDown className="w-4 h-4" />
                       </button>
+                      {isAdmin && u.id !== currentUser?.id && (
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          className="p-1.5 text-neutral-300 hover:text-red-500 transition-colors"
+                          title="Excluir usuário"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

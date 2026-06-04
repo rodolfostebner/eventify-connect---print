@@ -17,7 +17,7 @@ import {
 import { getProducts, createProduct, updateProduct, deactivateProduct } from '../../services/productService';
 import { getLeads, updateLeadStatus } from '../../services/leadService';
 import { getExhibitorVisitSummary, getTopProducts } from '../../services/visitService';
-import { addEmailRole, removeEmailRole, listEmailRoles } from '../../services/userService';
+import { addEmailRole, removeEmailRole, listEmailRoles, findUserByEmail, updateUserRole } from '../../services/userService';
 import type { ExhibitorLinkedUser } from '../../services/userService';
 import { subscribeToEvent } from '../../services/eventService';
 import { uploadImage } from '../../services/storageService';
@@ -260,10 +260,26 @@ function UsersTab({ exhibitorId }: { exhibitorId: string }) {
   useEffect(() => { load(); }, [exhibitorId]);
 
   const handleAdd = async () => {
-    if (!newEmail.trim()) return;
+    const email = newEmail.trim().toLowerCase();
+    if (!email) return;
     setSaving(true);
     try {
-      await addEmailRole({ email: newEmail.trim().toLowerCase(), role: 'expositor', event_id: null, exhibitor_id: exhibitorId });
+      const existing = await findUserByEmail(email);
+      if (existing) {
+        if (existing.exhibitor_id && existing.exhibitor_id !== exhibitorId) {
+          toast.error('Este usuário já está vinculado a outro stand.');
+          return;
+        }
+        // Usuário existe sem stand vinculado (ou já neste stand) — vincula diretamente
+        await updateUserRole(existing.id, 'expositor', existing.event_id ?? null, exhibitorId);
+        toast.success('Usuário vinculado ao stand com sucesso!');
+        setNewEmail('');
+        setAdding(false);
+        load();
+        return;
+      }
+      // Usuário não existe ainda — pré-cadastra para o primeiro login
+      await addEmailRole({ email, role: 'expositor', event_id: null, exhibitor_id: exhibitorId });
       toast.success('E-mail cadastrado — o expositor poderá entrar com Google ou link mágico.');
       setNewEmail('');
       setAdding(false);

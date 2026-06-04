@@ -123,6 +123,12 @@ export async function listUsers(): Promise<AppUser[]> {
   return (data ?? []) as AppUser[];
 }
 
+export async function deleteUser(userId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('users').delete().eq('id', userId);
+  if (error) throw error;
+}
+
 export async function updateUserRole(userId: string, role: UserRole, eventId?: string | null, exhibitorId?: string | null): Promise<void> {
   if (!supabase) return;
   const { error } = await supabase.from('users').update({
@@ -173,6 +179,17 @@ export async function updateUserDisplayName(userId: string, displayName: string)
   if (!supabase) return;
   const { error } = await supabase.from('users').update({ display_name: displayName }).eq('id', userId);
   if (error) throw error;
+}
+
+export async function findUserByEmail(email: string): Promise<AppUser | null> {
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', email.trim().toLowerCase())
+    .order('created_at', { ascending: true })
+    .limit(1);
+  return (data?.[0] as AppUser) ?? null;
 }
 
 // ─── Beta mode: lookup/create por email sem Supabase Auth ────────────────────

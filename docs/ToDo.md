@@ -321,3 +321,29 @@ main
 ```
 
 Cada branch é independente. PRs para `main` com review cruzado antes do merge.
+
+---
+
+# INFRAESTRUTURA
+
+## TODO — Banco de Dados de Desenvolvimento
+
+> ⏳ **Pendente** — Criar um projeto Supabase separado para o ambiente de desenvolvimento (`development`), mantendo o banco atual exclusivo para a `main` (produção).
+
+**Motivação:** evitar que experimentos, migrations em teste e dados temporários contaminem o banco de produção.
+
+**O que precisa ser feito:**
+- Criar novo projeto no Supabase (ex.: `eventify-dev`)
+- Replicar o schema atual (`supabase/migrations/`) no novo projeto
+- Criar arquivo `.env.local.development` com as variáveis do banco dev:
+  ```env
+  VITE_SUPABASE_URL=https://<dev-project>.supabase.co
+  VITE_SUPABASE_ANON_KEY=<dev-anon-key>
+  VITE_BETA_MODE=true
+  ```
+- Atualizar `.gitignore` para garantir que `.env.local*` nunca seja commitado
+- Documentar no README como alternar entre os ambientes
+
+**Convenção de branches:**
+- `development` → banco Supabase dev
+- `main` → banco Supabase produção (atual)

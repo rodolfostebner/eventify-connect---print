@@ -4,18 +4,21 @@ import {
   Package, ShoppingBag, Phone, Save,
   Upload, X, Plus, Trash2, AlertCircle,
   BarChart2, Eye, Instagram, MessageCircle, Globe, Share2, ShoppingCart,
+  Users,
 } from 'lucide-react';
 import { AppHeader } from '../../components/AppHeader';
 import { toast } from 'sonner';
 import { useAuth } from '../../hooks/useAuth';
-import { getExhibitorById } from '../../services/exhibitorService';
+import { getExhibitorById, getExhibitorUsers, removeExhibitorUser } from '../../services/exhibitorService';
 import { updateExhibitor } from '../../services/exhibitorService';
 import { getEventById } from '../../services/eventService';
 import { getProducts, createProduct, updateProduct, deactivateProduct } from '../../services/productService';
 import { getLeads, updateLeadStatus } from '../../services/leadService';
 import { uploadImage } from '../../services/storageService';
 import { getExhibitorVisitSummary, getTopProducts } from '../../services/visitService';
-import type { Product, Lead, LeadStatus, VisitAction, ExhibitorCategory } from '../../types';
+import { addEmailRole, removeEmailRole, listEmailRoles } from '../../services/userService';
+import type { ExhibitorLinkedUser } from '../../services/userService';
+import type { Product, Lead, LeadStatus, VisitAction, ExhibitorCategory, UserEmailRole } from '../../types';
 import { getExhibitorCategories } from '../../services/exhibitorCategoryService';
 
 function mergeCategoryOptions(categories: ExhibitorCategory[], current?: string): ExhibitorCategory[] {
@@ -25,7 +28,7 @@ function mergeCategoryOptions(categories: ExhibitorCategory[], current?: string)
 
 const MAX_PRODUCT_PHOTOS = 3;
 
-type Tab = 'perfil' | 'produtos' | 'leads' | 'visualizacoes';
+type Tab = 'perfil' | 'produtos' | 'leads' | 'visualizacoes' | 'usuarios';
 
 // ─── Perfil Tab ────────────────────────────────────────────────────────────────
 
@@ -634,6 +637,183 @@ function LeadsTabExpositor({ exhibitorId, exhibitorName }: { exhibitorId: string
   );
 }
 
+// ─── Usuários Tab (Expositor) ─────────────────────────────────────────────────
+
+function UsuariosTab({ exhibitorId }: { exhibitorId: string }) {
+  const [linked, setLinked] = useState<ExhibitorLinkedUser[]>([]);
+  const [pending, setPending] = useState<UserEmailRole[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    const [linkedData, allPending] = await Promise.all([
+      getExhibitorUsers(exhibitorId),
+      listEmailRoles(),
+    ]);
+    setLinked(linkedData);
+    setPending(allPending.filter(r => r.exhibitor_id === exhibitorId));
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [exhibitorId]);
+
+  const handleAdd = async () => {
+    if (!newEmail.trim()) return;
+    setSaving(true);
+    try {
+      await addEmailRole({ email: newEmail.trim().toLowerCase(), role: 'expositor', event_id: null, exhibitor_id: exhibitorId });
+      toast.success('E-mail cadastrado — o usuário poderá entrar com Google ou link mágico.');
+      setNewEmail('');
+      setAdding(false);
+      load();
+    } catch {
+      toast.error('Erro ao cadastrar e-mail');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveLinked = async (user: ExhibitorLinkedUser) => {
+    if (!confirm(`Remover acesso de ${user.email}?`)) return;
+    try {
+      await removeExhibitorUser(user.id);
+      setLinked(ls => ls.filter(l => l.id !== user.id));
+      toast.success('Acesso removido');
+    } catch {
+      toast.error('Erro ao remover acesso');
+    }
+  };
+
+  const handleRemovePending = async (email: string) => {
+    if (!confirm(`Cancelar convite para ${email}?`)) return;
+    try {
+      await removeEmailRole(email);
+      setPending(ps => ps.filter(p => p.email !== email));
+      toast.success('Convite cancelado');
+    } catch {
+      toast.error('Erro ao cancelar convite');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="w-8 h-8 border-4 border-neutral-200 border-t-neutral-900 rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-neutral-500">
+          {linked.length} ativo{linked.length !== 1 ? 's' : ''} · {pending.length} pendente{pending.length !== 1 ? 's' : ''}
+        </p>
+        {!adding && (
+          <button
+            onClick={() => setAdding(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900 text-white text-xs font-bold hover:bg-neutral-700 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" /> Adicionar usuário
+          </button>
+        )}
+      </div>
+
+      {adding && (
+        <div className="border border-neutral-200 rounded-2xl p-4 space-y-3 bg-neutral-50">
+          <p className="text-xs font-bold text-neutral-700 uppercase tracking-wider">Novo acesso ao stand</p>
+          <input
+            type="email"
+            placeholder="email@usuario.com"
+            value={newEmail}
+            onChange={e => setNewEmail(e.target.value)}
+            className="w-full px-3 py-2.5 text-sm border border-neutral-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900/20"
+          />
+          <p className="text-xs text-neutral-400">O usuário entrará com este e-mail via Google ou link mágico e terá acesso a este stand.</p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleAdd}
+              disabled={saving || !newEmail.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-900 text-white text-sm font-bold hover:bg-neutral-700 disabled:opacity-50 transition-colors"
+            >
+              {saving ? 'Salvando...' : 'Cadastrar'}
+            </button>
+            <button
+              onClick={() => { setAdding(false); setNewEmail(''); }}
+              className="px-4 py-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-sm font-bold transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {linked.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Acessos ativos</p>
+          {linked.map(user => (
+            <div key={user.id} className="flex items-center gap-3 p-3 border border-neutral-100 rounded-2xl bg-white shadow-sm">
+              {user.photo_url ? (
+                <img src={user.photo_url} className="w-9 h-9 rounded-full object-cover shrink-0" referrerPolicy="no-referrer" />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center shrink-0">
+                  <Users className="w-4 h-4 text-neutral-400" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-neutral-900 truncate">{user.display_name ?? user.email}</p>
+                <p className="text-[10px] text-neutral-400 truncate">{user.email}</p>
+              </div>
+              <button
+                onClick={() => handleRemoveLinked(user)}
+                title="Remover acesso"
+                className="p-2 rounded-xl hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors shrink-0"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {pending.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Aguardando primeiro login</p>
+          {pending.map(p => (
+            <div key={p.email} className="flex items-center gap-3 p-3 border border-dashed border-neutral-200 rounded-2xl bg-neutral-50">
+              <div className="w-9 h-9 rounded-full bg-neutral-200 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4 text-neutral-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-neutral-600 truncate">{p.email}</p>
+                <p className="text-[10px] text-neutral-400">Pendente — não fez login ainda</p>
+              </div>
+              <button
+                onClick={() => handleRemovePending(p.email)}
+                title="Cancelar convite"
+                className="p-2 rounded-xl hover:bg-red-50 text-neutral-400 hover:text-red-500 transition-colors shrink-0"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {linked.length === 0 && pending.length === 0 && (
+        <div className="text-center py-10 text-neutral-400">
+          <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <p className="text-sm">Nenhum usuário cadastrado</p>
+          <p className="text-xs mt-1">Adicione o e-mail de quem deve ter acesso a este stand</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Visualizações Tab ────────────────────────────────────────────────────────
 
 const ACTION_META: Record<VisitAction, { label: string; icon: React.ReactNode; color: string }> = {
@@ -823,6 +1003,7 @@ export default function ExhibitorPortal() {
     { key: 'perfil', label: 'Perfil', icon: <Package className="w-4 h-4" /> },
     { key: 'produtos', label: 'Produtos', icon: <ShoppingBag className="w-4 h-4" /> },
     { key: 'leads', label: 'Interessados', icon: <Phone className="w-4 h-4" /> },
+    { key: 'usuarios', label: 'Usuários', icon: <Users className="w-4 h-4" /> },
     { key: 'visualizacoes', label: 'Visitas ao Stand', icon: <BarChart2 className="w-4 h-4" /> },
   ];
 
@@ -856,6 +1037,7 @@ export default function ExhibitorPortal() {
         )}
         {tab === 'produtos' && <ProdutosTab key={refreshKey} exhibitorId={exhibitor.id} />}
         {tab === 'leads' && <LeadsTabExpositor exhibitorId={exhibitor.id} exhibitorName={exhibitor.name} />}
+        {tab === 'usuarios' && <UsuariosTab exhibitorId={exhibitor.id} />}
         {tab === 'visualizacoes' && <VisualizacoesTab exhibitorId={exhibitor.id} />}
       </div>
     </div>

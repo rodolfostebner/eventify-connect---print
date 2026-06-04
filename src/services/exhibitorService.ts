@@ -13,6 +13,16 @@ export async function getExhibitors(eventId: string): Promise<Exhibitor[]> {
   return (data || []) as Exhibitor[];
 }
 
+export async function getAllExhibitors(): Promise<Pick<Exhibitor, 'id' | 'name' | 'event_id'>[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('exhibitors')
+    .select('id, name, event_id')
+    .order('name', { ascending: true });
+  if (error) throw error;
+  return (data || []) as Pick<Exhibitor, 'id' | 'name' | 'event_id'>[];
+}
+
 export async function getExhibitorByUserId(supabaseUserId: string): Promise<Exhibitor | null> {
   if (!supabase) return null;
   const { data, error } = await supabase
