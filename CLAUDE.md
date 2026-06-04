@@ -92,6 +92,7 @@ src/
     exhibitorService.ts    # CRUD expositores + subscription realtime (tabela exhibitors)
     productService.ts      # CRUD produtos do expositor (tabela products)
     leadService.ts         # Criar/listar leads de pre-venda (tabela leads)
+    contactLeadService.ts  # Criar/listar leads de contato da landing page (tabela contact_leads)
     partnerService.ts      # CRUD parceiros - patrocinador/apoiador/servico (tabela partners)
     evaluationService.ts   # CRUD avaliacoes publico + jurados, categorias, ranking (view)
     raffleService.ts       # Criacao de ticket, listagem, sorteio aleatorio

@@ -289,6 +289,7 @@ App.tsx
 │  userService.ts       → Sync Firebase→Supabase users │
 │  storageService.ts    → Upload R2 via Edge Function  │
 │  authService.ts       → Supabase Auth (admin WIP)    │
+│  contactLeadService.ts→ CRUD contact_leads           │
 └────────────────────────┬────────────────────────────┘
                          │
               ┌──────────┴──────────┐
@@ -314,12 +315,14 @@ events (1) ──────────── (N) posts
                reactions  comments  print_order_items
                                          │
                                     print_orders (N) ──── (1) events
-                                    
+
 users ──── (firebase_uid) ──── posts.user_id
       ──── (firebase_uid) ──── reactions.user_id
       ──── (firebase_uid) ──── comments.user_id
       ──── (firebase_uid) ──── print_orders.user_id
       ──── (firebase_uid) ──── notifications.user_id
+
+contact_leads (Independente)
 ```
 
 ### 4.2 Regras de Integridade (a implementar via RLS + Constraints)
