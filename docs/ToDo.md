@@ -197,6 +197,7 @@ Exemplos:
 | Supabase `signInWithOtp({ email })` | ✅ Resolvido — Integrado no service e nos fluxos de login |
 | Handler de retorno da magic link URL | ✅ Resolvido — Supabase Auth client gerencia tokens de retorno automaticamente no AuthProvider |
 | Hook de auth para participantes via Supabase | ✅ Resolvido — Integrado ao `useAuth.ts` |
+| Login por **código OTP** no e-mail (alternativa ao link) | ✅ Resolvido (2026-06-05) — usuário digita o código recebido por e-mail em vez de clicar no link. Resolve provedores que quebram o magic link (iCloud/Hotmail). Aceita códigos de até 8 dígitos (commits `25b2ef6`, `712f80c`) |
 
 **Implementado:**
 1. Banner do Feed atualizado para "Acessar com E-mail ou Google", indicando explicitamente a opção sem login externo.
@@ -324,7 +325,36 @@ Cada branch é independente. PRs para `main` com review cruzado antes do merge.
 
 ---
 
+# ÚLTIMAS ALTERAÇÕES — 2026-06-05
+
+> Itens implementados após a review de 2026-05-13 que ainda não constavam no ToDo.
+
+| Item | Status | Detalhe |
+|------|--------|---------|
+| Login por código OTP no e-mail | ✅ Implementado | Alternativa ao magic link: digitar o código recebido. Resolve iCloud/Hotmail que quebram o link. Aceita até 8 dígitos (commits `25b2ef6`, `712f80c`). Ver seção "Login via Magic Link" |
+| Rodízio de expositores no feed (carrossel por tempo) | ✅ Implementado | `ExhibitorList.tsx` faz rodízio temporizado dos expositores no feed, garantindo que todos apareçam em rotação (commit `838e596`). ⚠️ Não confundir com o carrossel de expositores do **telão/TV**, que segue pendente |
+| Fix: race condition no `syncUser` + melhorias no painel admin | ✅ Resolvido | commit `f960c32` |
+| Limpeza da base de testes (pré-lançamento) | ⚠️ Parcial | Script SQL + doc adicionados (`supabase/limpa_base_testes.sql` e `.md`) para apagar dados de teste (visitas, views, comentários, leads, avaliações) via SQL Editor. ❌ **Pendente:** painel admin dedicado com seleção de evento e confirmação dupla, no lugar de SQL manual (commit `b4fcf90`) |
+
+---
+
 # INFRAESTRUTURA
+
+## Vercel Analytics — 2026-06-05
+
+> ✅ **Implementado (código)** — `@vercel/analytics` instalado e componente `<Analytics />`
+> montado na raiz do app (`src/main.tsx`, dentro do `AuthProvider`). Rastreia pageviews
+> automaticamente, inclusive as trocas de rota do SPA.
+
+**Pendente (painel Vercel):** habilitar **Web Analytics** em *Settings → Analytics* do
+projeto. Sem isso os dados não são coletados mesmo com o código no lugar. Ver
+`docs/deploy_dominio.md` (seção "Vercel Web Analytics").
+
+## Domínio próprio — 2026-06-05
+
+> 📄 Guia passo a passo de registro de domínio (Vercel + Registro.br) documentado em
+> `docs/deploy_dominio.md`. Inclui DNS (A no apex, CNAME no www), validação, SSL e os
+> ajustes necessários no app (`VITE_APP_URL`) e no Supabase Auth (Redirect URLs).
 
 ## TODO — Banco de Dados de Desenvolvimento
 
