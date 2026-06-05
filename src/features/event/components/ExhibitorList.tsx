@@ -31,9 +31,21 @@ export function ExhibitorList({ exhibitors, categories, onSelect, event, user }:
     effectiveCategories.find(c => c.id === ex.category_id) ??
     effectiveCategories.find(c => c.name.toLowerCase() === ex.category?.toLowerCase());
 
+  // Rodízio justo: a lista "gira" 1 posição por minuto (carrossel vertical),
+  // baseado no relógio. Os primeiros vão para o fim, dando a todos a chance de
+  // aparecer no topo ao longo do tempo. Estável durante a sessão — não pula a
+  // tela enquanto o usuário navega; muda a cada minuto/refresh. Afeta apenas o
+  // feed do app (o telão tem lógica própria e não usa este componente).
+  const rotatedExhibitors = useMemo(() => {
+    const n = exhibitors.length;
+    if (n <= 1) return exhibitors;
+    const offset = Math.floor(Date.now() / 60000) % n;
+    return [...exhibitors.slice(offset), ...exhibitors.slice(0, offset)];
+  }, [exhibitors]);
+
   const filtered = selectedCat === 'all'
-    ? exhibitors
-    : exhibitors.filter(ex => {
+    ? rotatedExhibitors
+    : rotatedExhibitors.filter(ex => {
         const cat = getCat(ex);
         return cat?.id === selectedCat;
       });
