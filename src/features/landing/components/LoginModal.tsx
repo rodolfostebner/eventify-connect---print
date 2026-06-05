@@ -229,13 +229,13 @@ export function LoginModal({ isOpen, onClose, isDark }: LoginModalProps) {
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                maxLength={6}
+                maxLength={8}
                 autoFocus
                 disabled={verifying}
-                placeholder="000000"
+                placeholder="••••••"
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full bg-[#F8FAFC]/90 dark:bg-[#1A1816]/90 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 rounded-2xl px-4 py-3.5 text-center text-2xl font-bold tracking-[0.5em] focus:outline-none focus:border-[#F0A795] transition-colors"
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                className="w-full bg-[#F8FAFC]/90 dark:bg-[#1A1816]/90 border border-gray-200 dark:border-gray-800 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 rounded-2xl px-4 py-3.5 text-center text-2xl font-bold tracking-[0.3em] focus:outline-none focus:border-[#F0A795] transition-colors"
               />
               <button
                 type="submit"

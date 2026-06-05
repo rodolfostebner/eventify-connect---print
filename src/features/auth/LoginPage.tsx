@@ -154,13 +154,13 @@ export default function LoginPage() {
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                maxLength={6}
+                maxLength={8}
                 autoFocus
                 disabled={verifying}
-                placeholder="000000"
+                placeholder="••••••"
                 value={code}
-                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full px-3 py-3 text-center text-2xl font-bold tracking-[0.5em] border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900/20 bg-neutral-50"
+                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                className="w-full px-3 py-3 text-center text-2xl font-bold tracking-[0.3em] border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-neutral-900/20 bg-neutral-50"
               />
               <button
                 type="submit"

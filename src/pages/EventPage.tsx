@@ -127,13 +127,13 @@ function LoginModal({ onClose }: { onClose: () => void }) {
               type="text"
               inputMode="numeric"
               autoComplete="one-time-code"
-              maxLength={6}
+              maxLength={8}
               autoFocus
               disabled={verifying}
-              placeholder="000000"
+              placeholder="••••••"
               value={code}
-              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl text-center text-2xl font-black tracking-[0.5em] focus:ring-2 focus:ring-neutral-900 outline-none"
+              onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+              className="w-full px-4 py-3 bg-neutral-50 border border-neutral-100 rounded-xl text-center text-2xl font-black tracking-[0.4em] focus:ring-2 focus:ring-neutral-900 outline-none"
             />
             <button
               type="submit"
