@@ -137,7 +137,10 @@ function PerfilTab({ exhibitor, categories, onUpdated }: { exhibitor: import('..
           <div className="relative mb-2 rounded-2xl overflow-hidden aspect-video bg-neutral-100 border border-neutral-100">
             <img src={photo} className="w-full h-full object-cover" />
             <button
-              onClick={() => setPhoto('')}
+              onClick={() => {
+                if (!confirm('Remover a foto do stand? Esta ação é irreversível.')) return;
+                setPhoto('');
+              }}
               className="absolute top-2 right-2 p-1 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
             >
               <X className="w-3.5 h-3.5" />
