@@ -45,12 +45,14 @@ DELETE FROM juror_evaluations;
 DELETE FROM notifications;
 DELETE FROM audit_logs;
 
--- ── Sorteio: tickets e prêmios ──────────────────────────────────────
-DELETE FROM raffle_tickets;
--- Zera a referência do prêmio no evento ANTES de apagar (FK sem ON DELETE SET NULL)
+-- ── Sorteio: prêmios e tickets ──────────────────────────────────────
+-- Ordem importa (FKs sem ON DELETE):
+--   events.tv_raffle_prize_id -> raffle_prizes(id)   → zerar antes
+--   raffle_prizes.winner_ticket_id -> raffle_tickets(id) → apagar prêmios ANTES dos tickets
 UPDATE events SET tv_raffle_prize_id = NULL, tv_raffle_state = NULL
   WHERE tv_raffle_prize_id IS NOT NULL OR tv_raffle_state IS NOT NULL;
 DELETE FROM raffle_prizes;
+DELETE FROM raffle_tickets;
 
 -- ── Anúncios (active_announcement_id zera sozinho via FK ON DELETE SET NULL) ──
 DELETE FROM announcements;
