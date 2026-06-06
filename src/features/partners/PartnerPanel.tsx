@@ -93,36 +93,33 @@ function PhotoCarousel({ photos }: { photos: string[] }) {
 // ─── Partner Detail ──────────────────────────────────────────────────────────
 
 function PartnerDetail({ partner }: { partner: Partner }) {
-  const [form, setForm] = useState({
-    name: partner.name,
-    type: partner.type,
-    description: partner.description || '',
-    internal_contact: partner.internal_contact || '',
-    sponsorship_value: partner.sponsorship_value != null ? String(partner.sponsorship_value) : '',
-    show_on_tv: partner.show_on_tv,
-    show_on_feed: partner.show_on_feed,
-    instagram_url: partner.instagram_url || '',
-    whatsapp: partner.whatsapp || '',
-    website_url: partner.website_url || '',
+  const buildForm = (p: Partner) => ({
+    name: p.name,
+    type: p.type,
+    description: p.description || '',
+    sponsorship_value: p.sponsorship_value != null ? String(p.sponsorship_value) : '',
+    show_on_tv: p.show_on_tv,
+    show_on_feed: p.show_on_feed,
+    instagram_url: p.instagram_url || '',
+    tiktok_url: p.tiktok_url || '',
+    youtube_url: p.youtube_url || '',
+    whatsapp: p.whatsapp || '',
+    website_url: p.website_url || '',
+    email: p.email || '',
+    phone: p.phone || '',
   });
+
+  const [form, setForm] = useState(() => buildForm(partner));
+  const [logo, setLogo] = useState(partner.logo_url || '');
   const [photos, setPhotos] = useState<string[]>(partner.photos);
   const [uploading, setUploading] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState<TabId>('dados');
 
   useEffect(() => {
-    setForm({
-      name: partner.name,
-      type: partner.type,
-      description: partner.description || '',
-      internal_contact: partner.internal_contact || '',
-      sponsorship_value: partner.sponsorship_value != null ? String(partner.sponsorship_value) : '',
-      show_on_tv: partner.show_on_tv,
-      show_on_feed: partner.show_on_feed,
-      instagram_url: partner.instagram_url || '',
-      whatsapp: partner.whatsapp || '',
-      website_url: partner.website_url || '',
-    });
+    setForm(buildForm(partner));
+    setLogo(partner.logo_url || '');
     setPhotos(partner.photos);
     setTab('dados');
   }, [partner.id]);
@@ -142,6 +139,21 @@ function PartnerDetail({ partner }: { partner: Partner }) {
     }
   };
 
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const url = await uploadImage(file);
+      setLogo(url);
+    } catch {
+      toast.error('Erro ao fazer upload da logo');
+    } finally {
+      setUploadingLogo(false);
+      e.target.value = '';
+    }
+  };
+
   const handleSave = async () => {
     if (!form.name.trim()) return toast.error('Nome obrigatório');
     setSaving(true);
@@ -154,14 +166,18 @@ function PartnerDetail({ partner }: { partner: Partner }) {
         name: form.name.trim(),
         type: form.type,
         description: form.description.trim() || null,
-        internal_contact: form.internal_contact.trim() || null,
+        logo_url: logo || null,
         sponsorship_value: value,
         show_on_tv: form.show_on_tv,
         show_on_feed: form.show_on_feed,
         photos,
         instagram_url: form.instagram_url.trim() || null,
+        tiktok_url: form.tiktok_url.trim() || null,
+        youtube_url: form.youtube_url.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
         website_url: form.website_url.trim() || null,
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
       });
       toast.success('Parceiro atualizado!');
     } catch {
@@ -178,8 +194,8 @@ function PartnerDetail({ partner }: { partner: Partner }) {
     <div className="flex flex-col h-full">
       {/* Header do detalhe */}
       <div className="flex items-center gap-3 pb-4 border-b border-neutral-100 mb-4">
-        {photos[0] ? (
-          <img src={photos[0]} className="w-12 h-12 rounded-xl object-cover bg-neutral-50 border border-neutral-100 shrink-0" />
+        {(logo || photos[0]) ? (
+          <img src={logo || photos[0]} className="w-12 h-12 rounded-xl object-contain bg-neutral-50 border border-neutral-100 shrink-0" />
         ) : (
           <div className="w-12 h-12 rounded-xl bg-neutral-100 flex items-center justify-center shrink-0">
             <Handshake className="w-6 h-6 text-neutral-400" />
@@ -212,6 +228,29 @@ function PartnerDetail({ partner }: { partner: Partner }) {
         {tab === 'dados' && (
           <>
             <div>
+              <label className={labelCls}>Logo</label>
+              <div className="flex items-center gap-3">
+                {logo ? (
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-neutral-200 bg-neutral-50 shrink-0">
+                    <img src={logo} className="w-full h-full object-contain" />
+                    <button onClick={() => setLogo('')} className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="w-20 h-20 rounded-xl border-2 border-dashed border-neutral-300 flex flex-col items-center justify-center cursor-pointer hover:border-neutral-400 transition-colors shrink-0">
+                    {uploadingLogo
+                      ? <div className="w-5 h-5 border-2 border-neutral-300 border-t-neutral-700 rounded-full animate-spin" />
+                      : <><Upload className="w-5 h-5 text-neutral-400" /><span className="text-[10px] text-neutral-400 mt-1">Logo</span></>
+                    }
+                    <input type="file" accept="image/*" className="sr-only" onChange={handleLogoUpload} disabled={uploadingLogo} />
+                  </label>
+                )}
+                <p className="text-[10px] text-neutral-400">Exibida como ícone do parceiro no feed e no painel.</p>
+              </div>
+            </div>
+
+            <div>
               <label className={labelCls}>Nome *</label>
               <input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className={inputCls} />
             </div>
@@ -226,18 +265,6 @@ function PartnerDetail({ partner }: { partner: Partner }) {
             <div>
               <label className={labelCls}>Descrição</label>
               <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} className={cn(inputCls, 'resize-none')} />
-            </div>
-
-            <div>
-              <label className={labelCls}>Contato Parceiro <span className="text-neutral-400 normal-case font-normal">(uso interno)</span></label>
-              <textarea
-                value={form.internal_contact}
-                onChange={e => setForm(f => ({ ...f, internal_contact: e.target.value }))}
-                rows={4}
-                placeholder={'Nome 1 - (11) 99999-9999\nNome 2 - (11) 99999-9999\nNome 3 - (11) 99999-9999\nNome 4 - (11) 99999-9999'}
-                className={cn(inputCls, 'resize-none')}
-              />
-              <p className="text-[10px] text-neutral-400 mt-1">Não é exibido em nenhuma parte do app.</p>
             </div>
 
             {form.type === 'patrocinador' && (
@@ -309,8 +336,24 @@ function PartnerDetail({ partner }: { partner: Partner }) {
               <input type="text" placeholder="@usuario ou URL" value={form.instagram_url} onChange={e => setForm(f => ({ ...f, instagram_url: e.target.value }))} className={inputCls} />
             </div>
             <div>
+              <label className={labelCls}>TikTok</label>
+              <input type="text" placeholder="@usuario ou URL" value={form.tiktok_url} onChange={e => setForm(f => ({ ...f, tiktok_url: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>YouTube</label>
+              <input type="text" placeholder="@canal ou URL" value={form.youtube_url} onChange={e => setForm(f => ({ ...f, youtube_url: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
               <label className={labelCls}>WhatsApp</label>
               <input type="text" placeholder="5511999999999" value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Telefone</label>
+              <input type="tel" placeholder="(11) 99999-9999" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>E-mail</label>
+              <input type="email" placeholder="contato@parceiro.com" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Website</label>
@@ -379,14 +422,18 @@ export default function PartnerPanel() {
         name: newName.trim(),
         type: 'patrocinador',
         description: null,
-        internal_contact: null,
+        logo_url: null,
         sponsorship_value: null,
         show_on_tv: true,
         show_on_feed: true,
         photos: [],
         instagram_url: null,
+        tiktok_url: null,
+        youtube_url: null,
         whatsapp: null,
         website_url: null,
+        email: null,
+        phone: null,
         order_index: partners.length,
         active: true,
       });
@@ -459,8 +506,8 @@ export default function PartnerPanel() {
                     selected?.id === p.id ? 'bg-neutral-900 text-white' : 'hover:bg-neutral-50 text-neutral-700'
                   }`}
                 >
-                  {p.photos[0] ? (
-                    <img src={p.photos[0]} className="w-8 h-8 rounded-lg object-cover shrink-0" />
+                  {(p.logo_url || p.photos[0]) ? (
+                    <img src={p.logo_url || p.photos[0]} className="w-8 h-8 rounded-lg object-contain bg-neutral-50 shrink-0" />
                   ) : (
                     <div className="w-8 h-8 rounded-lg bg-neutral-100 flex items-center justify-center shrink-0">
                       <Handshake className="w-4 h-4 text-neutral-400" />

@@ -12,6 +12,7 @@ import { createPrintOrder } from '../services/printService';
 import { getExhibitors } from '../services/exhibitorService';
 import { getPartners } from '../services/partnerService';
 import { trackVisit } from '../services/visitService';
+import { formatWebsite } from '../utils/formatters';
 import { cn } from '../lib/utils';
 import type { Exhibitor, Partner } from '../types';
 import { supabase } from '../lib/supabase/client';
@@ -773,7 +774,7 @@ export default function EventPage({ user }: { user: AppUser | null }) {
                   </div>
                   {event.app_website && (
                     <div className="flex gap-3 pt-1">
-                       <a href={event.app_website} target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded-full border border-neutral-100 shadow-sm" title="Website"><Globe className="w-4 h-4" /></a>
+                       <a href={formatWebsite(event.app_website)} target="_blank" rel="noopener noreferrer" className="p-2 bg-white rounded-full border border-neutral-100 shadow-sm" title="Website"><Globe className="w-4 h-4" /></a>
                     </div>
                   )}
 

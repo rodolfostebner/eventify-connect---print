@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronRight, Instagram, MessageCircle, Globe } from 'lucide-react';
 import type { Exhibitor, ExhibitorCategory, AppUser } from '../../../types';
 import { trackVisit } from '../../../services/visitService';
+import { formatInstagram, formatWhatsApp, formatWebsite } from '../../../utils/formatters';
 
 export type CardSize = 'small' | 'medium' | 'large';
 
@@ -41,7 +42,8 @@ export function ExhibitorCard({ exhibitor, category, size, onSelect, event, user
     if (event) {
       void trackVisit({ eventId: event.id, exhibitorId: exhibitor.id, userId: user?.id, action: `click_${type}` as any, eventStatus: event.status });
     }
-    window.open(url, '_blank');
+    const href = type === 'instagram' ? formatInstagram(url) : type === 'whatsapp' ? formatWhatsApp(url) : formatWebsite(url);
+    if (href) window.open(href, '_blank');
   };
 
   if (size === 'small') {

@@ -1,13 +1,19 @@
-import React from 'react';
-import { Instagram, Globe, Phone } from 'lucide-react';
-import { formatInstagram, formatWhatsApp, formatWebsite } from '../../../utils/formatters';
+import { Instagram, Globe, MessageCircle, Phone, Mail, Music2, Youtube } from 'lucide-react';
+import {
+  formatInstagram, formatWhatsApp, formatWebsite,
+  formatTiktok, formatYoutube, formatEmail, formatPhone,
+} from '../../../utils/formatters';
 
-export type SocialLinkType = 'instagram' | 'whatsapp' | 'website';
+export type SocialLinkType = 'instagram' | 'tiktok' | 'youtube' | 'whatsapp' | 'website' | 'email' | 'phone';
 
 interface SocialLinksProps {
   instagram?: string;
+  tiktok?: string;
+  youtube?: string;
   whatsapp?: string;
   website?: string;
+  email?: string;
+  phone?: string;
   containerClassName?: string;
   buttonClassName?: string;
   // Callback opcional disparado no clique (fire-and-forget); nunca aguarda.
@@ -16,49 +22,42 @@ interface SocialLinksProps {
 
 export function SocialLinks({
   instagram,
+  tiktok,
+  youtube,
   whatsapp,
   website,
-  containerClassName = "flex gap-2 pt-2",
+  email,
+  phone,
+  containerClassName = "flex gap-2 pt-2 flex-wrap",
   buttonClassName = "p-2 bg-white rounded-lg shadow-sm transition-colors",
   onLinkClick,
 }: SocialLinksProps) {
-  if (!instagram && !whatsapp && !website) return null;
+  if (!instagram && !tiktok && !youtube && !whatsapp && !website && !email && !phone) return null;
+
+  const links: { type: SocialLinkType; show?: string; href: string; icon: React.ReactNode; hover: string }[] = [
+    { type: 'instagram', show: instagram, href: formatInstagram(instagram), icon: <Instagram className="w-4 h-4" />, hover: 'hover:text-pink-600' },
+    { type: 'tiktok', show: tiktok, href: formatTiktok(tiktok), icon: <Music2 className="w-4 h-4" />, hover: 'hover:text-neutral-900' },
+    { type: 'youtube', show: youtube, href: formatYoutube(youtube), icon: <Youtube className="w-4 h-4" />, hover: 'hover:text-red-600' },
+    { type: 'whatsapp', show: whatsapp, href: formatWhatsApp(whatsapp), icon: <MessageCircle className="w-4 h-4" />, hover: 'hover:text-green-600' },
+    { type: 'website', show: website, href: formatWebsite(website), icon: <Globe className="w-4 h-4" />, hover: 'hover:text-blue-600' },
+    { type: 'email', show: email, href: formatEmail(email), icon: <Mail className="w-4 h-4" />, hover: 'hover:text-amber-600' },
+    { type: 'phone', show: phone, href: formatPhone(phone), icon: <Phone className="w-4 h-4" />, hover: 'hover:text-emerald-600' },
+  ];
 
   return (
     <div className={containerClassName}>
-      {instagram && (
+      {links.filter(l => l.show && l.href).map(l => (
         <a
-          href={formatInstagram(instagram)}
+          key={l.type}
+          href={l.href}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={onLinkClick ? () => onLinkClick('instagram') : undefined}
-          className={`${buttonClassName} hover:text-pink-600`}
+          onClick={onLinkClick ? () => onLinkClick(l.type) : undefined}
+          className={`${buttonClassName} ${l.hover}`}
         >
-          <Instagram className="w-4 h-4" />
+          {l.icon}
         </a>
-      )}
-      {whatsapp && (
-        <a
-          href={formatWhatsApp(whatsapp)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={onLinkClick ? () => onLinkClick('whatsapp') : undefined}
-          className={`${buttonClassName} hover:text-green-600`}
-        >
-          <Phone className="w-4 h-4" />
-        </a>
-      )}
-      {website && (
-        <a
-          href={formatWebsite(website)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={onLinkClick ? () => onLinkClick('website') : undefined}
-          className={`${buttonClassName} hover:text-blue-600`}
-        >
-          <Globe className="w-4 h-4" />
-        </a>
-      )}
+      ))}
     </div>
   );
 }

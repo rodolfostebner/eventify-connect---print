@@ -225,16 +225,19 @@ export interface Partner {
   name: string;
   type: PartnerType;
   description?: string | null;
+  logo_url?: string | null;
   photos: string[];
-  // Uso interno — não exibido no app
-  internal_contact?: string | null;
   // Valor do patrocínio — uso interno / relatório financeiro (só tipo patrocinador)
   sponsorship_value?: number | null;
   show_on_tv: boolean;
   show_on_feed: boolean;
   instagram_url?: string | null;
+  tiktok_url?: string | null;
+  youtube_url?: string | null;
   whatsapp?: string | null;
   website_url?: string | null;
+  email?: string | null;
+  phone?: string | null;
   order_index: number;
   active: boolean;
   created_at: string;

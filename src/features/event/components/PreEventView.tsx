@@ -113,10 +113,10 @@ export const PreEventView = ({ event, user }: Props) => {
         {tab === 'patrocinadores' && (
           <div className="space-y-8">
             {sponsors.length > 0 && (
-              <PartnerSection title="Patrocinadores & Apoiadores" items={sponsors.map(s => ({ id: s.id, name: s.name, bio: s.description ?? '', photos: s.photos, socials: { instagram: s.instagram_url ?? undefined, whatsapp: s.whatsapp ?? undefined, website: s.website_url ?? undefined } }))} icon={<Star className="w-5 h-5" />} />
+              <PartnerSection title="Patrocinadores & Apoiadores" items={sponsors.map(s => ({ id: s.id, name: s.name, bio: s.description ?? '', logo: s.logo_url ?? undefined, photos: s.photos, socials: { instagram: s.instagram_url ?? undefined, tiktok: s.tiktok_url ?? undefined, youtube: s.youtube_url ?? undefined, whatsapp: s.whatsapp ?? undefined, website: s.website_url ?? undefined, email: s.email ?? undefined, phone: s.phone ?? undefined } }))} icon={<Star className="w-5 h-5" />} />
             )}
             {services.length > 0 && (
-              <PartnerSection title="Serviços" items={services.map(s => ({ id: s.id, name: s.name, bio: s.description ?? '', photos: s.photos, socials: { instagram: s.instagram_url ?? undefined, whatsapp: s.whatsapp ?? undefined, website: s.website_url ?? undefined } }))} icon={<Briefcase className="w-5 h-5" />} />
+              <PartnerSection title="Serviços" items={services.map(s => ({ id: s.id, name: s.name, bio: s.description ?? '', logo: s.logo_url ?? undefined, photos: s.photos, socials: { instagram: s.instagram_url ?? undefined, tiktok: s.tiktok_url ?? undefined, youtube: s.youtube_url ?? undefined, whatsapp: s.whatsapp ?? undefined, website: s.website_url ?? undefined, email: s.email ?? undefined, phone: s.phone ?? undefined } }))} icon={<Briefcase className="w-5 h-5" />} />
             )}
             {sponsors.length === 0 && services.length === 0 && (
               <div className="text-center py-16 text-[#94949E]">

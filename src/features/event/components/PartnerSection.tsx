@@ -14,8 +14,12 @@ interface PartnerItem {
   final_message?: string;
   socials?: {
     instagram?: string;
+    tiktok?: string;
+    youtube?: string;
     whatsapp?: string;
     website?: string;
+    email?: string;
+    phone?: string;
   };
 }
 
@@ -26,8 +30,8 @@ function ItemPhotoCarousel({ photos }: { photos: string[] }) {
 
   return (
     <div className="relative">
-      <div className="aspect-video rounded-lg md:rounded-xl overflow-hidden bg-neutral-50 border border-neutral-100">
-        <img src={photos[index]} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+      <div className="aspect-video rounded-lg md:rounded-xl overflow-hidden bg-black border border-neutral-100">
+        <img src={photos[index]} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
       </div>
       {photos.length > 1 && (
         <>
@@ -102,8 +106,8 @@ export function PartnerSection({ title, items, icon, showMessages = false, colum
             {(item.photos && item.photos.length > 0)
               ? <ItemPhotoCarousel photos={item.photos} />
               : item.photo
-                ? <div className="aspect-video rounded-lg md:rounded-xl overflow-hidden bg-neutral-50 border border-neutral-100">
-                    <img src={item.photo} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ? <div className="aspect-video rounded-lg md:rounded-xl overflow-hidden bg-black border border-neutral-100">
+                    <img src={item.photo} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                   </div>
                 : null
             }
@@ -116,8 +120,12 @@ export function PartnerSection({ title, items, icon, showMessages = false, colum
               <div className="border-t border-neutral-100 pt-2 mt-auto">
                 <SocialLinks
                   instagram={item.socials.instagram}
+                  tiktok={item.socials.tiktok}
+                  youtube={item.socials.youtube}
                   whatsapp={item.socials.whatsapp}
                   website={item.socials.website}
+                  email={item.socials.email}
+                  phone={item.socials.phone}
                   buttonClassName="p-1.5 md:p-2 bg-neutral-50 rounded-full text-neutral-600 transition-colors hover:bg-neutral-100"
                   onLinkClick={onItemSocialClick ? (type) => onItemSocialClick(item, type) : undefined}
                 />

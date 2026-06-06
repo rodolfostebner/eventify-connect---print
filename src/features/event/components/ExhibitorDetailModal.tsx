@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { Exhibitor, ExhibitorCategory, AppUser, EventData, Product, Evaluation } from '../../../types';
 import { trackVisit } from '../../../services/visitService';
 import { getProducts } from '../../../services/productService';
+import { formatInstagram, formatWhatsApp, formatWebsite } from '../../../utils/formatters';
 import { ExhibitorCatalogModal } from './ExhibitorCatalogModal';
 import { getExhibitorEvaluations, subscribeToEvaluations } from '../../../services/evaluationService';
 import { ExhibitorRatingSummary } from '../../evaluation/components/ExhibitorRatingSummary';
@@ -54,7 +55,8 @@ export function ExhibitorDetailModal({ exhibitor, categories, event, user, onClo
 
   const handleSocial = (type: 'instagram' | 'whatsapp' | 'website', url: string) => {
     void trackVisit({ eventId: event.id, exhibitorId: exhibitor.id, userId: user?.id, action: `click_${type}` as any, eventStatus: event.status });
-    window.open(url, '_blank');
+    const href = type === 'instagram' ? formatInstagram(url) : type === 'whatsapp' ? formatWhatsApp(url) : formatWebsite(url);
+    if (href) window.open(href, '_blank');
   };
 
   const stats = [
