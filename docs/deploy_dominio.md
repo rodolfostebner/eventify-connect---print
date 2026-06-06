@@ -109,6 +109,85 @@ A escolha é definida na própria tela de Domains da Vercel.
 
 ---
 
+## Domínio canônico — sessão única e redirect (config aplicada em 2026-06-06)
+
+> **Contexto:** a sessão de login (Supabase Auth) é guardada pelo navegador **por
+> origem**. Com dois domínios ativos (`memorieshub.com.br` e
+> `eventify-connect-print.vercel.app`), o usuário logava num e o outro continuava
+> deslogado — abrindo a landing num domínio e o app no outro, e sem auto-login ao
+> reabrir. A solução é forçar **um único domínio canônico**: `memorieshub.com.br`.
+
+São **três frentes** que precisam estar todas configuradas:
+
+### 1. Redirect de auth no código (já feito)
+
+`src/services/authService.ts` usa `getAppUrl()` em `redirectTo` (Google OAuth) e
+`emailRedirectTo` (Magic Link). `getAppUrl()` retorna `VITE_APP_URL` ou, na
+ausência dela, `window.location.origin`. Assim o login **retorna sempre ao domínio
+canônico** quando `VITE_APP_URL` está definida.
+
+### 2. Variável de ambiente na Vercel
+
+- **Settings → Environment Variables:** `VITE_APP_URL = https://memorieshub.com.br`
+- ⚠️ `VITE_APP_URL` é variável **de build** (o Vite a "assa" no bundle). A mudança
+  **só vale após um novo deploy** — não basta salvar a env.
+
+### 3. Supabase Auth — URL Configuration
+
+Supabase Dashboard → **Authentication → URL Configuration**:
+
+- **Site URL:** `https://memorieshub.com.br`
+- **Redirect URLs** (allowlist) — adicionar todos:
+  - `https://memorieshub.com.br/**`
+  - `https://www.memorieshub.com.br/**` (se o `www` estiver ativo)
+  - `https://eventify-connect-print.vercel.app/**`
+  - `http://localhost:3000/**`
+
+> O **callback do Google** no Supabase (`https://<ref>.supabase.co/auth/v1/callback`)
+> **não muda** — é sempre no domínio do Supabase. No Google Cloud Console também não
+> é preciso mexer, pois quem redireciona de volta ao app é o Supabase.
+
+### 4. Redirect de acesso direto à URL da Vercel (`vercel.json`)
+
+O domínio **automático** `*.vercel.app` **não pode** ser redirecionado pela tela
+de Domains da Vercel (lá só dá pra redirecionar domínios customizados). Por isso o
+redirect de **acesso direto** (antes de qualquer login) é feito por um redirect de
+edge no `vercel.json`:
+
+```json
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "eventify-connect-print.vercel.app" }],
+      "destination": "https://memorieshub.com.br/$1",
+      "permanent": true
+    }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
+```
+
+- Redireciona com **308** qualquer acesso à URL de produção da Vercel para o
+  domínio canônico, **preservando path e query** (`$1`).
+- Mira **só a URL de produção** — os **preview deployments** de branch (outras
+  `*.vercel.app`) seguem funcionando normalmente para teste.
+- ⚠️ O navegador faz **cache de redirect 308**. Ao validar, use aba anônima ou
+  limpe o cache para não confundir.
+
+### Como validar o fluxo completo
+
+1. Aba anônima → abrir `https://eventify-connect-print.vercel.app` → deve
+   redirecionar na hora para `memorieshub.com.br` (antes do login).
+2. Em `memorieshub.com.br` sem sessão → mostra a **landing**.
+3. Login por Google → ao voltar, a URL permanece em `memorieshub.com.br`.
+4. Fechar e reabrir `memorieshub.com.br` → **auto-login** direto na tela da role.
+5. Repetir o teste com login por **código (OTP)**.
+
+---
+
 ## Checklist final
 
 - [ ] Domínio adicionado na Vercel (apex + www)
@@ -116,9 +195,13 @@ A escolha é definida na própria tela de Domains da Vercel.
 - [ ] Registro **CNAME** do `www` criado no Registro.br (`cname.vercel-dns.com`)
 - [ ] Status "Valid Configuration" na Vercel ✅
 - [ ] HTTPS funcionando (cadeado no navegador)
-- [ ] `VITE_APP_URL` atualizada (se aplicável)
-- [ ] Site URL / Redirect URLs atualizadas no Supabase Auth
-- [ ] Login (Google OAuth + Magic Link) testado no novo domínio
+- [ ] `VITE_APP_URL` = `https://memorieshub.com.br` na Vercel **+ redeploy**
+- [ ] Site URL = domínio canônico no Supabase Auth
+- [ ] Redirect URLs incluem canônico + `www` + `*.vercel.app` + `localhost` no Supabase
+- [ ] Redirect de edge no `vercel.json` (URL da Vercel → domínio canônico)
+- [ ] Acesso direto à URL da Vercel redireciona antes do login (testado em aba anônima)
+- [ ] Login (Google OAuth + OTP/Magic Link) testado no domínio canônico
+- [ ] Auto-login ao reabrir funcionando no domínio canônico
 
 ---
 
