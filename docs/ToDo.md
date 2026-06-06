@@ -350,6 +350,13 @@ Cada branch é independente. PRs para `main` com review cruzado antes do merge.
 projeto. Sem isso os dados não são coletados mesmo com o código no lugar. Ver
 `docs/deploy_dominio.md` (seção "Vercel Web Analytics").
 
+**⏳ Futuro — eventos customizados:** enriquecer o track de eventos em locais
+específicos para obter dados de acesso. Usar `track('nome_evento')` do
+`@vercel/analytics` em pontos-chave (ex.: login por método Google/Magic Link, acesso
+à landing, abertura de catálogo) para capturar dados de acesso mais granulares.
+Decidir depois entre Vercel `track()` e analytics próprio no Supabase
+(login_events + page_visits com geo/IP) — ver discussão em 2026-06-05.
+
 ## Domínio próprio — 2026-06-05
 
 > 📄 Guia passo a passo de registro de domínio (Vercel + Registro.br) documentado em
