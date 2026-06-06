@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth, BETA_MODE } from '../../../hooks/useAuth';
 
@@ -19,6 +19,7 @@ const ROLE_REDIRECT: Record<string, string> = {
 
 export function LoginModal({ isOpen, onClose, isDark }: LoginModalProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, login, loginMagic, verifyOtp, loginBeta } = useAuth();
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
@@ -26,6 +27,37 @@ export function LoginModal({ isOpen, onClose, isDark }: LoginModalProps) {
   const [code, setCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
+  const autoLoginTried = useRef(false);
+
+  // Login por link do e-mail: /login?email=...&code=... pré-preenche o código e,
+  // se a aba estiver visível (toque real do usuário), verifica automaticamente.
+  // Abrir a página NÃO consome o token — a verificação só roda aqui, e o guard de
+  // visibilidade evita que scanners de e-mail (que buscam em 2º plano) o consumam.
+  useEffect(() => {
+    if (BETA_MODE || autoLoginTried.current) return;
+    const urlEmail = searchParams.get('email');
+    const urlCode = (searchParams.get('otp') || '').replace(/\D/g, '');
+    if (!urlEmail || urlCode.length < 6) return;
+
+    autoLoginTried.current = true;
+    setEmail(urlEmail);
+    setCode(urlCode);
+    setSent(true);
+
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      (async () => {
+        setVerifying(true);
+        try {
+          await verifyOtp(urlEmail.trim(), urlCode);
+          // Sucesso: o useEffect que observa `user` fecha o modal e redireciona.
+        } catch {
+          toast.error('Não foi possível entrar automaticamente. Confira o código e toque em Entrar.');
+        } finally {
+          setVerifying(false);
+        }
+      })();
+    }
+  }, [searchParams, verifyOtp]);
 
   // If user is already authenticated, redirect them
   useEffect(() => {
