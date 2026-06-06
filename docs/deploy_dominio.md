@@ -242,6 +242,86 @@ depender de Google Analytics.
   de `@vercel/analytics`. Ainda **não** implementado neste projeto — o app já tem
   rastreamento próprio de visitas/cliques via `visitService.ts` (tabela `visits`).
 
+## Login por link de 1 toque no e-mail (desativado em 2026-06-06 — como reativar)
+
+> **Por que está desativado:** o botão aponta para `memorieshub.com.br` (domínio
+> novo, sem reputação). Enquanto o domínio/Resend não estiverem "aquecidos" (DKIM +
+> SPF + DMARC verificados e histórico de envio), links para domínio novo aumentam o
+> greylisting do iCloud e atrasam a entrega. Por isso voltamos ao **e-mail só com
+> código OTP**. Quando a reputação estiver madura, reative o link — ele é seguro
+> contra scanners (ver abaixo).
+
+**Pré-requisitos para reativar com segurança:**
+- Resend com `memorieshub.com.br` **Verified** (DKIM/SPF/DMARC OK).
+- Sender no domínio (`no-reply@memorieshub.com.br`) e `Site URL` do Supabase = canônico.
+- Entrega no iCloud em segundos (testar com mail-tester.com, mira 9–10/10).
+
+**1. Template `supabase/templates/magic_link.html`** — reinserir o botão logo após
+o bloco do código OTP (antes do `<!-- Instrução -->`):
+
+```html
+<!-- Botão de 1 toque (abre a tela de login com o código preenchido) -->
+<tr>
+  <td align="center" style="padding:20px 40px 0 40px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
+      <tr>
+        <td align="center" bgcolor="#1A1816" style="border-radius:14px;">
+          <a class="btn" href="{{ .SiteURL }}/login?email={{ .Email }}&otp={{ .Token }}"
+             style="display:inline-block; padding:14px 32px; font-family:'Outfit', Arial, sans-serif; font-size:15px; font-weight:700; color:#FFFFFF; background-color:#1A1816; border-radius:14px; text-decoration:none;">
+            Entrar com 1 toque
+          </a>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+```
+
+E ajustar a instrução para: _"Toque no botão acima para entrar direto, ou digite o
+código na tela de login do Eventify."_
+
+**2. `src/features/landing/components/LoginModal.tsx`** — reativar a leitura da URL.
+Importar `useSearchParams` do `react-router-dom`, e dentro do componente:
+
+```tsx
+const [searchParams] = useSearchParams();
+const autoLoginTried = useRef(false);
+
+// Abrir a página NÃO consome o token — a verificação só roda aqui, e o guard de
+// visibilidade evita que scanners de e-mail (que buscam em 2º plano) o consumam.
+useEffect(() => {
+  if (BETA_MODE || autoLoginTried.current) return;
+  const urlEmail = searchParams.get('email');
+  const urlCode = (searchParams.get('otp') || '').replace(/\D/g, '');
+  if (!urlEmail || urlCode.length < 6) return;
+
+  autoLoginTried.current = true;
+  setEmail(urlEmail);
+  setCode(urlCode);
+  setSent(true);
+
+  if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+    (async () => {
+      setVerifying(true);
+      try {
+        await verifyOtp(urlEmail.trim(), urlCode);
+      } catch {
+        toast.error('Não foi possível entrar automaticamente. Confira o código e toque em Entrar.');
+      } finally {
+        setVerifying(false);
+      }
+    })();
+  }
+}, [searchParams, verifyOtp]);
+```
+
+> **Notas de design:** usar `otp` (não `code`) no query param — `code` colide com o
+> fluxo PKCE do `supabase-js` (`detectSessionInUrl`). O guard `visibilityState`
+> garante que scanners de e-mail (Outlook Safe Links / iCloud), que buscam em 2º
+> plano, **não** disparem a verificação e consumam o token. O código manual no
+> e-mail continua como fallback. Commits de referência: `f49f527` (implementação)
+> e `2a10ecc` (desativação).
+
 ---
 
 ## Referências
