@@ -33,7 +33,15 @@ export function LandingFooter({ isDark }: LandingFooterProps) {
           </p>
         </div>
         {/* Right Block */}
-        <div className="flex items-center justify-center md:justify-end md:w-1/3 text-xs text-gray-500">
+        <div className="flex items-center justify-center md:justify-end md:w-1/3 gap-4 text-xs text-gray-500">
+          <a
+            href={links.privacidade}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-[#F0A795] transition-colors font-semibold"
+          >
+            Privacidade
+          </a>
           <a
             href={links.termoDeUso}
             target="_blank"

@@ -20,7 +20,7 @@ export interface LandingConfig {
   /** Legendas associadas a cada foto do carrossel. Chave = nome do arquivo (ex: "foto1.jpg") */
   comments: Record<string, string>;
 
-  /** Links configuráveis de tutoriais, termos de uso e chave Pix */
+  /** Links configuráveis de tutoriais, termos de uso, privacidade e chave Pix */
   links: {
     tutoriais: {
       expositor: string;
@@ -28,6 +28,8 @@ export interface LandingConfig {
       geral: string;
     };
     termoDeUso: string;
+    /** Política de Privacidade (HTML estático em public/privacy/) */
+    privacidade: string;
     /** Chave Pix para doação (E-mail, CPF, celular ou aleatória) */
     pixKey: string;
   };
@@ -67,7 +69,8 @@ export const landingConfig: LandingConfig = {
       administrador: "https://www.youtube.com/watch?v=exemplo_admin",
       geral: "https://www.youtube.com/watch?v=exemplo_geral",
     },
-    termoDeUso: "https://seudominio.com/termos-de-uso",
+    termoDeUso: "/privacy/termos",
+    privacidade: "/privacy",
     // Insira sua chave Pix aqui (E-mail, CPF, celular ou aleatória)
     pixKey: "suachavepix@dominio.com",
   },
