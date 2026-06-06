@@ -127,6 +127,18 @@ Exemplos:
 - [PVT1] ~~Identificar logins unicos na plataforma para evitar flood de comentarios e curtidas, descaracterizando ranking enviado pelos participantes da feira~~ ✅ **Resolvido** — Supabase Auth unificado (Google OAuth + Magic Link) com validação por email; UNIQUE constraints no banco impedem duplicatas
 - ~~[PVT2] Registrar visitas aos expositores e seus produtos, estilo google analytics, registrar no banco e permitir consulta por expositores e possibilidade de gerar rank baseado nesse indicador de visitas~~ ✅ **Resolvido** — `trackVisit()` instrumentado nos cliques do feed (expositor, produto, instagram, whatsapp, site, lead, share). Aba "Visitas" com analytics disponível no painel admin e portal do expositor.
 - [PVT3] **Analytics de Parceiros** — a aba "Visualização" do painel de Parceiros não tem fonte de dados: a tabela `visits` só rastreia `exhibitor_id`/`product_id`, não parceiros. Para popular a aba é preciso estender `visits` (ex.: `partner_id` + ações de clique) e instrumentar os cliques nos parceiros do feed. ❌ Não implementado (aba exibe placeholder)
+- [PVT4] **Revisar métricas de visitas do dashboard (Pré/Live/Pós)** — `dashboardService.phaseVisits()` precisa de revisão de precisão. Verificar:
+  - **`total` conta cada clique, não pageviews** — cada ação (abrir card, clicar Instagram/WhatsApp/site, ver produto, lead, share) vira 1 linha; uma pessoa gera várias. Definir se "Total" deveria ser ações ou visitas de pessoas, e talvez renomear o rótulo na UI.
+  - **`event_status = null` cai fora de todas as fases** — o filtro é `v.event_status === phase`. Auditar se **todos** os `trackVisit()` passam `eventStatus` (ExhibitorCard e ExhibitorDetailModal passam; conferir ExhibitorCatalogModal e EventPage). Visitas sem fase somem do dashboard.
+  - **Dupla contagem em "únicos"** — visitante anônimo (`session_id`) que depois loga (`user_id`) na mesma fase conta como 2 únicos. Avaliar reconciliação anônimo→logado (ex.: `associateVisitorToUser`).
+  - **`session_id` é por aba (`sessionStorage`), sem idle** — mesma pessoa em 2 abas/aparelhos = 2 únicos; F5 na mesma aba mantém o mesmo. Documentar/alinhar expectativa (a doc `analytics-visitas.md` cita idle de 30 min de outro sistema — corrigir).
+  - Considerar métrica de "únicos do evento inteiro" (hoje só há únicos por fase).
+- [PVT5] **Revisar notificações e comportamento do sininho (tela de evento `/event/:slug`)** — auditar o fluxo completo de notificações. Verificar:
+  - **Contador de não lidas** — badge do sininho (`unreadCount`) atualiza corretamente em tempo real (canal `public:notifications:user_id=eq.{id}`) e ao marcar como lida/todas como lidas.
+  - **Entrega** — quem recebe cada notificação (participante logado, vínculo `users.event_id`), e se visitante sem login recebe algo (não deve).
+  - **Tempo real vs polling** — confirmar que o realtime do sininho funciona; se WebSocket bloqueado, há fallback?
+  - **Avisos/anúncios** — relação entre `announcements` (popup/TV) e `notifications` (sininho): um aviso do admin gera notificação no sininho? Está duplicando ou faltando?
+  - **Estado/limpeza** — após `limpa_base_testes.sql` (zera `notifications`), o sininho deve voltar a 0 sem erro.
 
 # PENDENTE DE DEFINIÇÃO
 
