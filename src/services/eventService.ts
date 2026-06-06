@@ -124,6 +124,24 @@ export async function getEventBySlug(slug: string): Promise<EventData | null> {
 }
 
 /**
+ * Busca o evento ativo mais recente (active != false).
+ * Usado como fallback para redirecionar o participante que loga sem
+ * contexto de evento (ex.: pela landing). Hoje há apenas 1 evento ativo.
+ */
+export async function getActiveEvent(): Promise<EventData | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .or('active.is.null,active.eq.true')
+    .order('date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as EventData | null;
+}
+
+/**
  * Create a new event.
  */
 export async function createEvent(data: Omit<EventData, 'id'>): Promise<string> {

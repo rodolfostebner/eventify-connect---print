@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useAuth, BETA_MODE } from '../../../hooks/useAuth';
+import { getActiveEvent } from '../../../services/eventService';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -31,7 +32,20 @@ export function LoginModal({ isOpen, onClose, isDark }: LoginModalProps) {
   useEffect(() => {
     if (user && isOpen) {
       onClose();
-      navigate(ROLE_REDIRECT[user.role] || '/');
+      if (user.role === 'participant') {
+        // Participante volta para o último evento visitado; se não houver,
+        // cai no evento ativo (hoje só existe 1). Sem evento ativo, fica na landing.
+        const lastSlug = localStorage.getItem('last_event_slug');
+        if (lastSlug) {
+          navigate(`/event/${lastSlug}`);
+        } else {
+          getActiveEvent()
+            .then((ev) => navigate(ev ? `/event/${ev.slug}` : '/'))
+            .catch(() => navigate('/'));
+        }
+      } else {
+        navigate(ROLE_REDIRECT[user.role] || '/');
+      }
     }
   }, [user, isOpen, navigate, onClose]);
 

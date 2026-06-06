@@ -56,7 +56,17 @@ function App() {
         <Route path="/avaliacao/:slug" element={(isAdmin || isEventAdmin) ? <AvaliadorPageComponent /> : <Navigate to="/login" replace />} />
 
         {/* Rotas Admin Geral */}
-        <Route path="/" element={user ? <AdminDashboard user={user} /> : <LandingPage />} />
+        <Route
+          path="/"
+          element={
+            !user ? <LandingPage />
+            : isAdmin ? <AdminDashboard user={user} />
+            : isEventAdmin ? <Navigate to="/eventadmin" replace />
+            : isExpositor ? <Navigate to="/expositor" replace />
+            : isAvaliador ? <Navigate to="/avaliador" replace />
+            : <LandingPage /> /* participant: landing logada, nunca o painel admin */
+          }
+        />
         <Route path="/admin" element={<Navigate to="/" replace />} />
         <Route path="/moderation/:slug" element={(isAdmin || isEventAdmin) ? <ModerationPanel user={user} /> : <Navigate to="/login" replace />} />
         <Route path="/operator/:slug" element={isAdmin ? <OperatorPanel user={user} /> : <Navigate to="/login" replace />} />
