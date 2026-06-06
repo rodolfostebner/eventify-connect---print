@@ -72,6 +72,6 @@ export const landingConfig: LandingConfig = {
     termoDeUso: "/privacy/termos",
     privacidade: "/privacy",
     // Insira sua chave Pix aqui (E-mail, CPF, celular ou aleatória)
-    pixKey: "suachavepix@dominio.com",
+    pixKey: "memorieshub@googlegroups.com",
   },
 };
