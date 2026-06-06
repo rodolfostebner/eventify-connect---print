@@ -1,10 +1,13 @@
 import { supabase } from '../lib/supabase/client';
+import { getAppUrl } from '../lib/utils';
 
 export async function loginWithGoogle(redirectTo?: string): Promise<void> {
   if (!supabase) throw new Error('Supabase não inicializado');
   const { error } = await supabase.auth.signInWithOAuth({
+    // Usa getAppUrl() (VITE_APP_URL ou origin atual) p/ garantir que o login
+    // sempre retorne ao domínio canônico — evita a sessão "cair" no domínio errado.
     provider: 'google',
-    options: { redirectTo: redirectTo || window.location.href },
+    options: { redirectTo: redirectTo || getAppUrl() },
   });
   if (error) throw error;
 }
@@ -13,7 +16,7 @@ export async function loginWithMagicLink(email: string, redirectTo?: string): Pr
   if (!supabase) throw new Error('Supabase não inicializado');
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: redirectTo || window.location.href },
+    options: { emailRedirectTo: redirectTo || getAppUrl() },
   });
   if (error) throw error;
 }

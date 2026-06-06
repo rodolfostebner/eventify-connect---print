@@ -23,8 +23,8 @@ export const DEFAULT_EXHIBITOR_CATEGORIES = ['Salgados', 'Doces', 'Artesanato', 
 
 export const ROUTES = {
   HOME: '/',
-  EVENT: '/evento/:slug',
-  TV: '/evento/:slug/tv',
-  OPERATOR: '/evento/:slug/operator',
-  MODERATION: '/evento/:slug/moderation',
+  EVENT: '/event/:slug',
+  TV: '/tv/:slug',
+  OPERATOR: '/operator/:slug',
+  MODERATION: '/moderation/:slug',
 } as const;

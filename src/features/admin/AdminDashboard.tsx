@@ -279,7 +279,7 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
         status: "pre",
         services: [],
       });
-      toast.success(`Evento criado! Acesse /evento/${newEventSlug}`);
+      toast.success(`Evento criado! Acesse /event/${newEventSlug}`);
       setNewEventName("");
       setNewEventSlug("");
       setCreatingNew(false);
@@ -515,7 +515,7 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
               <div className="space-y-6">
                 <div className="bg-neutral-50 p-6 rounded-3xl border border-neutral-100 flex flex-col items-center">
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/evento/${sharingEvent.slug}`)}`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/event/${sharingEvent.slug}`)}`}
                     alt="QR Code"
                     className="w-48 h-48 rounded-2xl shadow-sm mb-4"
                   />
@@ -531,13 +531,13 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                     <input
                       type="text"
                       readOnly
-                      value={`${window.location.origin}/evento/${sharingEvent.slug}`}
+                      value={`${window.location.origin}/event/${sharingEvent.slug}`}
                       className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-xs font-mono"
                     />
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(
-                          `${window.location.origin}/evento/${sharingEvent.slug}`,
+                          `${window.location.origin}/event/${sharingEvent.slug}`,
                         );
                         setCopied(true);
                         setTimeout(() => setCopied(false), 2000);

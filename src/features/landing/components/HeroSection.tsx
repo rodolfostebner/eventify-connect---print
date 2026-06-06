@@ -38,7 +38,7 @@ export function HeroSection({ isDark }: HeroSectionProps) {
           </p>
           <div className="flex flex-wrap items-center gap-5">
             <a href="#contato" className="bg-gray-900 hover:bg-gray-800 text-white font-bold px-8 py-4 rounded-full transition-all duration-300 shadow-xl dark:shadow-none hover:shadow-gray-900/15 dark:hover:shadow-none hover:-translate-y-0.5">
-              Leve para o seu evento
+              Contrate para seu evento
             </a>
             <a href="#participantes" className="text-[#F0A795] hover:text-[#E5A899] font-semibold flex items-center gap-2 group transition-colors">
               Saiba como interagir
