@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { loginWithGoogle, loginWithMagicLink } from '../services/authService';
 import { useAuth, BETA_MODE } from '../hooks/useAuth';
 import type { AppUser, Announcement } from '../types';
-import { Loader2, X, LogOut, User as UserIcon, Menu, Instagram, Globe, Phone, Check, Bell, BellOff, Star, Users, Briefcase, Mail, CheckCircle2, Store, Settings2, LayoutDashboard, ClipboardList, ChevronRight, Megaphone, AlertTriangle, Info, PartyPopper } from 'lucide-react';
+import { Loader2, X, LogOut, User as UserIcon, Menu, Instagram, Globe, Phone, Check, Bell, BellOff, Star, Users, Mail, CheckCircle2, Store, Settings2, LayoutDashboard, ClipboardList, ChevronRight, Megaphone, AlertTriangle, Info, PartyPopper } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'motion/react';
 import type { EventData } from '../types';
@@ -573,13 +573,18 @@ export default function EventPage({ user }: { user: AppUser | null }) {
 
   const sponsorItems = dbSponsors.map(s => ({
     id: s.id,
+    logo: s.logo_url ?? undefined,
     name: s.name,
     bio: s.description ?? '',
     photos: s.photos,
     socials: {
       instagram: s.instagram_url ?? undefined,
+      tiktok: s.tiktok_url ?? undefined,
+      youtube: s.youtube_url ?? undefined,
       whatsapp: s.whatsapp ?? undefined,
       website: s.website_url ?? undefined,
+      email: s.email ?? undefined,
+      phone: s.phone ?? undefined,
     },
   }));
 
@@ -847,12 +852,6 @@ export default function EventPage({ user }: { user: AppUser | null }) {
                     title="Patrocinadores"
                     items={sponsorItems}
                     icon={<Star className="w-4 h-4" />}
-                    columns={1}
-                  />
-                  <PartnerSection
-                    title="Serviços"
-                    items={event.services || []}
-                    icon={<Briefcase className="w-4 h-4" />}
                     columns={1}
                   />
                 </section>

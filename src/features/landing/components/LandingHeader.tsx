@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { landingConfig } from '../landingConfig';
 
 interface LandingHeaderProps {
   isDark: boolean;
@@ -15,7 +14,6 @@ export function LandingHeader({ isDark, onToggleDark, onOpenLogin }: LandingHead
   const tutorialsRef = useRef<HTMLDivElement>(null);
 
   const logoSrc = isDark ? '/landing/Logo5.png' : '/landing/Logo0.png';
-  const { tutoriais } = landingConfig.links;
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
@@ -87,9 +85,9 @@ export function LandingHeader({ isDark, onToggleDark, onOpenLogin }: LandingHead
             </button>
             {tutorialsOpen && (
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 rounded-2xl bg-[#FAF6F0]/95 dark:bg-[#12110F]/95 backdrop-blur-md border border-[#E5A899]/20 dark:border-[#E5A899]/10 py-2 shadow-xl z-50 text-left font-semibold">
-                <a href={tutoriais.expositor} target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-[#F0A795]/10 hover:text-[#F0A795] transition-colors">Expositor</a>
-                <a href={tutoriais.administrador} target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-[#F0A795]/10 hover:text-[#F0A795] transition-colors">Administrador</a>
-                <a href={tutoriais.geral} target="_blank" rel="noopener noreferrer" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-[#F0A795]/10 hover:text-[#F0A795] transition-colors">Geral</a>
+                <span className="block px-4 py-2 text-sm text-gray-400 dark:text-gray-600 cursor-not-allowed select-none">Expositor <span className="text-[10px] italic">(Em breve)</span></span>
+                <span className="block px-4 py-2 text-sm text-gray-400 dark:text-gray-600 cursor-not-allowed select-none">Administrador <span className="text-[10px] italic">(Em breve)</span></span>
+                <span className="block px-4 py-2 text-sm text-gray-400 dark:text-gray-600 cursor-not-allowed select-none">Geral <span className="text-[10px] italic">(Em breve)</span></span>
               </div>
             )}
           </div>
@@ -158,10 +156,10 @@ export function LandingHeader({ isDark, onToggleDark, onOpenLogin }: LandingHead
                 </svg>
               </button>
               {mobileTutorialsOpen && (
-                <div className="pl-4 pb-2 flex flex-col gap-2.5 text-xs text-gray-500 dark:text-gray-400 font-semibold">
-                  <a href={tutoriais.expositor} target="_blank" rel="noopener noreferrer" className="hover:text-[#F0A795] py-1 transition-colors">Expositor</a>
-                  <a href={tutoriais.administrador} target="_blank" rel="noopener noreferrer" className="hover:text-[#F0A795] py-1 transition-colors">Administrador</a>
-                  <a href={tutoriais.geral} target="_blank" rel="noopener noreferrer" className="hover:text-[#F0A795] py-1 transition-colors">Geral</a>
+                <div className="pl-4 pb-2 flex flex-col gap-2.5 text-xs text-gray-400 dark:text-gray-600 font-semibold">
+                  <span className="py-1 cursor-not-allowed select-none">Expositor <span className="text-[10px] italic">(Em breve)</span></span>
+                  <span className="py-1 cursor-not-allowed select-none">Administrador <span className="text-[10px] italic">(Em breve)</span></span>
+                  <span className="py-1 cursor-not-allowed select-none">Geral <span className="text-[10px] italic">(Em breve)</span></span>
                 </div>
               )}
             </div>
