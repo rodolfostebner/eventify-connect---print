@@ -8,6 +8,7 @@ import { getExhibitorCategories } from '../../../services/exhibitorCategoryServi
 import { ExhibitorList } from './ExhibitorList';
 import { ExhibitorDetailModal } from './ExhibitorDetailModal';
 import { PartnerSection } from './PartnerSection';
+import { parseEventDate } from '../../../lib/utils';
 
 type Tab = 'expositores' | 'patrocinadores';
 
@@ -26,8 +27,10 @@ export const PreEventView = ({ event, user }: Props) => {
 
   useEffect(() => {
     if (!event.date) return;
+    const target = parseEventDate(event.date);
+    if (!target) return;
     const calc = () => {
-      const diff = new Date(event.date!).getTime() - Date.now();
+      const diff = target.getTime() - Date.now();
       if (diff > 0) {
         setTimeLeft({ days: Math.floor(diff / 86400000), hours: Math.floor((diff / 3600000) % 24), minutes: Math.floor((diff / 60000) % 60) });
       }

@@ -10,7 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { AppHeader } from '../../components/AppHeader';
 import { useAuth } from '../../hooks/useAuth';
-import { cn } from '../../lib/utils';
+import { cn, toDatetimeLocalValue } from '../../lib/utils';
 import type { AuditLog, EventData, EvaluationCategory, UserEmailRole, Announcement, ExhibitorRanking } from '../../types';
 import { getEventById, getEventBySlug, updateEvent } from '../../services/eventService';
 import { diffObjects, getEventAuditLogs, logChange } from '../../services/auditService';
@@ -1992,8 +1992,8 @@ export default function EventAdminPortal() {
                   <Label>Data do Evento</Label>
                   <input
                     type="datetime-local"
-                    value={typeof form.date === 'string' ? form.date.slice(0, 16) : ''}
-                    onChange={(e) => set('date', e.target.value ? new Date(e.target.value).toISOString() : '')}
+                    value={toDatetimeLocalValue(form.date as string)}
+                    onChange={(e) => set('date', e.target.value || '')}
                     className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
                   />
                 </div>

@@ -30,7 +30,7 @@ import { ContactLeadsPanel } from "./components/ContactLeadsPanel";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion, AnimatePresence } from "motion/react";
-import { cn } from "../../lib/utils";
+import { cn, toDatetimeLocalValue } from "../../lib/utils";
 import { toast } from "sonner";
 import type { EventData, ExhibitorSponsor } from "../../types";
 import {
@@ -620,17 +620,11 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
                     </label>
                     <input
                       type="datetime-local"
-                      value={
-                        typeof brandingForm.date === "string"
-                          ? brandingForm.date.slice(0, 16)
-                          : ""
-                      }
+                      value={toDatetimeLocalValue(brandingForm.date as string)}
                       onChange={(e) =>
                         setBrandingForm({
                           ...brandingForm,
-                          date: e.target.value
-                            ? new Date(e.target.value).toISOString()
-                            : "",
+                          date: e.target.value || "",
                         })
                       }
                       className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"

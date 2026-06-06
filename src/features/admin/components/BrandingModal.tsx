@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Plus, CheckCircle2, Upload, Trash2, Loader2, Eye, X as CloseIcon, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../../../lib/utils';
+import { cn, toDatetimeLocalValue } from '../../../lib/utils';
 import type { ExhibitorSponsor, EventData } from '../../../types';
 import type { BrandingFormState } from '../hooks/useBrandingForm';
 
@@ -148,19 +148,11 @@ export function BrandingModal({
                   </div>
                   <div>
                     <label className="block text-[10px] font-bold uppercase text-neutral-500 mb-1">Data do Evento</label>
-                    <input 
-                      type="datetime-local" 
-                      value={(() => {
-                        if (!form.date) return '';
-                        try {
-                          const d = new Date(form.date);
-                          return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                        } catch {
-                          return '';
-                        }
-                      })()} 
-                      onChange={e => set({ date: e.target.value ? new Date(e.target.value).toISOString() : '' })} 
-                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm" 
+                    <input
+                      type="datetime-local"
+                      value={toDatetimeLocalValue(form.date)}
+                      onChange={e => set({ date: e.target.value || '' })}
+                      className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm"
                     />
                   </div>
                   <div>
