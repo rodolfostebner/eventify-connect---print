@@ -1,12 +1,12 @@
 import { useRef, useEffect } from 'react';
 import { landingConfig } from '../landingConfig';
 
-interface MarqueeFeedProps {
+interface SponsorMarqueeProps {
   isDark: boolean;
 }
 
-export function MarqueeFeed({ isDark }: MarqueeFeedProps) {
-  const { feedPhotosCount, comments } = landingConfig;
+export function SponsorMarquee({ isDark }: SponsorMarqueeProps) {
+  const { sponsors = [] } = landingConfig;
   const logoSrc = isDark ? '/landing/Logo5.png' : '/landing/Logo0.png';
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -16,22 +16,34 @@ export function MarqueeFeed({ isDark }: MarqueeFeedProps) {
   const scrollPosRef = useRef(0);
   const isHovered = useRef(false);
 
-  // Gerar cards de fotos do feed
-  const cards = Array.from({ length: feedPhotosCount }, (_, i) => {
-    const num = i + 1;
-    const fileName = `foto${num}.jpg`;
-    const comment = comments[fileName] || fileName;
-    return { num, src: `/landing/feed/${fileName}`, comment };
-  });
+  // Se não houver patrocinadores cadastrados, não exibe o bloco
+  if (sponsors.length === 0) return null;
 
-  // Duplicar e garantir quantidade mínima para loop contínuo e suave
-  let baseCards = [...cards];
-  while (baseCards.length < 8) {
-    baseCards = [...baseCards, ...cards];
+  // Duplicar logos para garantir carrossel infinito sem gaps em telas muito largas
+  let baseSponsors = [...sponsors];
+  while (baseSponsors.length < 8) {
+    baseSponsors = [...baseSponsors, ...sponsors];
   }
-  const allCards = [...baseCards, ...baseCards];
+  const allSponsors = [...baseSponsors, ...baseSponsors];
 
-  // Auto-scroll loop (Direção: Direita para a Esquerda)
+  // Definir ponto de partida na metade do scrollWidth (necessário para LTR auto-scroll)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    // Pequeno delay para garantir que o scrollWidth já foi calculado
+    const initScroll = () => {
+      scrollPosRef.current = container.scrollWidth / 2;
+      container.scrollLeft = scrollPosRef.current;
+    };
+    initScroll();
+    
+    // Adicionar listener de resize para re-ajustar se necessário
+    window.addEventListener('resize', initScroll);
+    return () => window.removeEventListener('resize', initScroll);
+  }, [allSponsors.length]);
+
+  // Auto-scroll loop (Direção: Esquerda para a Direita)
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -41,10 +53,10 @@ export function MarqueeFeed({ isDark }: MarqueeFeedProps) {
 
     const animate = () => {
       if (!isDown.current && !isHovered.current) {
-        scrollPosRef.current += speed;
-        // Se passar da metade do scrollWidth (o primeiro set de cards), reseta para 0
-        if (scrollPosRef.current >= container.scrollWidth / 2) {
-          scrollPosRef.current = 0;
+        scrollPosRef.current -= speed;
+        // Se chegar em 0, reseta para a metade do scrollWidth
+        if (scrollPosRef.current <= 0) {
+          scrollPosRef.current = container.scrollWidth / 2;
         }
         container.scrollLeft = scrollPosRef.current;
       }
@@ -53,7 +65,7 @@ export function MarqueeFeed({ isDark }: MarqueeFeedProps) {
 
     animationId = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationId);
-  }, [allCards.length]);
+  }, [allSponsors.length]);
 
   // Handlers para arrastar com Mouse
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -69,12 +81,11 @@ export function MarqueeFeed({ isDark }: MarqueeFeedProps) {
     if (!container || !isDown.current) return;
     e.preventDefault();
     const x = e.pageX - container.offsetLeft;
-    const walk = (x - startX.current) * 1.5; // multiplicador de sensibilidade
+    const walk = (x - startX.current) * 1.5;
     
     let newScrollLeft = scrollLeftVal.current - walk;
     const halfWidth = container.scrollWidth / 2;
 
-    // Tratar limites infinitos durante o arrasto
     if (newScrollLeft >= halfWidth) {
       newScrollLeft -= halfWidth;
       startX.current = e.pageX - container.offsetLeft;
@@ -129,25 +140,27 @@ export function MarqueeFeed({ isDark }: MarqueeFeedProps) {
   };
 
   return (
-    <section id="feed" className="py-8 border-y-2 border-[#E5A899]/25 dark:border-[#E5A899]/10 bg-gradient-to-r from-[#FAF6F0] via-[#FCEFEA] to-[#FAF6F0] dark:from-[#12110F] dark:via-[#1E1916] dark:to-[#12110F] relative shadow-lg shadow-[#E5A899]/5 transition-colors duration-300 scroll-mt-20 lg:scroll-mt-24">
+    <section id="patrocinadores" className="py-8 border-y-2 border-[#E5A899]/25 dark:border-[#E5A899]/10 bg-gradient-to-r from-[#FAF6F0] via-[#FCEFEA] to-[#FAF6F0] dark:from-[#12110F] dark:via-[#1E1916] dark:to-[#12110F] relative shadow-lg shadow-[#E5A899]/5 transition-colors duration-300 scroll-mt-20 lg:scroll-mt-24">
       <div className="max-w-7xl mx-auto px-6 mb-4 text-center">
-        {/* Watermark Logo */}
+        {/* Watermark Logo de Fundo */}
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.035] pointer-events-none z-0">
           <img src={logoSrc} alt="" className="max-h-full w-auto object-contain py-2" />
         </div>
 
-        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#F0A795]/15 border border-[#F0A795]/30 text-[#F0A795] text-xs font-bold uppercase tracking-widest mb-4">
-          ✨ A Alma do Evento
+        <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#F0A795]/15 border border-[#F0A795]/30 text-[#F0A795] text-xs font-bold uppercase tracking-widest mb-3">
+          🤝 Apoio & Suporte
         </span>
-        <h2 className="font-outfit font-black text-4xl md:text-5xl mb-6 text-gray-900 dark:text-white relative z-10 tracking-tight">
-          Feed de fotos: o coração vibrante do Memories Hub.
+        
+        <h2 className="font-outfit font-black text-3xl md:text-4xl mb-4 text-gray-900 dark:text-white relative z-10 tracking-tight">
+          Patrocinadores
         </h2>
-        <p className="text-gray-700 dark:text-gray-200 text-lg max-w-4xl mx-auto relative z-10 leading-relaxed font-medium">
-          O Memories Hub nasceu de um propósito simples: registrar sorrisos e momentos espontâneos em uma rede social exclusiva e fechada de eventos. Hoje, esse feed ao vivo de fotos é o coração pulsante da nossa plataforma, integrando stands virtuais, avaliações reais e sorteios na TV Wall de forma instantânea e integrada.
+        
+        <p className="text-gray-700 dark:text-gray-200 text-base md:text-lg max-w-4xl mx-auto relative z-10 leading-relaxed font-medium">
+          Nosso carinho e gratidão aos parceiros patrocinadores e a todos que tem nos apoiado a seguir em frente dando nosso melhor! MUITO OBRIGADO!
         </p>
       </div>
 
-      {/* Carrossel Interativo com Arrasto e Fades Laterais Responsivos */}
+      {/* Carrossel Interativo LTR com Fades Laterais Responsivos e py-3 */}
       <div className="w-full relative before:absolute before:left-0 before:top-0 before:h-full before:w-10 sm:before:w-20 md:before:w-32 lg:before:w-48 before:bg-gradient-to-r before:from-[#FAF6F0] dark:before:from-[#12110F] before:to-transparent before:z-10 after:absolute after:right-0 after:top-0 after:h-full after:w-10 sm:after:w-20 md:after:w-32 lg:after:w-48 after:bg-gradient-to-l after:from-[#FAF6F0] dark:after:from-[#12110F] after:to-transparent after:z-10">
         <div 
           ref={containerRef}
@@ -162,16 +175,16 @@ export function MarqueeFeed({ isDark }: MarqueeFeedProps) {
           onMouseLeave={() => { isHovered.current = false; handleMouseUpOrLeave(); }}
           className="w-full overflow-x-auto no-scrollbar py-3 flex gap-8 select-none cursor-grab active:cursor-grabbing"
         >
-          {allCards.map((card, idx) => (
-            <div key={`${card.num}-${idx}`} className="glass-card w-96 p-[18px] rounded-[28px] border-2 border-[#E5A899]/30 flex-shrink-0">
+          {allSponsors.map((sponsor, idx) => (
+            <div 
+              key={`${sponsor}-${idx}`} 
+              className="w-60 h-28 flex items-center justify-center p-5 rounded-2xl border-2 border-[#E5A899]/30 flex-shrink-0 bg-[#F5ECE2] dark:bg-[#8d6459] shadow-md hover:scale-105 transition-transform duration-300"
+            >
               <img
-                src={card.src}
-                alt={`Foto ${card.num}`}
-                className="w-full h-60 object-cover rounded-2xl mb-4 pointer-events-none hover:scale-[1.02] transition-transform duration-300"
+                src={`/landing/telas/${sponsor}`}
+                alt="Logo Patrocinador"
+                className="max-w-full max-h-full object-contain pointer-events-none filter dark:brightness-110 drop-shadow-[0_1.5px_2.5px_rgba(0,0,0,0.35)]"
               />
-              <p className="text-sm text-gray-800 dark:text-white font-semibold px-4 text-center select-none pointer-events-none">
-                &ldquo;{card.comment}&rdquo;
-              </p>
             </div>
           ))}
         </div>

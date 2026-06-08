@@ -72,7 +72,7 @@ export function ContactForm({ isDark }: ContactFormProps) {
   return (
     <section
       id="contato"
-      className="py-14 px-6 border-t border-[#E5A899]/20 dark:border-[#E5A899]/10 relative bg-[#FAF6F0] dark:bg-[#12110F] overflow-hidden transition-colors duration-300 scroll-mt-20 lg:scroll-mt-24"
+      className="py-8 px-6 border-t border-[#E5A899]/20 dark:border-[#E5A899]/10 relative bg-[#FAF6F0] dark:bg-[#12110F] overflow-hidden transition-colors duration-300 scroll-mt-20 lg:scroll-mt-24"
     >
       {/* Elegant Full Block Bamboo Background Decor for Contact Section (Visual Bookend) */}
       <div className="absolute inset-0 w-full h-full pointer-events-none select-none z-0 overflow-hidden">

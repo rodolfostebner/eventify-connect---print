@@ -1,8 +1,8 @@
 export function DualPathSection() {
   return (
-    <section className="py-14 px-6 relative bg-gradient-to-b from-[#FAF6F0] to-[#F7EFE5] dark:from-[#12110F] dark:to-[#181614] transition-colors duration-300">
+    <section className="py-8 px-6 relative bg-gradient-to-b from-[#FAF6F0] to-[#F7EFE5] dark:from-[#12110F] dark:to-[#181614] transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
+        <div className="text-center mb-4">
           <h2 className="font-outfit font-bold text-4xl mb-4 text-gray-900 dark:text-white">Escolha a sua jornada.</h2>
           <p className="text-gray-600 dark:text-gray-300 text-lg">Um ecossistema completo desenhado tanto para quem curte o evento quanto para quem faz ele acontecer.</p>
         </div>

@@ -4,6 +4,7 @@ import { LandingHeader } from './components/LandingHeader';
 import { HeroSection } from './components/HeroSection';
 import { MarqueeFeed } from './components/MarqueeFeed';
 import { DualPathSection } from './components/DualPathSection';
+import { SponsorMarquee } from './components/SponsorMarquee';
 import { ContactForm } from './components/ContactForm';
 import { LandingFooter } from './components/LandingFooter';
 import { LoginModal } from './components/LoginModal';
@@ -43,6 +44,7 @@ export default function LandingPage({ openLogin = false }: LandingPageProps) {
         <HeroSection isDark={isDark} />
         <MarqueeFeed isDark={isDark} />
         <DualPathSection />
+        <SponsorMarquee isDark={isDark} />
         <ContactForm isDark={isDark} />
       </main>
 

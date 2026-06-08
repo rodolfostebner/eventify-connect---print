@@ -71,6 +71,7 @@ export function LandingHeader({ isDark, onToggleDark, onOpenLogin }: LandingHead
           <a href="#feed" className="hover:text-[#F0A795] transition-colors">Feed Gallery</a>
           <a href="#participantes" className="hover:text-[#F0A795] transition-colors">Para Participantes</a>
           <a href="#negocios" className="hover:text-[#F0A795] transition-colors">Para Escolas / Empresas</a>
+          <a href="#patrocinadores" className="hover:text-[#F0A795] transition-colors">Apoio🩶</a>
 
           {/* Tutoriais Dropdown */}
           <div className="relative" ref={tutorialsRef}>
@@ -143,6 +144,7 @@ export function LandingHeader({ isDark, onToggleDark, onOpenLogin }: LandingHead
             <a href="#feed" onClick={closeMobileMenu} className="hover:text-[#F0A795] py-2 border-b border-[#E5A899]/5 dark:border-[#E5A899]/10 transition-colors">Feed Gallery</a>
             <a href="#participantes" onClick={closeMobileMenu} className="hover:text-[#F0A795] py-2 border-b border-[#E5A899]/5 dark:border-[#E5A899]/10 transition-colors">Para Participantes</a>
             <a href="#negocios" onClick={closeMobileMenu} className="hover:text-[#F0A795] py-2 border-b border-[#E5A899]/5 dark:border-[#E5A899]/10 transition-colors">Para Escolas / Empresas</a>
+            <a href="#patrocinadores" onClick={closeMobileMenu} className="hover:text-[#F0A795] py-2 border-b border-[#E5A899]/5 dark:border-[#E5A899]/10 transition-colors">Apoio🩶</a>
 
             {/* Mobile Tutoriais */}
             <div className="border-b border-[#E5A899]/5 dark:border-[#E5A899]/10">

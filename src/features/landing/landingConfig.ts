@@ -17,6 +17,9 @@ export interface LandingConfig {
   /** Quantidade de fotos no carrossel de feed na pasta public/landing/feed/ (foto1.jpg, foto2.jpg, etc.) */
   feedPhotosCount: number;
 
+  /** Logos dos patrocinadores na pasta public/landing/telas/ (Patrocinador1.png, Patrocinador2.jpg, etc.) */
+  sponsors: string[];
+
   /** Legendas associadas a cada foto do carrossel. Chave = nome do arquivo (ex: "foto1.jpg") */
   comments: Record<string, string>;
 
@@ -47,6 +50,13 @@ export const landingConfig: LandingConfig = {
   // Quantidade de fotos na pasta public/landing/feed/ (foto1.jpg, foto2.jpg, etc.)
   // Limite sugerido: até 10 fotos.
   feedPhotosCount: 4,
+
+  // 2.5 LOGOS DOS PATROCINADORES (Carrossel de patrocinadores)
+  sponsors: [
+    "Patrocinador1.png",
+    "Patrocinador2.jpg",
+    "Patrocinador3.png"
+  ],
 
   // Legendas que aparecem abaixo de cada foto no carrossel:
   comments: {

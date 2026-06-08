@@ -768,8 +768,8 @@ export default function EventPage({ user }: { user: AppUser | null }) {
                     </a>
                     <div className="flex flex-col gap-1 pt-2.5">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-outfit font-black text-xl text-gray-800 tracking-tight leading-tight">Eventify</span>
-                        <span className="text-[9px] bg-[#F0A795]/15 px-2 py-0.5 rounded-full text-[#F0A795] font-bold tracking-wider uppercase leading-none">MemoriesHub</span>
+                        <span className="font-outfit font-black text-xl text-gray-800 tracking-tight leading-tight">Memories Hub</span>
+                        <span className="text-[9px] bg-[#F0A795]/15 px-2 py-0.5 rounded-full text-[#F0A795] font-bold tracking-wider uppercase leading-none">Eventify</span>
                       </div>
                       <p className="text-[11px] text-neutral-500 leading-tight font-semibold italic">
                         "Onde cada memória do seu evento<br />
