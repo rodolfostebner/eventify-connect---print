@@ -184,7 +184,7 @@ export function LoginModal({ isOpen, onClose, isDark }: LoginModalProps) {
             alt="Eventify Koala Logo"
             className="h-20 w-auto object-contain mb-3 transition-transform duration-350 hover:scale-105 cursor-pointer"
           />
-          <h3 className="font-outfit font-bold text-2xl text-gray-900 dark:text-white">Eventify</h3>
+          <h3 className="font-outfit font-bold text-2xl text-gray-900 dark:text-white">Memories Hub</h3>
           {BETA_MODE ? (
             <div className="inline-flex items-center gap-1.5 mt-2 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/25">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>

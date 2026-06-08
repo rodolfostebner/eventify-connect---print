@@ -98,7 +98,7 @@ export default function LoginPage() {
             <div className="w-12 h-12 bg-neutral-900 rounded-xl flex items-center justify-center mx-auto mb-4 text-2xl">
               🐨
             </div>
-            <h1 className="text-xl font-bold text-neutral-900">Eventify</h1>
+            <h1 className="text-xl font-bold text-neutral-900">Memories Hub</h1>
             {BETA_MODE ? (
               <div className="flex items-center justify-center gap-1.5 mt-2">
                 <FlaskConical className="w-3.5 h-3.5 text-amber-500" />

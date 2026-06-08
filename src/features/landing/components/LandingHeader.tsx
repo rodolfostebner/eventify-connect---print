@@ -62,8 +62,8 @@ export function LandingHeader({ isDark, onToggleDark, onOpenLogin }: LandingHead
             onClick={onToggleDark}
           />
           <div className="hidden sm:block h-6 sm:h-8 w-px bg-[#E5A899]/30 dark:bg-[#E5A899]/20 mx-1 sm:mx-2" />
-          <span className="font-outfit font-bold text-base sm:text-lg text-gray-800 dark:text-gray-100 tracking-tight">Eventify</span>
-          <span className="hidden md:inline-block text-[10px] bg-[#F0A795]/15 px-2.5 py-0.5 rounded-full text-[#F0A795] font-bold tracking-wider uppercase">MemoriesHub</span>
+          <span className="font-outfit font-bold text-base sm:text-lg text-gray-800 dark:text-gray-100 tracking-tight">Memories Hub</span>
+          <span className="hidden md:inline-block text-[10px] bg-[#F0A795]/15 px-2.5 py-0.5 rounded-full text-[#F0A795] font-bold tracking-wider uppercase">Eventify</span>
         </div>
 
         {/* Desktop Nav */}

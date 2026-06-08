@@ -95,7 +95,7 @@ export function ContactForm({ isDark }: ContactFormProps) {
           />
 
           <h2 className="font-outfit font-extrabold text-4xl md:text-5xl mb-4 text-gray-900 dark:text-white leading-tight">
-            Leve a experiência do Eventify para o seu evento, feira ou exposição.
+            Leve a experiência do Memories Hub para o seu evento, feira ou exposição.
           </h2>
           <p className="text-gray-600 dark:text-gray-300 text-lg mb-8 max-w-2xl mx-auto">
             Transforme seu evento físico em uma experiência phygital interativa.
@@ -151,7 +151,7 @@ export function ContactForm({ isDark }: ContactFormProps) {
               disabled={loading}
               className="w-full bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:hover:bg-white dark:text-gray-900 text-white font-bold py-4 rounded-2xl transition-all duration-300 shadow-md transform hover:-translate-y-0.5 mt-2 disabled:opacity-55"
             >
-              {loading ? "Enviando..." : "Fale com um Especialista Eventify"}
+              {loading ? "Enviando..." : "Fale com um Especialista"}
             </button>
           </form>
         </div>

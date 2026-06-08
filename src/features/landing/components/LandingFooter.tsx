@@ -23,13 +23,13 @@ export function LandingFooter({ isDark }: LandingFooterProps) {
         <div className="flex items-center gap-3 md:w-1/3 justify-center md:justify-start">
           <img src={logoSrc} alt="Koala Footer" className="h-10 w-auto object-contain" />
           <span className="font-outfit font-semibold text-gray-700 dark:text-gray-300">
-            Eventify-MemoriesHub
+            MemoriesHub-Eventify
           </span>
         </div>
         {/* Center Block */}
         <div className="text-center md:w-1/3">
           <p className="m-0 text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} Eventify-MemoriesHub. Todos os direitos reservados. Design em tempo real.
+            &copy; {new Date().getFullYear()} MemoriesHub-Eventify. Todos os direitos reservados. Design em tempo real.
           </p>
         </div>
         {/* Right Block */}

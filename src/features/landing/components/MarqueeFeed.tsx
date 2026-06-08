@@ -31,7 +31,7 @@ export function MarqueeFeed({ isDark }: MarqueeFeedProps) {
           ✨ A Alma do Evento
         </span>
         <h2 className="font-outfit font-black text-4xl md:text-5xl mb-6 text-gray-900 dark:text-white relative z-10 tracking-tight">
-          Feed de fotos: o coração vibrante do Eventify.
+          Feed de fotos: o coração vibrante do Memories Hub.
         </h2>
         <p className="text-gray-700 dark:text-gray-200 text-lg max-w-4xl mx-auto relative z-10 leading-relaxed font-medium">
           O Eventify nasceu de um propósito simples: registrar sorrisos e momentos espontâneos em uma rede social exclusiva e fechada de eventos. Hoje, esse feed ao vivo de fotos é o coração pulsante da nossa plataforma, integrando stands virtuais, avaliações reais e sorteios na TV Wall de forma instantânea e integrada.

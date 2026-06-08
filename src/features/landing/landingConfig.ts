@@ -41,7 +41,7 @@ export const landingConfig: LandingConfig = {
   // 1. TELAS DO MOCKUP DO CELULAR
   // Quantidade de imagens na pasta public/landing/telas/ (Tela1.jpeg, Tela2.jpeg, etc.)
   // Limite sugerido: até 10 telas.
-  mockupScreensCount: 4,
+  mockupScreensCount: 7,
 
   // 2. FOTOS E COMENTÁRIOS DO FEED (Carrossel infinito)
   // Quantidade de fotos na pasta public/landing/feed/ (foto1.jpg, foto2.jpg, etc.)
