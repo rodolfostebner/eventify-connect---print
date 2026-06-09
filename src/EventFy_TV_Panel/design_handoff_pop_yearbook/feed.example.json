@@ -1,0 +1,67 @@
+{
+  "event": {
+    "id": "fe2026",
+    "org": "COLÉGIO JOURNEY",
+    "name": "FEIRA DE EMPREENDEDORISMO 2026",
+    "handle": "/fe2026",
+    "date": "21 MAI · 2026",
+    "startsAt": "9h",
+    "endsAt": "16h"
+  },
+  "config": {
+    "slideMs": 7000,
+    "transition": "fade",
+    "showTicker": true,
+    "showRanking": true,
+    "stripAlert": false,
+    "accentVisitor": "#FFE600",
+    "rotation": ["v","v","eF","v","v","p","v","eB","v","v","eF","v","p","v","v","eB"]
+  },
+  "visitorPhotos": [
+    { "id": "v1", "name": "Cibelle Stebner", "category": "ROCKSTAR", "emoji": "🎸", "imageUrl": "https://yourcdn.example/photos/v1.jpg", "reactions": { "heart": 2, "rock": 2, "fire": 2, "laugh": 2 }, "votes": 12, "approved": true, "createdAt": "2026-05-21T10:14:00-03:00" },
+    { "id": "v2", "name": "Rafael Tavares", "category": "BOSS", "emoji": "👔", "imageUrl": "https://yourcdn.example/photos/v2.jpg", "reactions": { "heart": 5, "rock": 1, "fire": 3, "laugh": 0 }, "votes": 9, "approved": true, "createdAt": "2026-05-21T10:31:00-03:00" },
+    { "id": "v3", "name": "Mariana Lemos", "category": "CRAFT", "emoji": "✂️", "imageUrl": "https://yourcdn.example/photos/v3.jpg", "reactions": { "heart": 7, "rock": 0, "fire": 1, "laugh": 4 }, "votes": 7, "approved": true, "createdAt": "2026-05-21T11:02:00-03:00" },
+    { "id": "v4", "name": "Pedro Hoffmann", "category": "CHEF", "emoji": "🍳", "imageUrl": "https://yourcdn.example/photos/v4.jpg", "reactions": { "heart": 3, "rock": 2, "fire": 6, "laugh": 1 }, "votes": 4, "approved": true, "createdAt": "2026-05-21T11:20:00-03:00" },
+    { "id": "v5", "name": "Júlia Castro", "category": "ARTIST", "emoji": "🎨", "imageUrl": "https://yourcdn.example/photos/v5.jpg", "reactions": { "heart": 9, "rock": 1, "fire": 2, "laugh": 3 }, "votes": 3, "approved": true, "createdAt": "2026-05-21T11:45:00-03:00" },
+    { "id": "v6", "name": "Lucas Prado", "category": "ROCKSTAR", "emoji": "🎸", "imageUrl": "https://yourcdn.example/photos/v6.jpg", "reactions": { "heart": 1, "rock": 4, "fire": 0, "laugh": 2 }, "votes": 2, "approved": false, "createdAt": "2026-05-21T12:05:00-03:00" }
+  ],
+  "exhibitors": [
+    { "id": "e1", "name": "Capivara Dog", "category": "COMIDA", "emoji": "🌭", "accent": "#E63946", "tier": "gold", "tagline": "Feito por quem ama cachorro quente.", "stand": "A-12", "imageUrl": "https://yourcdn.example/exhibitors/e1.jpg", "instagram": "@capivaradog", "active": true },
+    { "id": "e2", "name": "Pedaço de Felicidade", "category": "DOCES", "emoji": "🍰", "accent": "#B5651D", "tier": "standard", "tagline": "Bolos pra qualquer ocasião.", "stand": "B-04", "imageUrl": "https://yourcdn.example/exhibitors/e2.jpg", "instagram": "@pedaco.feliz", "active": true },
+    { "id": "e3", "name": "Velas Aromáticas", "category": "CASA", "emoji": "🕯️", "accent": "#D97757", "tier": "standard", "tagline": "Aromáticas, repelentes, decorativas.", "stand": "C-09", "imageUrl": "https://yourcdn.example/exhibitors/e3.jpg", "instagram": "@velas.ja", "active": true },
+    { "id": "e4", "name": "Suco do Bem", "category": "BEBIDA", "emoji": "🧃", "accent": "#2A9D8F", "tier": "gold", "tagline": "Sucos naturais prensados na hora.", "stand": "A-08", "imageUrl": "https://yourcdn.example/exhibitors/e4.jpg", "instagram": "@suco.do.bem", "active": true },
+    { "id": "e5", "name": "Tear & Trama", "category": "ARTESANATO", "emoji": "🧶", "accent": "#7B2CBF", "tier": "standard", "tagline": "Crochê e bordado feito à mão.", "stand": "D-02", "imageUrl": "https://yourcdn.example/exhibitors/e5.jpg", "instagram": "@tear.trama", "active": true },
+    { "id": "e6", "name": "Plant Lovers", "category": "PLANTAS", "emoji": "🪴", "accent": "#3E8E3E", "tier": "standard", "tagline": "Mudas e suculentas pra todo canto.", "stand": "C-11", "imageUrl": "https://yourcdn.example/exhibitors/e6.jpg", "instagram": "@plant.lovers.fe", "active": true },
+    { "id": "e7", "name": "Bling Studio", "category": "ACESSÓRIOS", "emoji": "💎", "accent": "#FF4D8F", "tier": "standard", "tagline": "Joias feitas com resina e flores secas.", "stand": "B-07", "imageUrl": "https://yourcdn.example/exhibitors/e7.jpg", "instagram": "@bling.studio", "active": true },
+    { "id": "e8", "name": "Burger Boom", "category": "COMIDA", "emoji": "🍔", "accent": "#F4A261", "tier": "gold", "tagline": "Smash burgers grelhados na chapa.", "stand": "A-03", "imageUrl": "https://yourcdn.example/exhibitors/e8.jpg", "instagram": "@burger.boom", "active": true }
+  ],
+  "partners": [
+    { "id": "p1", "name": "Stebner Câmbio", "role": "PATROCINADOR OURO", "accent": "#005DAA", "textOn": "#FFFFFF", "tagline": "Apoiando a juventude empreendedora desde 2018.", "logoText": "STEBNER", "logoUrl": null, "tier": "gold" },
+    { "id": "p2", "name": "Padaria Estrela", "role": "APOIO", "accent": "#FFC93C", "textOn": "#1A1B3A", "tagline": "Pão quentinho desde 1962.", "logoText": "★ ESTRELA", "logoUrl": null, "tier": "standard" },
+    { "id": "p3", "name": "Livraria Janela", "role": "PARCEIRO", "accent": "#1A8F5E", "textOn": "#FFFFFF", "tagline": "Para os curiosos de todas as idades.", "logoText": "JANELA", "logoUrl": null, "tier": "standard" },
+    { "id": "p4", "name": "TechKids Lab", "role": "PATROCINADOR PRATA", "accent": "#7C3AED", "textOn": "#FFFFFF", "tagline": "Programação e robótica pra quem tá começando.", "logoText": "TK LAB", "logoUrl": null, "tier": "gold" }
+  ],
+  "raffle": {
+    "id": "r1",
+    "prize": "Kit Capivara Dog",
+    "prizeSub": "4 combos + camiseta",
+    "drawAt": "2026-05-21T14:00:00-03:00",
+    "enteredCount": 217,
+    "status": "scheduled",
+    "winnerPhotoId": null
+  },
+  "alerts": [
+    { "id": "a1", "kind": "full", "kicker": "AVISO · ENCERRAMENTO", "title": "TUDO 50% OFF", "sub": "Últimos 30 minutos da feira. Aproveita.", "stand": null, "active": false, "expiresAt": null },
+    { "id": "a2", "kind": "overlay", "kicker": "OFERTA RELÂMPAGO", "title": "Capivara Dog acabou de soltar combo", "sub": "Combo duplo R$ 18 · enquanto durar", "stand": "A-12", "active": false, "expiresAt": null },
+    { "id": "a3", "kind": "ticker", "kicker": "", "title": "RIFA em 12 minutos no estande A-12 · Burger Boom: combo R$ 22 · Bling Studio: brincos a partir de R$ 15", "sub": "", "stand": null, "active": false, "expiresAt": null }
+  ],
+  "ticker": [
+    { "id": "t1", "text": "📸 Envie sua foto em /fe2026", "order": 1 },
+    { "id": "t2", "text": "🎁 Próxima rifa às 14h — Kit Capivara Dog", "order": 2 },
+    { "id": "t3", "text": "🍔 Burger Boom — combo do dia R$ 22", "order": 3 },
+    { "id": "t4", "text": "🕯️ Velas Aromáticas com 2 por R$ 30", "order": 4 },
+    { "id": "t5", "text": "🧃 Suco do Bem — leve 3 pague 2", "order": 5 },
+    { "id": "t6", "text": "⏰ Feira encerra às 16h", "order": 6 }
+  ],
+  "command": { "type": "rotate" }
+}

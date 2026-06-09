@@ -1,1 +1,1 @@
-export { default } from '../features/tv/TVView';
+export { default } from '../features/tv/TVScreen';

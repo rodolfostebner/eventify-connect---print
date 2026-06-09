@@ -11,6 +11,7 @@ import PartnerPanelPage from "./pages/PartnerPanelPage"
 import EventAdminPortalPage from "./pages/EventAdminPortalPage"
 import AvaliadorPageComponent from "./pages/AvaliadorPage"
 import LandingPage from "./pages/LandingPage"
+import TVControlPanelPage from "./pages/TVControlPanelPage"
 import { Toaster } from "sonner"
 import { NotificationsListener } from "./components/NotificationsListener"
 
@@ -72,6 +73,7 @@ function App() {
         <Route path="/operator/:slug" element={isAdmin ? <OperatorPanel user={user} /> : <Navigate to="/login" replace />} />
         <Route path="/expositores/:slug" element={(isAdmin || isEventAdmin) ? <ExhibitorPanelPage /> : <Navigate to="/login" replace />} />
         <Route path="/parceiros/:slug" element={(isAdmin || isEventAdmin) ? <PartnerPanelPage /> : <Navigate to="/login" replace />} />
+        <Route path="/tvcontrol/:slug" element={(isAdmin || isEventAdmin) ? <TVControlPanelPage /> : <Navigate to="/login" replace />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />

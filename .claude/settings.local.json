@@ -28,7 +28,11 @@
       "Bash(curl -s \"http://localhost:3000/src/services/auditService.ts\")",
       "Bash(kill %1)",
       "Bash(grep -nA14 \"interface Sponsor\" src/types/index.ts)",
-      "Bash(grep -nA20 \"export interface Exhibitor\\\\b\" src/types/index.ts)"
+      "Bash(grep -nA20 \"export interface Exhibitor\\\\b\" src/types/index.ts)",
+      "Bash(dir C:codeeventifyeventify-connect---printdocs *)",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(npm i *)"
     ]
   }
 }

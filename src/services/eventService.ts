@@ -69,9 +69,11 @@ export function subscribeToEvent(
       else onUpdate(data as EventData | null);
     });
 
-  // Real-time subscription
+  // Real-time subscription — nome de canal único por instância para evitar
+  // colisão de tópico quando há múltiplos assinantes do mesmo slug
+  // (ex: TVScreen + TVView legado, ou re-mount do StrictMode).
   const channel = supabase
-    .channel(`public:events:slug=eq.${cleanSlug}`)
+    .channel(`public:events:slug=eq.${cleanSlug}:${Math.random().toString(36).slice(2, 9)}`)
     .on(
       'postgres_changes',
       {

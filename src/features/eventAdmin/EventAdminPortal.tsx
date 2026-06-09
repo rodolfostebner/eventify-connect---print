@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
+import { MarketingTab } from './MarketingTab';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Eye, LayoutDashboard, ShieldCheck, Printer, Store, Star, Play, Pause, CheckCircle2,
@@ -1859,6 +1860,7 @@ export default function EventAdminPortal() {
   const accessButtons = [
     { label: 'App', icon: Eye, path: `/event/${event.slug}`, color: 'text-neutral-600 bg-neutral-50 border-neutral-100 hover:bg-neutral-100' },
     { label: 'TV', icon: LayoutDashboard, path: `/tv/${event.slug}`, color: 'text-neutral-600 bg-neutral-50 border-neutral-100 hover:bg-neutral-100' },
+    { label: 'Painel TV', icon: LayoutDashboard, path: `/tvcontrol/${event.slug}`, color: 'text-emerald-600 bg-emerald-50 border-emerald-100 hover:bg-emerald-100' },
     { label: 'Curadoria', icon: ShieldCheck, path: `/moderation/${event.slug}`, color: 'text-blue-600 bg-blue-50 border-blue-100 hover:bg-blue-100' },
     { label: 'Operador', icon: Printer, path: `/operator/${event.slug}`, color: 'text-violet-600 bg-violet-50 border-violet-100 hover:bg-violet-100' },
     { label: 'Expositores', icon: Store, path: `/expositores/${event.slug}`, color: 'text-amber-600 bg-amber-50 border-amber-100 hover:bg-amber-100' },
@@ -2211,8 +2213,13 @@ export default function EventAdminPortal() {
               <SorteioTab event={event} onEventUpdate={(updatedEvent) => setEvent(updatedEvent)} />
             )}
 
-            {/* Abas 6–7 — placeholders */}
-            {(['relatorios', 'marketing'] as const).includes(activeTab as any) && (
+            {/* Aba Marketing */}
+            {activeTab === 'marketing' && (
+              <MarketingTab eventId={event.id} />
+            )}
+
+            {/* Aba Relatórios — placeholder */}
+            {activeTab === 'relatorios' && (
               <div className="flex flex-col items-center justify-center py-16 text-neutral-300">
                 <Info className="w-10 h-10 mb-3" />
                 <p className="text-sm font-bold text-neutral-400">Em definição</p>
