@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { TvTheme } from '../theme';
 import type { MarketingPhoto } from '../../../../services/marketingService';
@@ -15,7 +15,6 @@ export default function Mod06Marketing({
   photos: MarketingPhoto[]; theme: TvTheme; perSlide: number;
 }) {
   const [idx, setIdx] = useState(0);
-  const startRef = useRef(0);
 
   useEffect(() => {
     if (photos.length <= 1) return;
@@ -34,7 +33,7 @@ export default function Mod06Marketing({
     );
   }
 
-  const photo = photos[(startRef.current + idx) % photos.length];
+  const photo = photos[idx % photos.length];
   const hasText = Boolean(photo.phrase || photo.text);
 
   return (

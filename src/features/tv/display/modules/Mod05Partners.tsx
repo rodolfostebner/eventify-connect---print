@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Partner, PartnerType } from '../../../../types';
 import type { TvTheme } from '../theme';
@@ -39,7 +39,6 @@ export default function Mod05Partners({
   }, [partners]);
 
   const [idx, setIdx] = useState(0);
-  const startRef = useRef(0);
 
   useEffect(() => {
     if (frames.length <= 1) return;
@@ -58,7 +57,7 @@ export default function Mod05Partners({
     );
   }
 
-  const frame = frames[(startRef.current + idx) % frames.length];
+  const frame = frames[idx % frames.length];
   const { partner: p } = frame;
   const centerImage = frame.image || p.logo_url || null;
 

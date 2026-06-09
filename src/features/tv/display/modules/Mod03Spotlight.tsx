@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Exhibitor } from '../../../../types';
 import type { TvTheme } from '../theme';
@@ -15,7 +15,6 @@ export default function Mod03Spotlight({
   exhibitors: Exhibitor[]; theme: TvTheme; perSlide: number;
 }) {
   const [idx, setIdx] = useState(0);
-  const startRef = useRef(Math.floor(Math.random() * Math.max(1, exhibitors.length)));
 
   useEffect(() => {
     if (exhibitors.length <= 1) return;
@@ -34,7 +33,7 @@ export default function Mod03Spotlight({
     );
   }
 
-  const ex = exhibitors[(startRef.current + idx) % exhibitors.length];
+  const ex = exhibitors[idx % exhibitors.length];
   const image = ex.photo_url || ex.logo_url || '';
 
   return (

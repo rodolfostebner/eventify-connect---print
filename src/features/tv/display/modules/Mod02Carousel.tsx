@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { PhotoData } from '../../../../types';
 import type { TvTheme } from '../theme';
@@ -15,9 +15,7 @@ export default function Mod02Carousel({
   photos: PhotoData[]; theme: TvTheme; perSlide: number; eventId: string;
 }) {
   const [idx, setIdx] = useState(0);
-  const startRef = useRef(Math.floor(Math.random() * Math.max(1, photos.length)));
 
-  // Ordena: oficiais ganham um leve destaque aparecendo intercaladas
   const list = photos.filter((p) => p.status === 'approved');
 
   useEffect(() => {
@@ -26,7 +24,7 @@ export default function Mod02Carousel({
     return () => clearInterval(t);
   }, [list.length, perSlide]);
 
-  const current = list.length > 0 ? list[(startRef.current + idx) % list.length] : null;
+  const current = list.length > 0 ? list[idx % list.length] : null;
 
   // Marca exibição (best-effort, sem bloquear render)
   useEffect(() => {

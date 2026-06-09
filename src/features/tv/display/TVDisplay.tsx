@@ -85,7 +85,18 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
     return list;
   }, [spotlightExhibitors.length, exhibitors.length, partners.length, marketingPhotos.length]);
 
-  const { activeModule } = useTvRotation(config, implemented);
+  // Nº de itens que cada módulo vai exibir — o motor usa isto para manter o
+  // módulo ativo por (tempo por item × nº de itens), exibindo todos em sequência.
+  const itemCounts = useMemo<Partial<Record<RotationModuleId, number>>>(() => ({
+    mod01: 1, // ranking é uma vista única
+    mod02: photos.filter((p) => p.status === 'approved').length,
+    mod03: spotlightExhibitors.length,
+    mod04: Math.ceil(exhibitors.length / 3), // grupos de 3
+    mod05: partners.reduce((s, p) => s + Math.max(1, (p.photos ?? []).filter(Boolean).length), 0),
+    mod06: marketingPhotos.length,
+  }), [photos, spotlightExhibitors.length, exhibitors.length, partners, marketingPhotos.length]);
+
+  const { activeModule } = useTvRotation(config, implemented, itemCounts);
 
   // ─── Itens do ticker ────────────────────────────────────────────────────────
   const tickerItems = useMemo<TickerItem[]>(() => {
@@ -122,6 +133,9 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
 
   return (
     <div className="w-screen h-screen overflow-hidden flex flex-col" style={{ ...bg, color: theme.ink }}>
+      {/* Header fixo: logo + nome do evento à esquerda, slug à direita */}
+      <Header event={event} theme={theme} />
+
       {/* Palco do módulo ativo */}
       <div className="flex-1 min-h-0 relative">
         <AnimatePresence mode="wait">
@@ -144,6 +158,40 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
       {/* Rodapé sempre visível */}
       <Ticker theme={theme} items={tickerItems} speed={config.ticker_speed} />
     </div>
+  );
+}
+
+function Header({ event, theme }: { event: EventData; theme: ReturnType<typeof getTvTheme> }) {
+  return (
+    <header
+      className="shrink-0 h-[12vh] flex items-center justify-between px-12"
+      style={{ background: theme.frame, borderBottom: `4px solid ${theme.accent}` }}
+    >
+      {/* Logo + nome do evento */}
+      <div className="flex items-center gap-6 min-w-0">
+        {event.logo_url && (
+          <div
+            className="shrink-0 flex items-center justify-center rounded-2xl"
+            style={{ background: '#fff', height: '9vh', padding: '8px', boxShadow: '0 4px 14px rgba(0,0,0,0.12)' }}
+          >
+            <img src={event.logo_url} alt={event.name} className="max-h-full w-auto object-contain" referrerPolicy="no-referrer" />
+          </div>
+        )}
+        <h1 style={{ fontFamily: theme.fontDisplay, color: theme.ink }} className="text-5xl leading-none truncate">
+          {event.name}
+        </h1>
+      </div>
+
+      {/* Slug do evento */}
+      <div className="shrink-0 flex flex-col items-end">
+        <span style={{ fontFamily: theme.fontBody, color: theme.inkSoft }} className="text-xl uppercase tracking-widest">
+          Participe em
+        </span>
+        <span style={{ fontFamily: theme.fontDisplay, color: theme.accent }} className="text-4xl leading-none">
+          /{event.slug}
+        </span>
+      </div>
+    </header>
   );
 }
 

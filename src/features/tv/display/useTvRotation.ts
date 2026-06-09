@@ -2,12 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import type { TvConfig } from '../../../services/tvService';
 import { ROTATION_MODULES, type RotationModuleId } from './theme';
 
-// Quantos slides cada módulo exibe por visita (carrosséis mostram um lote).
-// O tempo total do slot = duração × nº de slides, mantendo motor e módulo em sincronia.
-export const SLIDES_PER_VISIT: Record<RotationModuleId, number> = {
-  mod01: 1, mod02: 5, mod03: 2, mod04: 2, mod05: 2, mod06: 2,
-};
-
 /**
  * Motor de rotação dos módulos do telão.
  *
@@ -15,13 +9,16 @@ export const SLIDES_PER_VISIT: Record<RotationModuleId, number> = {
  * - Monta a fila a partir de ROTATION_MODULES, pulando os módulos pausados.
  * - `active_module` força um módulo específico (não avança até ser limpo).
  * - `rotation_paused` congela no módulo atual.
- * - Cada módulo permanece `duration_modXX` segundos antes de avançar.
+ * - A duração configurada (`duration_modXX`) é o tempo de cada ITEM do módulo.
+ *   O módulo permanece ativo por `duração × nº de itens`, garantindo que todos
+ *   os seus itens apareçam em sequência antes de avançar para o próximo.
  *
  * Retorna o módulo ativo agora e se a rotação está congelada.
  */
 export function useTvRotation(
   config: TvConfig | null,
-  implemented?: readonly RotationModuleId[],
+  implemented: readonly RotationModuleId[] | undefined,
+  itemCounts: Partial<Record<RotationModuleId, number>>,
 ): {
   activeModule: RotationModuleId | null;
   forced: boolean;
@@ -47,6 +44,9 @@ export function useTvRotation(
       ? queue[index % queue.length]
       : null;
 
+  // Quantos itens o módulo ativo vai exibir (cada um pelo tempo configurado)
+  const activeCount = activeModule ? Math.max(1, itemCounts[activeModule] ?? 1) : 1;
+
   // Mantém o índice dentro dos limites quando a fila muda
   useEffect(() => {
     if (queue.length > 0 && index >= queue.length) {
@@ -54,13 +54,14 @@ export function useTvRotation(
     }
   }, [queue.length, index]);
 
-  // Avanço automático
+  // Avanço automático — slot do módulo = duração por item × nº de itens
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (frozen || queue.length <= 1 || !activeModule || !config) return;
 
     const durationKey = `duration_${activeModule}` as keyof TvConfig;
-    const seconds = (Number(config[durationKey]) || 10) * (SLIDES_PER_VISIT[activeModule] ?? 1);
+    const perItem = Number(config[durationKey]) || 10;
+    const seconds = perItem * activeCount;
 
     timerRef.current = setTimeout(() => {
       setIndex((i) => (i + 1) % queue.length);
@@ -70,7 +71,7 @@ export function useTvRotation(
       if (timerRef.current) clearTimeout(timerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeModule, frozen, queue.length, config?.updated_at]);
+  }, [activeModule, activeCount, frozen, queue.length, config?.updated_at]);
 
   return { activeModule, forced: Boolean(forcedModule) };
 }

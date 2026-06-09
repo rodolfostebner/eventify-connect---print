@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Exhibitor } from '../../../../types';
 import type { TvTheme } from '../theme';
@@ -18,7 +18,6 @@ export default function Mod04Trio({
   for (let i = 0; i < exhibitors.length; i += 3) groups.push(exhibitors.slice(i, i + 3));
 
   const [idx, setIdx] = useState(0);
-  const startRef = useRef(Math.floor(Math.random() * Math.max(1, groups.length)));
 
   useEffect(() => {
     if (groups.length <= 1) return;
@@ -37,7 +36,7 @@ export default function Mod04Trio({
     );
   }
 
-  const group = groups[(startRef.current + idx) % groups.length];
+  const group = groups[idx % groups.length];
 
   return (
     <div className="w-full h-full flex flex-col px-16 py-10">
