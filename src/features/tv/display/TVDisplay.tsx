@@ -11,7 +11,7 @@ import { getMarketingPhotos, type MarketingPhoto } from '../../../services/marke
 import { getActiveSpotlights } from '../../../services/tvService';
 import { getTvTheme, ensureThemeFonts, type RotationModuleId } from './theme';
 import { useTvRotation } from './useTvRotation';
-import Ticker from './Ticker';
+import Ticker, { type TickerItem } from './Ticker';
 import Mod01Rank from './modules/Mod01Rank';
 import Mod02Carousel from './modules/Mod02Carousel';
 import Mod03Spotlight from './modules/Mod03Spotlight';
@@ -88,23 +88,25 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
   const { activeModule } = useTvRotation(config, implemented);
 
   // ─── Itens do ticker ────────────────────────────────────────────────────────
-  const tickerItems = useMemo(() => {
-    const items: string[] = [];
+  const tickerItems = useMemo<TickerItem[]>(() => {
+    const items: TickerItem[] = [];
 
     if (config.ticker_show_raffle) {
       const next = prizes.find((p) => !p.winner_ticket_id);
-      if (next) items.push(`🎁 Sorteio em breve: ${next.name}`);
+      if (next) items.push({ text: `🎁 Sorteio em breve: ${next.name}` });
     }
 
     if (config.ticker_show_products) {
       const exMap = new Map(exhibitors.map((e) => [e.id, e]));
       products.forEach((prod) => {
-        const hasPhoto = (prod.photos?.length ?? 0) > 0;
-        if (!hasPhoto && !config.ticker_show_no_photo) return;
+        const photo = prod.photos?.[0] ?? null;
+        if (!photo && !config.ticker_show_no_photo) return;
         const ex = exMap.get(prod.exhibitor_id);
         const price = prod.price != null ? ` — R$ ${Number(prod.price).toFixed(2)}` : '';
-        const stand = ex ? ` · Estande ${ex.number}` : '';
-        items.push(`🛍️ ${prod.name}${price}${stand}`);
+        const who = ex ? ` · ${ex.name}` : '';
+        // Com foto, a miniatura já indica o produto; sem foto, mantém o emoji.
+        const text = photo ? `${prod.name}${price}${who}` : `🛍️ ${prod.name}${price}${who}`;
+        items.push({ text, image: photo });
       });
     }
 

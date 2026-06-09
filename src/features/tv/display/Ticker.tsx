@@ -1,15 +1,21 @@
 import { useRef, useState, useEffect } from 'react';
 import type { TvTheme } from './theme';
 
+export interface TickerItem {
+  text: string;
+  image?: string | null;
+}
+
 /**
  * Rodapé do telão — marquee horizontal contínuo, sempre visível.
  * Recebe os itens já montados; só cuida do scroll e do visual.
+ * Cada item pode ter uma miniatura (ex: foto do produto).
  * Quando `alertText` está presente, vira faixa de aviso (vermelha).
  */
 export default function Ticker({
   theme, items, speed, alertText,
 }: {
-  theme: TvTheme; items: string[]; speed: number; alertText?: string | null;
+  theme: TvTheme; items: TickerItem[]; speed: number; alertText?: string | null;
 }) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(0);
@@ -61,7 +67,15 @@ export default function Ticker({
                 style={{ fontFamily: theme.fontBody, color: theme.paper }}
                 className="text-2xl px-7 flex items-center gap-3"
               >
-                {item}
+                {item.image && (
+                  <img
+                    src={item.image}
+                    alt=""
+                    className="h-[5vh] w-[5vh] object-cover rounded-lg shrink-0"
+                    style={{ border: `2px solid ${theme.frame}` }}
+                  />
+                )}
+                {item.text}
                 <span style={{ color: theme.accent }}>✦</span>
               </span>
             ))}
