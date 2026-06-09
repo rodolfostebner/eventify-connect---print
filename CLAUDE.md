@@ -99,6 +99,9 @@ src/
     visitService.ts        # Registro silencioso de visitas/cliques, relatorios por expositor
     auditService.ts        # Log de auditoria de alteracoes do evento (diff + autor)
     dashboardService.ts    # Agrega metricas do evento (expositores, produtos, visitas) p/ o dashboard
+    announcementService.ts # CRUD avisos + disparo TV/popup/push (tabelas announcements, events, notifications)
+    tvService.ts           # Config do telão + destaques + historico de fotos (tabelas tv_config, tv_exhibitor_spotlight, tv_photo_history)
+    marketingService.ts    # Contato + slides de fotos do telão (tabelas event_marketing, event_marketing_photos)
 
   contexts/
     AuthContext.tsx         # AuthProvider + useAuth + BETA_MODE — re-exportado em hooks/useAuth.ts
@@ -116,7 +119,8 @@ src/
     LoginPage.tsx            # Login unificado legado (substituído por modal da Landing)
     ModerationPanel.tsx
     OperatorPanel.tsx
-    TVView.tsx
+    TVView.tsx               # Wrapper: re-exporta features/tv/TVScreen (roteador de tema do telão)
+    TVControlPanelPage.tsx   # Wrapper para TVControlPanel (painel de controle do telão)
     ExhibitorPanelPage.tsx   # Admin: gestao de expositores do evento
     ExhibitorPortalPage.tsx  # Expositor: portal pos-login
     PartnerPanelPage.tsx     # Admin: gestao de parceiros (patrocinadores/apoiadores/servicos)
@@ -189,6 +193,7 @@ src/
 
     eventAdmin/
       EventAdminPortal.tsx # Portal do EventAdmin: controles + dashboard + config (abas) + auditoria. Acesso admin e event_admin
+      MarketingTab.tsx     # Aba Marketing: contato do evento + slides de fotos do telão
 
     avaliador/
       AvaliadorPage.tsx    # Painel do avaliador (stub — a implementar)
@@ -211,7 +216,17 @@ src/
         usePrintQueue.ts   # Subscribe a fila em tempo real
 
     tv/
-      TVView.tsx           # Live Wall: slideshow fullscreen + rankings por categoria
+      TVScreen.tsx         # Roteador visual do telão: escolhe tema via tv_config (default -> TVView legado; demais -> TVDisplay modular)
+      TVView.tsx           # Live Wall legado: slideshow fullscreen + rankings por categoria (fallback do tema default)
+      TVControlPanel.tsx   # Painel de controle do telão: rotacao, modulos, durações, ticker, destaques (/tvcontrol/:slug)
+      display/
+        TVDisplay.tsx      # Motor de rotação modular (temas não-default, ex: pop-yearbook)
+        Ticker.tsx         # Faixa inferior (sorteio, avisos, produtos)
+        useTvRotation.ts   # Hook de rotação entre modulos conforme tv_config
+        theme.ts           # Tokens de tema do telão
+        modules/
+          Mod01Rank.tsx    # Modulo de ranking
+          Mod02Carousel.tsx # Modulo de carrossel de fotos
 
   components/
     ErrorBoundary.tsx          # Boundary global de erro
@@ -251,7 +266,8 @@ docs/
 | `/` | Publico / Admin | LandingPage (não logado) / AdminDashboard (admin logado) | Ativo |
 | `/admin` | — | Redireciona para `/` | — |
 | `/event/:slug` | Publico | EventPage (3 views por status) | Ativo |
-| `/tv/:slug` | Publico | TVView (slideshow fullscreen) | Ativo |
+| `/tv/:slug` | Publico | TVView → TVScreen (roteador de tema; fallback telão legado) | Ativo |
+| `/tvcontrol/:slug` | Admin / EventAdmin | TVControlPanelPage (painel de controle do telão) | Ativo |
 | `/moderation/:slug` | Admin | ModerationPanel | Ativo |
 | `/operator/:slug` | Admin | OperatorPanel | UI incompleta |
 | `/expositores/:slug` | Admin | ExhibitorPanelPage | Ativo |
@@ -307,11 +323,12 @@ Callbacks sempre fazem refetch completo — nunca merge parcial do payload.
 
 Canais ativos:
 - `public:events` — dashboard admin
-- `public:events:slug=eq.{slug}` — pagina do evento
+- `public:events:slug=eq.{slug}:{rand}` — pagina do evento (sufixo aleatorio por instancia p/ evitar colisao de topico entre assinantes do mesmo slug)
 - `public:event_data:{id}` — feed + moderacao (posts, reactions, comments)
 - `public:print_orders:event_id=eq.{id}` — operador
 - `public:notifications:user_id=eq.{id}` — notificacoes
 - `public:exhibitors:event_id=eq.{id}` — painel de expositores
+- `tv_config:{event_id}:{rand}` — telão + painel de controle do telão
 
 ---
 
@@ -342,6 +359,11 @@ Canais ativos:
 | `raffle_tickets` | Tickets de sorteio: 1 por participante por evento, UNIQUE(event_id, user_id) | Ativo |
 | `visits` | Analytics de visitas/cliques (event_status pre/live/post no momento da visita; relatorio pos-evento, nao afeta ranking) | Ativo |
 | `view_exhibitor_rankings` | View SQL: ranking ponderado (publico × peso + jurado × peso) em tempo real | Ativo |
+| `tv_config` | Config do telão por evento: rotacao, modulo ativo/forcado, tema, duracoes/pausa por modulo (mod01-06), ticker, UNIQUE(event_id) | Ativo |
+| `tv_exhibitor_spotlight` | Historico de expositores em destaque no telão (MOD-03); ended_at null = em destaque agora | Ativo |
+| `tv_photo_history` | Historico de fotos exibidas no telão (mod01/mod02) p/ evitar repeticao | Ativo |
+| `event_marketing` | Contato do evento p/ o telão (instagram, phone, email), UNIQUE(event_id) | Ativo |
+| `event_marketing_photos` | Slides de fotos do telão (image_url, phrase, text, order_index, active) | Ativo |
 
 ---
 
@@ -366,6 +388,8 @@ Canais ativos:
 | `auditService.ts` | `audit_logs` | Ativo |
 | `dashboardService.ts` | `exhibitors`, `products`, `visits` (agregacao client-side p/ o dashboard do EventAdmin) | Ativo |
 | `announcementService.ts`| `announcements`, `events`, `notifications`, `users` | Ativo |
+| `tvService.ts` | `tv_config`, `tv_exhibitor_spotlight`, `tv_photo_history`, `view_exhibitor_rankings`, `evaluations` | Ativo |
+| `marketingService.ts` | `event_marketing`, `event_marketing_photos` | Ativo |
 
 ---
 

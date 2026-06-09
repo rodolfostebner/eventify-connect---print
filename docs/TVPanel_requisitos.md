@@ -188,14 +188,13 @@ Módulos pausados são pulados automaticamente.
 ### ✅ Fase 1 (implementada)
 - **Painel de controle** (`/tvcontrol/:slug`) — rotação, módulos, expositor destaque, ticker, avisos, sorteio, curadoria. Grava em `tv_config`.
 - **Motor de rotação modular** (`features/tv/display/`): `TVDisplay` + `useTvRotation` (fila, pausa geral, módulo forçado, durações).
-- **MOD-01 · Rank de Fotos** e **MOD-02 · Carrossel** no tema **Pop Yearbook**.
+- **MOD-01 · Rank de Fotos**, **MOD-02 · Carrossel**, **MOD-03 · Expositor Destaque**, **MOD-04 · Trio de Expositores**, **MOD-05 · Patrocinadores** e **MOD-06 · Marketing** no tema **Pop Yearbook**.
 - **Ticker** (rodapé) com sorteio + produtos, velocidade configurável.
 - **Roteamento por tema** (`TVScreen`): `default` → TVView legado; `pop-yearbook` → novo motor.
 
-> O motor só rotaciona módulos já implementados (`IMPLEMENTED` em `TVDisplay.tsx`). Ao implementar MOD-03→06, incluí-los nessa lista.
+> O motor só rotaciona módulos com conteúdo. `IMPLEMENTED` em `TVDisplay.tsx` é dinâmico: mod01/mod02 sempre; mod03 se houver expositor em destaque; mod04 se houver expositor ativo; mod05 se houver parceiro com `show_on_tv`; mod06 se houver foto de marketing ativa.
 
 ### ⏳ Próximas fases
-- MOD-03 (Expositor Destaque), MOD-04 (Trio), MOD-05 (Parceiros), MOD-06 (Marketing)
 - Modos especiais no novo motor: aviso full-screen/overlay (MOD-07/08) e sorteio (MOD-09/10) — hoje só no TVView legado
 - Priorizar fotos não exibidas no MOD-02 via `tv_photo_history`
 - Layout dos slides do MOD-06 (foto / foto+frase / foto+frase+texto)

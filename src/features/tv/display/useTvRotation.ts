@@ -5,7 +5,7 @@ import { ROTATION_MODULES, type RotationModuleId } from './theme';
 // Quantos slides cada módulo exibe por visita (carrosséis mostram um lote).
 // O tempo total do slot = duração × nº de slides, mantendo motor e módulo em sincronia.
 export const SLIDES_PER_VISIT: Record<RotationModuleId, number> = {
-  mod01: 1, mod02: 5, mod03: 1, mod04: 1, mod05: 1, mod06: 1,
+  mod01: 1, mod02: 5, mod03: 2, mod04: 2, mod05: 2, mod06: 2,
 };
 
 /**
