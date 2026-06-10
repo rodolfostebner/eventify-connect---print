@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Star, Briefcase, LayoutGrid, Rows3, Camera } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { useEventPhotos } from '../hooks/useEventPhotos';
@@ -17,7 +17,7 @@ import { getExhibitors } from '../../../services/exhibitorService';
 import { getPartners } from '../../../services/partnerService';
 import { getExhibitorCategories } from '../../../services/exhibitorCategoryService';
 import type { EventData, AppUser, Exhibitor, Partner, ExhibitorCategory } from '../../../types';
-import { cn } from '../../../lib/utils';
+import { cn, rotateByTime, SPONSOR_ROTATION_MS } from '../../../lib/utils';
 
 type Tab = 'expositores' | 'patrocinadores' | 'fotos';
 
@@ -52,8 +52,18 @@ export const LiveEventView = ({ event, user, onLogin, isSelectingForPrint, selec
     getExhibitorCategories(event.id).then(setCategories).catch(() => {});
   }, [event.id]);
 
-  const sponsors = partners.filter(p => p.type === 'patrocinador' || p.type === 'apoiador');
-  const services = partners.filter(p => p.type === 'servico');
+  // Rodízio justo dos patrocinadores/apoiadores (e serviços): gira a ordem para
+  // não mostrar sempre o mesmo primeiro — mesma regra dos expositores
+  // (rotateByTime). Como há poucos patrocinadores (até ~10), giramos a cada 5
+  // min em vez de 1, para a troca ser mais suave dando visibilidade igual a todos.
+  const sponsors = useMemo(
+    () => rotateByTime(partners.filter(p => p.type === 'patrocinador' || p.type === 'apoiador'), SPONSOR_ROTATION_MS),
+    [partners],
+  );
+  const services = useMemo(
+    () => rotateByTime(partners.filter(p => p.type === 'servico'), SPONSOR_ROTATION_MS),
+    [partners],
+  );
   const officialPhotos = photos.filter(p => p.status === 'approved' && p.is_official);
   const galleryPhotos = photos.filter(p => !p.is_official);
 

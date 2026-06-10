@@ -11,6 +11,8 @@ import { getMarketingPhotos, type MarketingPhoto } from '../../../services/marke
 import { getActiveSpotlights, upsertTvConfig } from '../../../services/tvService';
 import { getTvTheme, ensureThemeFonts, type RotationModuleId } from './theme';
 import { useTvRotation } from './useTvRotation';
+import AnnouncementOverlay from '../AnnouncementOverlay';
+import RaffleOverlay from '../RaffleOverlay';
 import Ticker, { type TickerItem } from './Ticker';
 import Mod01Rank from './modules/Mod01Rank';
 import Mod02Carousel from './modules/Mod02Carousel';
@@ -78,26 +80,36 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
     [exhibitors, spotlightIds],
   );
 
+  // Expositores do MOD-04 — opcionalmente só os que têm foto (photo_url/logo_url)
+  const trioExhibitors = useMemo(
+    () => (config.mod04_only_with_photo
+      ? exhibitors.filter((e) => e.photo_url || e.logo_url)
+      : exhibitors),
+    [exhibitors, config.mod04_only_with_photo],
+  );
+
   // Só entram na rotação os módulos com conteúdo (além do controle de pausa do painel).
   const implemented = useMemo<RotationModuleId[]>(() => {
     const list: RotationModuleId[] = ['mod01', 'mod02'];
     if (spotlightExhibitors.length > 0) list.push('mod03');
-    if (exhibitors.length > 0) list.push('mod04');
+    if (trioExhibitors.length > 0) list.push('mod04');
     if (partners.length > 0) list.push('mod05');
-    if (marketingPhotos.length > 0) list.push('mod06');
+    // MOD-06 entra sempre: a 1ª página é a tela de boas-vindas do evento.
+    list.push('mod06');
     return list;
-  }, [spotlightExhibitors.length, exhibitors.length, partners.length, marketingPhotos.length]);
+  }, [spotlightExhibitors.length, trioExhibitors.length, partners.length]);
 
   // Nº de itens que cada módulo vai exibir — o motor usa isto para manter o
   // módulo ativo por (tempo por item × nº de itens), exibindo todos em sequência.
   const itemCounts = useMemo<Partial<Record<RotationModuleId, number>>>(() => ({
     mod01: 1, // ranking é uma vista única
-    mod02: photos.filter((p) => p.status === 'approved').length,
+    mod02: Math.ceil(photos.filter((p) => p.status === 'approved').length / 3), // trios
+
     mod03: spotlightExhibitors.length,
-    mod04: Math.ceil(exhibitors.length / 3), // grupos de 3
+    mod04: Math.ceil(trioExhibitors.length / 3), // grupos de 3
     mod05: partners.reduce((s, p) => s + Math.max(1, (p.photos ?? []).filter(Boolean).length), 0),
-    mod06: marketingPhotos.length,
-  }), [photos, spotlightExhibitors.length, exhibitors.length, partners, marketingPhotos.length]);
+    mod06: marketingPhotos.length + 1, // +1 = tela de boas-vindas
+  }), [photos, spotlightExhibitors.length, trioExhibitors.length, partners, marketingPhotos.length]);
 
   const { activeModule } = useTvRotation(config, implemented, itemCounts);
 
@@ -130,16 +142,36 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
 
     if (config.ticker_show_products) {
       const exMap = new Map(exhibitors.map((e) => [e.id, e]));
+
+      // Filtra os produtos exibíveis e agrupa por stand
+      const byStand = new Map<string, Product[]>();
       products.forEach((prod) => {
         const photo = prod.photos?.[0] ?? null;
         if (!photo && !config.ticker_show_no_photo) return;
-        const ex = exMap.get(prod.exhibitor_id);
-        const price = prod.price != null ? ` — R$ ${Number(prod.price).toFixed(2)}` : '';
-        const who = ex ? ` · ${ex.name}` : '';
-        // Com foto, a miniatura já indica o produto; sem foto, mantém o emoji.
-        const text = photo ? `${prod.name}${price}${who}` : `🛍️ ${prod.name}${price}${who}`;
-        items.push({ text, image: photo });
+        const arr = byStand.get(prod.exhibitor_id) ?? [];
+        arr.push(prod);
+        byStand.set(prod.exhibitor_id, arr);
       });
+
+      // Round-robin em blocos de 3 por stand: cada stand entra com até 3
+      // produtos por rodada; quem tiver mais volta ao fim da fila em novos blocos de 3.
+      const queues = [...byStand.values()].map((arr) => [...arr]);
+      let remaining = queues.reduce((s, q) => s + q.length, 0);
+      while (remaining > 0) {
+        queues.forEach((q) => {
+          for (let n = 0; n < 3 && q.length > 0; n++) {
+            const prod = q.shift()!;
+            remaining--;
+            const photo = prod.photos?.[0] ?? null;
+            const ex = exMap.get(prod.exhibitor_id);
+            const price = prod.price != null ? ` — R$ ${Number(prod.price).toFixed(2)}` : '';
+            const who = ex ? ` · ${ex.name}` : '';
+            // Com foto, a miniatura já indica o produto; sem foto, mantém o emoji.
+            const text = photo ? `${prod.name}${price}${who}` : `🛍️ ${prod.name}${price}${who}`;
+            items.push({ text, image: photo });
+          }
+        });
+      }
     }
 
     return items;
@@ -169,8 +201,8 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
             className="absolute inset-0"
           >
             {renderModule(activeModule, {
-              photos, exhibitors, spotlightExhibitors, partners, marketingPhotos,
-              theme, eventId: event.id, dur,
+              photos, exhibitors: trioExhibitors, spotlightExhibitors, partners, marketingPhotos,
+              theme, eventId: event.id, event, dur,
             })}
           </motion.div>
         </AnimatePresence>
@@ -178,6 +210,12 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
 
       {/* Rodapé sempre visível */}
       <Ticker theme={theme} items={tickerItems} speed={config.ticker_speed} />
+
+      {/* Sorteio disparado pelo painel (tela cheia) — compartilhado com o telão legado */}
+      <RaffleOverlay event={event} />
+
+      {/* Avisos disparados pelo painel (tela cheia + som) — compartilhado com o telão legado */}
+      <AnnouncementOverlay event={event} />
     </div>
   );
 }
@@ -226,10 +264,11 @@ function renderModule(
     marketingPhotos: MarketingPhoto[];
     theme: ReturnType<typeof getTvTheme>;
     eventId: string;
+    event: EventData;
     dur: (mod: RotationModuleId, fallback: number) => number;
   },
 ) {
-  const { photos, exhibitors, spotlightExhibitors, partners, marketingPhotos, theme, eventId, dur } = ctx;
+  const { photos, exhibitors, spotlightExhibitors, partners, marketingPhotos, theme, eventId, event, dur } = ctx;
   switch (mod) {
     case 'mod01':
       return <Mod01Rank photos={photos} theme={theme} />;
@@ -242,7 +281,7 @@ function renderModule(
     case 'mod05':
       return <Mod05Partners partners={partners} theme={theme} perSlide={dur('mod05', 10)} />;
     case 'mod06':
-      return <Mod06Marketing photos={marketingPhotos} theme={theme} perSlide={dur('mod06', 10)} />;
+      return <Mod06Marketing photos={marketingPhotos} theme={theme} perSlide={dur('mod06', 10)} event={event} />;
     case null:
       return (
         <div className="w-full h-full flex items-center justify-center">

@@ -1,8 +1,9 @@
 import React from 'react';
-import { ChevronRight, Instagram, MessageCircle, Globe } from 'lucide-react';
+import { ChevronRight, Globe } from 'lucide-react';
 import type { Exhibitor, ExhibitorCategory, AppUser } from '../../../types';
 import { trackVisit } from '../../../services/visitService';
 import { formatInstagram, formatWhatsApp, formatWebsite } from '../../../utils/formatters';
+import { WhatsAppIcon, InstagramIcon } from './BrandIcons';
 
 export type CardSize = 'small' | 'medium' | 'large';
 
@@ -107,12 +108,12 @@ export function ExhibitorCard({ exhibitor, category, size, onSelect, event, user
         <div className="p-3 flex items-center gap-2">
           {exhibitor.instagram_url && (
             <button onClick={e => handleSocial(e, 'instagram', exhibitor.instagram_url!)} className="w-[34px] h-[34px] rounded-full bg-[#F0F0F4] flex items-center justify-center hover:bg-neutral-200 transition-colors shrink-0">
-              <Instagram className="w-4 h-4 text-[#5A5A6E]" />
+              <InstagramIcon className="w-[18px] h-[18px]" />
             </button>
           )}
           {exhibitor.whatsapp && (
             <button onClick={e => handleSocial(e, 'whatsapp', `https://wa.me/${exhibitor.whatsapp!.replace(/\D/g, '')}`)} className="w-[34px] h-[34px] rounded-full bg-[#F0F0F4] flex items-center justify-center hover:bg-neutral-200 transition-colors shrink-0">
-              <MessageCircle className="w-4 h-4 text-[#5A5A6E]" />
+              <WhatsAppIcon className="w-4 h-4 text-[#25D366]" />
             </button>
           )}
           {exhibitor.website_url && (

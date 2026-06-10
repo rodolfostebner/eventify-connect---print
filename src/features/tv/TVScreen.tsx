@@ -19,7 +19,29 @@ export default function TVScreen() {
 
   useEffect(() => {
     if (!slug) return;
-    return subscribeToEvent(slug, (ev) => { if (ev) setEvent(ev); }, console.error);
+
+    // 1. Realtime
+    const unsub = subscribeToEvent(slug, (ev) => { if (ev) setEvent(ev); }, console.error);
+
+    // 2. Polling de fallback — garante que disparos de aviso (active_announcement_id)
+    //    cheguem ao telão mesmo quando o realtime do Supabase não está disponível.
+    const poll = setInterval(() => {
+      import('../../services/eventService').then(({ getEventBySlug }) => {
+        getEventBySlug(slug).then((ev) => {
+          if (!ev) return;
+          setEvent((cur) =>
+            cur?.active_announcement_id !== ev.active_announcement_id ||
+            cur?.announcement_trigger_at !== ev.announcement_trigger_at ||
+            cur?.tv_raffle_state !== ev.tv_raffle_state ||
+            cur?.tv_raffle_prize_id !== ev.tv_raffle_prize_id
+              ? ev
+              : cur,
+          );
+        }).catch(console.error);
+      });
+    }, 5000);
+
+    return () => { unsub(); clearInterval(poll); };
   }, [slug]);
 
   useEffect(() => {
