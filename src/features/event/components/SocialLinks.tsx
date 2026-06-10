@@ -1,8 +1,9 @@
-import { Instagram, Globe, MessageCircle, Phone, Mail, Music2, Youtube } from 'lucide-react';
+import { Globe, Phone, Mail, Music2, Youtube } from 'lucide-react';
 import {
   formatInstagram, formatWhatsApp, formatWebsite,
   formatTiktok, formatYoutube, formatEmail, formatPhone,
 } from '../../../utils/formatters';
+import { WhatsAppIcon, InstagramIcon } from './BrandIcons';
 
 export type SocialLinkType = 'instagram' | 'tiktok' | 'youtube' | 'whatsapp' | 'website' | 'email' | 'phone';
 
@@ -35,10 +36,10 @@ export function SocialLinks({
   if (!instagram && !tiktok && !youtube && !whatsapp && !website && !email && !phone) return null;
 
   const links: { type: SocialLinkType; show?: string; href: string; icon: React.ReactNode; hover: string }[] = [
-    { type: 'instagram', show: instagram, href: formatInstagram(instagram), icon: <Instagram className="w-4 h-4" />, hover: 'hover:text-pink-600' },
+    { type: 'instagram', show: instagram, href: formatInstagram(instagram), icon: <InstagramIcon className="w-4 h-4" />, hover: 'hover:text-pink-600' },
     { type: 'tiktok', show: tiktok, href: formatTiktok(tiktok), icon: <Music2 className="w-4 h-4" />, hover: 'hover:text-neutral-900' },
     { type: 'youtube', show: youtube, href: formatYoutube(youtube), icon: <Youtube className="w-4 h-4" />, hover: 'hover:text-red-600' },
-    { type: 'whatsapp', show: whatsapp, href: formatWhatsApp(whatsapp), icon: <MessageCircle className="w-4 h-4" />, hover: 'hover:text-green-600' },
+    { type: 'whatsapp', show: whatsapp, href: formatWhatsApp(whatsapp), icon: <WhatsAppIcon className="w-4 h-4 text-[#25D366]" />, hover: 'hover:text-green-600' },
     { type: 'website', show: website, href: formatWebsite(website), icon: <Globe className="w-4 h-4" />, hover: 'hover:text-blue-600' },
     { type: 'email', show: email, href: formatEmail(email), icon: <Mail className="w-4 h-4" />, hover: 'hover:text-amber-600' },
     { type: 'phone', show: phone, href: formatPhone(phone), icon: <Phone className="w-4 h-4" />, hover: 'hover:text-emerald-600' },

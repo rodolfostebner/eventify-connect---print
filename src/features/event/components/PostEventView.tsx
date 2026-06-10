@@ -11,6 +11,7 @@ import { getExhibitors } from '../../../services/exhibitorService';
 import { getPartners } from '../../../services/partnerService';
 import { getExhibitorCategories } from '../../../services/exhibitorCategoryService';
 import { getExhibitorRankings } from '../../../services/evaluationService';
+import { rotateByTime, SPONSOR_ROTATION_MS } from '../../../lib/utils';
 
 interface Props {
   event: EventData;
@@ -37,8 +38,15 @@ export const PostEventView = ({ event, user, onLogin }: Props) => {
     getExhibitorRankings(event.id).then(r => setRankings(r.sort((a, b) => b.final_score - a.final_score))).catch(() => {});
   }, [event.id]);
 
-  const sponsors = partners.filter(p => p.type === 'patrocinador' || p.type === 'apoiador');
-  const services = partners.filter(p => p.type === 'servico');
+  // Rodízio justo dos patrocinadores/serviços (gira a cada 5 min — ver SPONSOR_ROTATION_MS)
+  const sponsors = useMemo(
+    () => rotateByTime(partners.filter(p => p.type === 'patrocinador' || p.type === 'apoiador'), SPONSOR_ROTATION_MS),
+    [partners],
+  );
+  const services = useMemo(
+    () => rotateByTime(partners.filter(p => p.type === 'servico'), SPONSOR_ROTATION_MS),
+    [partners],
+  );
 
   // Fotos destacadas: top por likes e por cada emoji
   const momentPhotos = useMemo(() => {

@@ -5,6 +5,32 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Rodízio justo por tempo: "gira" a lista 1 posição a cada `periodMs`
+ * (default 1 min), baseado no relógio. Os primeiros vão para o fim, dando a
+ * todos a mesma chance de aparecer no topo ao longo do tempo. É estável dentro
+ * de um render (o offset só muda quando o componente recalcula), então não
+ * pula a tela enquanto o usuário navega — muda a cada minuto/refresh.
+ *
+ * Funciona para qualquer quantidade: o offset é `% n`, então se ajusta
+ * sozinho a 2, 30 ou 40 itens. Com poucos itens (ex: 2-3 patrocinadores) o
+ * ciclo é mais curto e a alternância fica mais frequente — o que é justamente
+ * o desejado para dar visibilidade igual a todos.
+ */
+/**
+ * Período de rodízio dos patrocinadores/serviços no feed (5 min). Maior que o
+ * dos expositores (1 min) porque há poucos patrocinadores (até ~10): com poucos
+ * itens o ciclo é curto, então um período maior deixa a troca mais suave.
+ */
+export const SPONSOR_ROTATION_MS = 5 * 60 * 1000;
+
+export function rotateByTime<T>(items: T[], periodMs = 60000): T[] {
+  const n = items.length;
+  if (n <= 1) return items;
+  const offset = Math.floor(Date.now() / periodMs) % n;
+  return [...items.slice(offset), ...items.slice(0, offset)];
+}
+
 export function getAppUrl() {
   // Use VITE_APP_URL if defined, otherwise fallback to window.location.origin
   const url = import.meta.env.VITE_APP_URL || window.location.origin;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Star, Briefcase } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import type { EventData, Exhibitor, Partner, ExhibitorCategory, AppUser } from '../../../types';
@@ -8,7 +8,7 @@ import { getExhibitorCategories } from '../../../services/exhibitorCategoryServi
 import { ExhibitorList } from './ExhibitorList';
 import { ExhibitorDetailModal } from './ExhibitorDetailModal';
 import { PartnerSection } from './PartnerSection';
-import { parseEventDate } from '../../../lib/utils';
+import { parseEventDate, rotateByTime, SPONSOR_ROTATION_MS } from '../../../lib/utils';
 
 type Tab = 'expositores' | 'patrocinadores';
 
@@ -46,8 +46,15 @@ export const PreEventView = ({ event, user }: Props) => {
     getExhibitorCategories(event.id).then(setCategories).catch(() => {});
   }, [event.id]);
 
-  const sponsors = partners.filter(p => p.type === 'patrocinador' || p.type === 'apoiador');
-  const services = partners.filter(p => p.type === 'servico');
+  // Rodízio justo dos patrocinadores/serviços (gira a cada 5 min — ver SPONSOR_ROTATION_MS)
+  const sponsors = useMemo(
+    () => rotateByTime(partners.filter(p => p.type === 'patrocinador' || p.type === 'apoiador'), SPONSOR_ROTATION_MS),
+    [partners],
+  );
+  const services = useMemo(
+    () => rotateByTime(partners.filter(p => p.type === 'servico'), SPONSOR_ROTATION_MS),
+    [partners],
+  );
 
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: 'expositores', label: 'Expositores', count: exhibitors.length },

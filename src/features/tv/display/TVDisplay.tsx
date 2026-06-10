@@ -11,6 +11,8 @@ import { getMarketingPhotos, type MarketingPhoto } from '../../../services/marke
 import { getActiveSpotlights, upsertTvConfig } from '../../../services/tvService';
 import { getTvTheme, ensureThemeFonts, type RotationModuleId } from './theme';
 import { useTvRotation } from './useTvRotation';
+import AnnouncementOverlay from '../AnnouncementOverlay';
+import RaffleOverlay from '../RaffleOverlay';
 import Ticker, { type TickerItem } from './Ticker';
 import Mod01Rank from './modules/Mod01Rank';
 import Mod02Carousel from './modules/Mod02Carousel';
@@ -178,6 +180,12 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
 
       {/* Rodapé sempre visível */}
       <Ticker theme={theme} items={tickerItems} speed={config.ticker_speed} />
+
+      {/* Sorteio disparado pelo painel (tela cheia) — compartilhado com o telão legado */}
+      <RaffleOverlay event={event} />
+
+      {/* Avisos disparados pelo painel (tela cheia + som) — compartilhado com o telão legado */}
+      <AnnouncementOverlay event={event} />
     </div>
   );
 }
