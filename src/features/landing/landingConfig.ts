@@ -53,9 +53,11 @@ export const landingConfig: LandingConfig = {
 
   // 2.5 LOGOS DOS PATROCINADORES (Carrossel de patrocinadores)
   sponsors: [
-    "Patrocinador1.png",
+    "Patrocinador1.jpeg",
     "Patrocinador2.png",
-    "Patrocinador3.png"
+    "Patrocinador3.png",
+    "Patrocinador4.jpeg",
+    "Patrocinador5.png"
   ],
 
   // Legendas que aparecem abaixo de cada foto no carrossel:
