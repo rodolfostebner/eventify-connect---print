@@ -8,7 +8,7 @@ import { getProductsByExhibitorIds } from '../../../services/productService';
 import { getPrizes } from '../../../services/raffleService';
 import { getPartners } from '../../../services/partnerService';
 import { getMarketingPhotos, type MarketingPhoto } from '../../../services/marketingService';
-import { getActiveSpotlights } from '../../../services/tvService';
+import { getActiveSpotlights, upsertTvConfig } from '../../../services/tvService';
 import { getTvTheme, ensureThemeFonts, type RotationModuleId } from './theme';
 import { useTvRotation } from './useTvRotation';
 import Ticker, { type TickerItem } from './Ticker';
@@ -45,7 +45,9 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
     return () => { active = false; unsub(); };
   }, [event.id]);
 
-  // Expositores + produtos (apoio ao ticker e aos módulos 03/04)
+  // Conteúdo (expositores, produtos, parceiros, marketing, prêmios, fotos).
+  // Recarrega quando o painel pede atualização (config.updated_at muda) —
+  // ex: botão "Atualizar Telão" ou "Ir direto para módulo".
   useEffect(() => {
     let active = true;
     getExhibitors(event.id).then(async (exs) => {
@@ -57,17 +59,18 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
     getPartners(event.id).then((ps) => active && setPartners(ps.filter((p) => p.show_on_tv)));
     getMarketingPhotos(event.id).then((ms) => active && setMarketingPhotos(ms.filter((m) => m.active)));
     getPrizes(event.id).then((p) => active && setPrizes(p));
+    fetchPosts(event.id).then((p) => active && setPhotos(p));
     return () => { active = false; };
-  }, [event.id]);
+  }, [event.id, config.updated_at]);
 
-  // Destaques de expositor — poll periódico (controlado pelo painel em tempo real)
+  // Destaques de expositor — poll periódico + ao pedir atualização do painel
   useEffect(() => {
     let active = true;
     const load = () => getActiveSpotlights(event.id).then((s) => active && setSpotlightIds(s.map((x) => x.exhibitor_id)));
     load();
     const t = setInterval(load, SPOTLIGHT_POLL_MS);
     return () => { active = false; clearInterval(t); };
-  }, [event.id]);
+  }, [event.id, config.updated_at]);
 
   // Expositores em destaque agora (resolvidos a partir da lista completa)
   const spotlightExhibitors = useMemo(
@@ -97,6 +100,24 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
   }), [photos, spotlightExhibitors.length, exhibitors.length, partners, marketingPhotos.length]);
 
   const { activeModule } = useTvRotation(config, implemented, itemCounts);
+
+  // Módulo forçado ("Ir direto para módulo"): mostra enquanto tiver conteúdo e
+  // depois volta à rotação automática sozinho. Sem conteúdo, volta na hora.
+  useEffect(() => {
+    const forced = config.active_module as RotationModuleId | null;
+    if (!forced) return;
+    if (!implemented.includes(forced)) {
+      upsertTvConfig(event.id, { active_module: null }).catch(() => {});
+      return;
+    }
+    const perItem = Number(config[`duration_${forced}` as keyof TvConfig]) || 10;
+    const count = Math.max(1, itemCounts[forced] ?? 1);
+    const t = setTimeout(() => {
+      upsertTvConfig(event.id, { active_module: null }).catch(() => {});
+    }, perItem * count * 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.active_module, config.updated_at, event.id, implemented]);
 
   // ─── Itens do ticker ────────────────────────────────────────────────────────
   const tickerItems = useMemo<TickerItem[]>(() => {

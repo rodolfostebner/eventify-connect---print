@@ -175,7 +175,14 @@ export default function TVControlPanel() {
 
   useEffect(() => {
     if (!event) return;
-    return subscribeToTvConfig(event.id, setConfig);
+    let active = true;
+    const unsub = subscribeToTvConfig(event.id, setConfig);
+    // Polling de fallback: reflete mudanças feitas pelo telão (ex: módulo
+    // forçado que termina e volta à rotação) mesmo sem realtime.
+    const poll = setInterval(() => {
+      getTvConfig(event.id).then((c) => active && c && setConfig(c));
+    }, 4000);
+    return () => { active = false; unsub(); clearInterval(poll); };
   }, [event?.id]);
 
   // ─── Curadoria: carregar fotos quando muda para a aba ──────────────────────
@@ -203,6 +210,13 @@ export default function TVControlPanel() {
       setSaving(false);
     }
   }, [event]);
+
+  // Força o telão a re-puxar config + conteúdo (bump em updated_at).
+  const refreshTv = useCallback(async () => {
+    if (!event) return;
+    await save({});
+    toast.success('Telão atualizado');
+  }, [event, save]);
 
   // cfg: config atual com fallback para defaults (nunca null)
   const cfg = { ...DEFAULT_CONFIG, ...config };
@@ -341,6 +355,16 @@ export default function TVControlPanel() {
           <p className="text-sm font-bold truncate">{event.name}</p>
         </div>
 
+        {/* Atualizar telão */}
+        <button
+          onClick={refreshTv}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded-lg text-xs font-semibold transition-colors"
+        >
+          <RefreshCw className={cn('w-3.5 h-3.5', saving && 'animate-spin')} />
+          Atualizar Telão
+        </button>
+
         {/* Status do telão */}
         <a
           href={`/tv/${slug}`}
@@ -351,8 +375,6 @@ export default function TVControlPanel() {
           <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
           Ver Telão
         </a>
-
-        {saving && <Loader2 className="w-4 h-4 animate-spin text-neutral-400" />}
 
         {/* Tabs */}
         <div className="flex bg-neutral-800 rounded-xl p-1 gap-1">
@@ -497,7 +519,17 @@ export default function TVControlPanel() {
                           {isActive && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse shrink-0" />}
                           <p className="text-xs font-semibold leading-tight">{m.label}</p>
                         </div>
-                        <Toggle value={!isPaused} onChange={() => togglePaused(m.id as ModuleId)} />
+                        <button
+                          onClick={() => togglePaused(m.id as ModuleId)}
+                          className={cn(
+                            'shrink-0 px-3 py-1 rounded-lg text-[11px] font-bold transition-colors',
+                            isPaused
+                              ? 'bg-neutral-600 hover:bg-neutral-500 text-neutral-100'
+                              : 'bg-green-500 hover:bg-green-400 text-white'
+                          )}
+                        >
+                          {isPaused ? 'Inativo' : 'Ativo'}
+                        </button>
                       </div>
 
                       {stats && <div className="mb-2">{stats}</div>}

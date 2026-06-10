@@ -25,12 +25,21 @@ export default function TVScreen() {
   useEffect(() => {
     if (!event) return;
     let active = true;
-    getTvConfig(event.id).then((c) => {
+    // Atualiza só quando muda de fato (evita re-render desnecessário)
+    const apply = (c: TvConfig | null) => setConfig((prev) =>
+      prev && c && prev.updated_at === c.updated_at ? prev : c,
+    );
+    const load = () => getTvConfig(event.id).then((c) => {
       if (!active) return;
-      setConfig(c);
+      apply(c);
       setConfigLoaded(true);
     });
-    return subscribeToTvConfig(event.id, (c) => active && setConfig(c));
+    load();
+    const unsub = subscribeToTvConfig(event.id, (c) => active && apply(c));
+    // Polling de fallback: garante que mudanças no painel cheguem ao telão
+    // mesmo quando o realtime do Supabase não está disponível.
+    const poll = setInterval(load, 4000);
+    return () => { active = false; unsub(); clearInterval(poll); };
   }, [event?.id]);
 
   const theme = config?.theme ?? 'default';
