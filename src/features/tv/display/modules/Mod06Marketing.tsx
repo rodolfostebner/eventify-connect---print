@@ -1,39 +1,106 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import type { EventData } from '../../../../types';
 import type { TvTheme } from '../theme';
 import type { MarketingPhoto } from '../../../../services/marketingService';
 
+// Linhas fixas da mensagem de boas-vindas (a 1ª linha usa o nome do evento).
+const WELCOME_LINES = [
+  'Obrigado pelo apoio aos nossos empreendedores!',
+  'Acesse o app do evento em www.memorieshub.com.br',
+  'Consulte expositores, produtos, avalie e poste suas fotos.',
+  'Suas fotos aparecerão nos telões do evento!',
+  'Avalie ao menos 1 expositor e concorra a prêmios.',
+];
+
+// Imagem de boas-vindas: "Foto de Capa do Evento" (aba Aparência) = owner_photo.
+function welcomeImageOf(event: EventData): string | null {
+  return event.owner_photo || null;
+}
+
+type Slide =
+  | { kind: 'welcome' }
+  | { kind: 'photo'; photo: MarketingPhoto };
+
 /**
- * MOD-06 · Marketing do Evento — slides de imagens do organizador.
- * Cada slide pode ter só foto, foto + frase, ou foto + frase + texto.
- * A imagem ocupa a tela; quando há frase/texto, um bloco semitransparente
- * aparece na base. Percorre as fotos a cada `perSlide` segundos.
+ * MOD-06 · Marketing do Evento.
+ * A primeira página é a tela de boas-vindas: imagem do evento à esquerda e a
+ * mensagem de boas-vindas à direita. Em seguida, os slides de marketing do
+ * organizador (foto, foto + frase, ou foto + frase + texto). Percorre a cada
+ * `perSlide` segundos.
  */
 export default function Mod06Marketing({
-  photos, theme, perSlide,
+  photos, theme, perSlide, event,
 }: {
-  photos: MarketingPhoto[]; theme: TvTheme; perSlide: number;
+  photos: MarketingPhoto[]; theme: TvTheme; perSlide: number; event: EventData;
 }) {
+  const welcomeImage = welcomeImageOf(event);
+
+  const slides = useMemo<Slide[]>(() => {
+    const out: Slide[] = [{ kind: 'welcome' }];
+    photos.forEach((photo) => out.push({ kind: 'photo', photo }));
+    return out;
+  }, [photos]);
+
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
-    if (photos.length <= 1) return;
+    if (slides.length <= 1) return;
     const t = setInterval(() => setIdx((i) => i + 1), Math.max(4, perSlide) * 1000);
     return () => clearInterval(t);
-  }, [photos.length, perSlide]);
+  }, [slides.length, perSlide]);
 
-  if (photos.length === 0) {
+  const slide = slides[idx % slides.length];
+
+  // ─── Slide de boas-vindas ─────────────────────────────────────────────────
+  if (slide.kind === 'welcome') {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-4">
-        <span className="text-7xl">📣</span>
-        <p style={{ fontFamily: theme.fontDisplay, color: theme.ink }} className="text-4xl">
-          Fique ligado nas novidades
-        </p>
+      <div className="w-full h-full flex items-center justify-center gap-12 px-16 py-10 overflow-hidden">
+        {welcomeImage && (
+          <motion.div
+            key="welcome-img"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="shrink-0 shadow-2xl flex items-center justify-center"
+            style={{ background: theme.frame, padding: '20px', borderRadius: 18, maxHeight: '100%' }}
+          >
+            <img
+              src={welcomeImage}
+              alt={event.name}
+              className="object-contain"
+              style={{ maxHeight: '74vh', maxWidth: '42vw' }}
+            />
+          </motion.div>
+        )}
+
+        <motion.div
+          key="welcome-text"
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="flex-1 min-w-0 flex flex-col gap-4"
+        >
+          <h2 style={{ fontFamily: theme.fontDisplay, color: theme.accent }} className="text-6xl leading-tight">
+            Sejam bem-vindos à {event.name}
+          </h2>
+          <div className="flex flex-col gap-2">
+            {WELCOME_LINES.map((line) => (
+              <p key={line} style={{ fontFamily: theme.fontBody, color: theme.ink }} className="text-3xl leading-snug">
+                {line}
+              </p>
+            ))}
+          </div>
+          <span style={{ fontFamily: theme.fontHand, color: theme.accent }} className="text-5xl mt-2">
+            Participe! ✦
+          </span>
+        </motion.div>
       </div>
     );
   }
 
-  const photo = photos[idx % photos.length];
+  // ─── Slides de marketing ──────────────────────────────────────────────────
+  const photo = slide.photo;
   const hasText = Boolean(photo.phrase || photo.text);
 
   return (

@@ -63,33 +63,57 @@ export default function Mod04Trio({
                 className="flex items-center justify-center min-h-0"
               >
                 <div
-                  className="shadow-2xl w-full max-w-[26vw]"
-                  style={{ background: theme.frame, padding: '16px 16px 0', borderRadius: 6, transform: `rotate(${i % 2 === 0 ? -2 : 2}deg)` }}
+                  className="shadow-2xl"
+                  style={{ background: theme.frame, padding: '16px 16px 0', borderRadius: 6, transform: `rotate(${i % 2 === 0 ? -2 : 2}deg)`, maxWidth: '26vw' }}
                 >
-                  <div className="relative w-full aspect-square flex items-center justify-center">
+                  <div className="relative flex items-center justify-center overflow-hidden" style={{ background: theme.paper }}>
                     {image ? (
-                      <img src={image} alt={ex.name} className="w-full h-full object-cover" />
+                      // A moldura acompanha a foto: altura reservada fixa, largura conforme
+                      // a proporção — sem cortar a imagem e sem sobrar espaço nas laterais.
+                      <img
+                        src={image}
+                        alt={ex.name}
+                        className="block object-contain"
+                        style={{ height: 'auto', width: 'auto', maxHeight: '50vh', maxWidth: '26vw' }}
+                      />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center" style={{ background: theme.paper }}>
+                      <div className="flex items-center justify-center" style={{ height: '50vh', width: '50vh', maxWidth: '26vw' }}>
                         <span style={{ fontFamily: theme.fontDisplay, color: theme.inkSoft }} className="text-6xl">
                           {ex.name?.[0] ?? '★'}
                         </span>
                       </div>
                     )}
-                    <div
-                      className="absolute -top-4 -left-4 px-4 h-12 rounded-full flex items-center justify-center text-xl shadow"
-                      style={{ background: theme.ink, color: theme.frame, fontFamily: theme.fontDisplay }}
-                    >
-                      Nº {ex.number}
-                    </div>
+                    {/* Categoria do expositor no canto superior esquerdo */}
+                    {ex.category && (
+                      <span
+                        style={{ background: theme.ink, color: theme.frame, fontFamily: theme.fontDisplay }}
+                        className="absolute top-3 left-3 inline-flex items-center px-3 py-1 rounded-md text-xl shadow max-w-[55%]"
+                      >
+                        <span className="truncate">{ex.category}</span>
+                      </span>
+                    )}
+                    {/* Ano + turma no canto superior direito da foto */}
+                    {(ex.ano || ex.turma) && (
+                      <span
+                        style={{ background: theme.accent, color: theme.frame, fontFamily: theme.fontBody }}
+                        className="absolute top-3 right-3 inline-flex items-center gap-2 px-3 py-1 rounded-md text-xl shadow max-w-[55%]"
+                      >
+                        {ex.ano && <span>{ex.ano}</span>}
+                        {ex.ano && ex.turma && <span className="opacity-60">·</span>}
+                        {ex.turma && <span className="truncate">Turma {ex.turma}</span>}
+                      </span>
+                    )}
                   </div>
-                  <div className="px-2 py-4">
-                    <h3 style={{ fontFamily: theme.fontDisplay, color: theme.ink }} className="text-3xl leading-none truncate">
+                  <div className="px-2 pt-4 pb-6 flex flex-col gap-2">
+                    <h3 style={{ fontFamily: theme.fontDisplay, color: theme.ink }} className="text-3xl leading-snug truncate">
                       {ex.name}
                     </h3>
-                    <p style={{ fontFamily: theme.fontHand, color: theme.accent }} className="text-3xl leading-tight mt-1 truncate">
-                      {ex.tagline || ex.category}
-                    </p>
+                    {/* Frase de chamada do expositor */}
+                    {ex.tagline && (
+                      <p style={{ fontFamily: theme.fontHand, color: theme.accent }} className="text-3xl leading-snug truncate">
+                        {ex.tagline}
+                      </p>
+                    )}
                   </div>
                 </div>
               </motion.div>

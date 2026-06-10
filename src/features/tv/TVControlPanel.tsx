@@ -60,6 +60,7 @@ const DEFAULT_CONFIG: Omit<TvConfig, 'id' | 'event_id' | 'updated_at'> = {
   ticker_show_raffle: true,  ticker_show_alerts: true,
   ticker_show_products: true, ticker_show_no_photo: false,
   ticker_speed: 50,
+  mod04_only_with_photo: false,
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -75,24 +76,6 @@ function SectionTitle({ color, icon: Icon, title, subtitle }: {
         {subtitle && <p className="text-[10px] mt-0.5 opacity-70">{subtitle}</p>}
       </div>
     </div>
-  );
-}
-
-function Toggle({ value, onChange, disabled }: { value: boolean; onChange: () => void; disabled?: boolean }) {
-  return (
-    <button
-      onClick={onChange}
-      disabled={disabled}
-      className={cn(
-        'relative w-10 h-5 rounded-full transition-colors shrink-0 disabled:opacity-40',
-        value ? 'bg-neutral-900' : 'bg-neutral-300'
-      )}
-    >
-      <span className={cn(
-        'absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform',
-        value ? 'translate-x-5' : 'translate-x-0.5'
-      )} />
-    </button>
   );
 }
 
@@ -506,6 +489,19 @@ export default function TVControlPanel() {
                   if (m.id === 'mod03') stats = (
                     <p className="text-[10px] text-neutral-500">{spotlights.length} em destaque agora</p>
                   );
+                  if (m.id === 'mod04') stats = (
+                    <button
+                      onClick={() => save({ mod04_only_with_photo: !cfg.mod04_only_with_photo })}
+                      className={cn(
+                        'w-full px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors',
+                        cfg.mod04_only_with_photo
+                          ? 'bg-blue-500 hover:bg-blue-400 text-white'
+                          : 'bg-green-500 hover:bg-green-400 text-white'
+                      )}
+                    >
+                      {cfg.mod04_only_with_photo ? 'Apenas com Foto' : 'Todos'}
+                    </button>
+                  );
 
                   return (
                     <div key={m.id} className={cn(
@@ -646,22 +642,35 @@ export default function TVControlPanel() {
             {/* ── Ticker ── */}
             <div className="bg-neutral-900 rounded-2xl p-4">
               <SectionTitle color="bg-emerald-900/40 text-emerald-300" icon={Zap} title="Ticker (Rodapé)" subtitle="Configure o que aparece na barra inferior" />
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {[
                   { key: 'ticker_show_raffle',   label: 'Próximo sorteio' },
                   { key: 'ticker_show_alerts',    label: 'Avisos em aberto' },
                   { key: 'ticker_show_products',  label: 'Produtos de expositores' },
                   { key: 'ticker_show_no_photo',  label: 'Incluir produtos sem foto' },
-                ].map(({ key, label }) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <span className="text-xs text-neutral-300">{label}</span>
-                    <Toggle
-                      value={Boolean(cfg[key as keyof typeof DEFAULT_CONFIG])}
-                      onChange={() => save({ [key]: !cfg[key as keyof typeof DEFAULT_CONFIG] })}
-                    />
-                  </div>
-                ))}
-                <div className="flex items-center justify-between pt-1">
+                ].map(({ key, label }) => {
+                  const on = Boolean(cfg[key as keyof typeof DEFAULT_CONFIG]);
+                  return (
+                    <div key={key} className={cn(
+                      'flex items-center justify-between gap-2 rounded-xl border px-3 py-2 transition-all',
+                      on ? 'border-neutral-800 bg-neutral-800/50' : 'border-neutral-800 bg-neutral-800/30 opacity-60'
+                    )}>
+                      <span className="text-xs font-semibold text-neutral-200 leading-tight">{label}</span>
+                      <button
+                        onClick={() => save({ [key]: !on })}
+                        className={cn(
+                          'shrink-0 px-3 py-1 rounded-lg text-[11px] font-bold transition-colors',
+                          on
+                            ? 'bg-green-500 hover:bg-green-400 text-white'
+                            : 'bg-neutral-600 hover:bg-neutral-500 text-neutral-100'
+                        )}
+                      >
+                        {on ? 'Ativo' : 'Inativo'}
+                      </button>
+                    </div>
+                  );
+                })}
+                <div className="flex items-center justify-between px-3 pt-1">
                   <span className="text-xs text-neutral-300">Velocidade</span>
                   <input
                     type="range"

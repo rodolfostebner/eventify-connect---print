@@ -9,17 +9,21 @@ const TYPE_LABEL: Record<PartnerType, string> = {
   servico: 'Parceiro',
 };
 
-// Um quadro = uma foto de um parceiro. Parceiro sem foto cai numa entrada
-// única (mostra o logo no quadro central).
-interface Frame {
+// Acima desta razão (largura/altura) a foto é considerada "larga" e ocupa o
+// quadro sozinha; abaixo disso, duas fotos cabem lado a lado.
+const WIDE_RATIO = 1.25;
+
+// Um slide = um parceiro com 1 ou 2 fotos (2 só quando ambas couberem).
+interface Slide {
   partner: Partner;
-  image: string | null;
+  images: string[]; // 1 ou 2 imagens; vazio = só logo/nome
 }
 
 /**
  * MOD-05 · Patrocinadores / Parceiros.
- * Cabeçalho: logo ao lado do nome + tipo. Quadro central: percorre todas as
- * fotos cadastradas do parceiro, uma de cada vez, avançando a cada `perSlide`.
+ * Cabeçalho: logo ao lado do nome + tipo. Quadro central: fotos do parceiro,
+ * duas de cada vez quando couberem (retrato/quadrada) ou uma quando a foto for
+ * larga. À direita, a descrição do parceiro. Abaixo, chamada para o app.
  * Recebe os parceiros com show_on_tv = true (ordenados, resolvidos no TVDisplay).
  */
 export default function Mod05Partners({
@@ -27,26 +31,61 @@ export default function Mod05Partners({
 }: {
   partners: Partner[]; theme: TvTheme; perSlide: number;
 }) {
-  // Sequência plana: cada foto de cada parceiro vira um quadro.
-  const frames = useMemo<Frame[]>(() => {
-    const out: Frame[] = [];
+  // Razão de aspecto (largura/altura) de cada foto, medida ao carregar.
+  const [ratios, setRatios] = useState<Record<string, number>>({});
+
+  // Pré-carrega as fotos para medir a proporção e decidir o empacotamento.
+  useEffect(() => {
+    let active = true;
+    const urls = partners.flatMap((p) => (p.photos ?? []).filter(Boolean));
+    urls.forEach((url) => {
+      if (ratios[url]) return;
+      const img = new Image();
+      img.onload = () => {
+        if (!active) return;
+        setRatios((r) => (r[url] ? r : { ...r, [url]: img.naturalWidth / Math.max(1, img.naturalHeight) }));
+      };
+      img.src = url;
+    });
+    return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partners]);
+
+  // Monta os slides: enquanto não souber a proporção, trata como "larga" (1 por slide).
+  const slides = useMemo<Slide[]>(() => {
+    const isWide = (url: string) => (ratios[url] ?? 99) >= WIDE_RATIO;
+    const out: Slide[] = [];
     partners.forEach((p) => {
       const photos = (p.photos ?? []).filter(Boolean);
-      if (photos.length > 0) photos.forEach((image) => out.push({ partner: p, image }));
-      else out.push({ partner: p, image: null });
+      if (photos.length === 0) {
+        out.push({ partner: p, images: [] });
+        return;
+      }
+      let i = 0;
+      while (i < photos.length) {
+        const a = photos[i];
+        const b = photos[i + 1];
+        if (b && !isWide(a) && !isWide(b)) {
+          out.push({ partner: p, images: [a, b] });
+          i += 2;
+        } else {
+          out.push({ partner: p, images: [a] });
+          i += 1;
+        }
+      }
     });
     return out;
-  }, [partners]);
+  }, [partners, ratios]);
 
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
-    if (frames.length <= 1) return;
+    if (slides.length <= 1) return;
     const t = setInterval(() => setIdx((i) => i + 1), Math.max(4, perSlide) * 1000);
     return () => clearInterval(t);
-  }, [frames.length, perSlide]);
+  }, [slides.length, perSlide]);
 
-  if (frames.length === 0) {
+  if (slides.length === 0) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center gap-4">
         <span className="text-7xl">🤝</span>
@@ -57,14 +96,15 @@ export default function Mod05Partners({
     );
   }
 
-  const frame = frames[idx % frames.length];
-  const { partner: p } = frame;
-  const centerImage = frame.image || p.logo_url || null;
+  const slide = slides[idx % slides.length];
+  const { partner: p } = slide;
+  const centerImages = slide.images.length > 0 ? slide.images : (p.logo_url ? [p.logo_url] : []);
+  const single = centerImages.length <= 1;
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center px-16 py-8 overflow-hidden">
-      <span style={{ fontFamily: theme.fontHand, color: theme.inkSoft }} className="text-4xl mb-4">
-        Um obrigado especial a quem torna tudo possível ✦
+    <div className="w-full h-full flex flex-col items-center px-16 py-6 overflow-hidden">
+      <span style={{ fontFamily: theme.fontHand, color: theme.inkSoft }} className="text-4xl mb-3">
+        Um obrigado especial aos nossos apoiadores ✦
       </span>
 
       {/* Cabeçalho: logo ao lado do nome + tipo */}
@@ -75,12 +115,12 @@ export default function Mod05Partners({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.4 }}
-          className="flex items-center gap-5 mb-5"
+          className="flex items-center gap-5 mb-4"
         >
           {p.logo_url && (
             <div
               className="shrink-0 flex items-center justify-center rounded-2xl shadow-lg"
-              style={{ background: theme.frame, width: '12vh', height: '12vh', padding: '10px' }}
+              style={{ background: theme.frame, width: '11vh', height: '11vh', padding: '10px' }}
             >
               <img src={p.logo_url} alt={p.name} className="max-w-full max-h-full object-contain" />
             </div>
@@ -99,33 +139,63 @@ export default function Mod05Partners({
         </motion.div>
       </AnimatePresence>
 
-      {/* Quadro central: foto atual do parceiro */}
-      <div className="flex-1 w-full min-h-0 flex items-center justify-center">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${p.id}-${frame.image ?? 'logo'}-${idx}`}
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 110, damping: 18 }}
-            className="shadow-2xl flex items-center justify-center"
-            style={{ background: theme.frame, padding: '24px', borderRadius: 18, maxHeight: '100%' }}
-          >
-            {centerImage ? (
-              <img
-                src={centerImage}
-                alt={p.name}
-                className="object-contain"
-                style={{ maxWidth: '52vw', maxHeight: '52vh' }}
-              />
-            ) : (
-              <span style={{ fontFamily: theme.fontDisplay, color: theme.ink }} className="text-7xl text-center px-12 py-16">
-                {p.name}
-              </span>
-            )}
-          </motion.div>
-        </AnimatePresence>
+      {/* Corpo: fotos (ampliadas) + descrição à direita */}
+      <div className="flex-1 w-full min-h-0 flex items-stretch justify-center gap-8">
+        {/* Fotos */}
+        <div className="flex-1 min-h-0 flex items-center justify-center gap-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${p.id}-${slide.images.join('|') || 'logo'}-${idx}`}
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 110, damping: 18 }}
+              className="w-full h-full flex items-center justify-center gap-6"
+            >
+              {centerImages.length > 0 ? (
+                centerImages.map((src) => (
+                  <div
+                    key={src}
+                    className="shadow-2xl flex items-center justify-center"
+                    style={{ background: theme.frame, padding: '20px', borderRadius: 18, maxHeight: '100%' }}
+                  >
+                    <img
+                      src={src}
+                      alt={p.name}
+                      className="object-contain"
+                      style={{
+                        maxHeight: '60vh',
+                        maxWidth: single ? (p.description ? '40vw' : '60vw') : '28vw',
+                      }}
+                    />
+                  </div>
+                ))
+              ) : (
+                <span style={{ fontFamily: theme.fontDisplay, color: theme.ink }} className="text-7xl text-center px-12 py-16">
+                  {p.name}
+                </span>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Descrição do parceiro */}
+        {p.description && (
+          <div className="shrink-0 w-[26vw] flex items-center">
+            <p
+              style={{ fontFamily: theme.fontBody, color: theme.ink }}
+              className="text-3xl leading-snug"
+            >
+              {p.description}
+            </p>
+          </div>
+        )}
       </div>
+
+      {/* Chamada para o app */}
+      <p style={{ fontFamily: theme.fontBody, color: theme.inkSoft }} className="text-2xl mt-4 text-center">
+        Acesse nosso app <strong style={{ color: theme.accent }}>memorieshub.com.br</strong> para ter mais detalhes e dados de contato.
+      </p>
     </div>
   );
 }
