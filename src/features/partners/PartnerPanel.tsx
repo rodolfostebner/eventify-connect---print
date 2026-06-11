@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
   ArrowLeft, Plus, Trash2, Save, Upload, X, Handshake,
-  ChevronLeft, ChevronRight, BarChart3,
+  ChevronLeft, ChevronRight, BarChart3, Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Partner, PartnerType, EventData } from '../../types';
@@ -12,6 +12,7 @@ import {
 } from '../../services/partnerService';
 import { subscribeToEvent } from '../../services/eventService';
 import { uploadImage } from '../../services/storageService';
+import { downloadImage } from '../../utils/downloadImage';
 import { cn } from '../../lib/utils';
 
 const MAX_PHOTOS = 4;
@@ -236,6 +237,13 @@ function PartnerDetail({ partner }: { partner: Partner }) {
                     <button onClick={() => setLogo('')} className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white">
                       <X className="w-3 h-3" />
                     </button>
+                    <button
+                      onClick={() => downloadImage(logo, `${form.name || 'parceiro'}-logo`)}
+                      title="Baixar o arquivo original (para ajustar e reenviar)"
+                      className="absolute bottom-1 right-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-black/80"
+                    >
+                      <Download className="w-3 h-3" />
+                    </button>
                   </div>
                 ) : (
                   <label className="w-20 h-20 rounded-xl border-2 border-dashed border-neutral-300 flex flex-col items-center justify-center cursor-pointer hover:border-neutral-400 transition-colors shrink-0">
@@ -311,6 +319,13 @@ function PartnerDetail({ partner }: { partner: Partner }) {
                     <img src={url} className="w-full h-full object-cover" />
                     <button onClick={() => setPhotos(p => p.filter((_, i) => i !== idx))} className="absolute top-1 right-1 p-0.5 rounded-full bg-black/60 text-white">
                       <X className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => downloadImage(url, `${form.name || 'parceiro'}-foto-${idx + 1}`)}
+                      title="Baixar o arquivo original (para ajustar e reenviar)"
+                      className="absolute bottom-1 right-1 p-0.5 rounded-full bg-black/60 text-white hover:bg-black/80"
+                    >
+                      <Download className="w-3 h-3" />
                     </button>
                   </div>
                 ))}

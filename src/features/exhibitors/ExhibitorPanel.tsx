@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import {
   ArrowLeft, Plus, Trash2, Save, Eye, EyeOff,
   Package, Users, ShoppingBag, Phone,
-  Upload, X, Pencil,
+  Upload, X, Pencil, Download,
   BarChart2, MessageCircle, Globe, Share2, ShoppingCart, Instagram,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,6 +21,7 @@ import { addEmailRole, removeEmailRole, listEmailRoles, findUserByEmail, updateU
 import type { ExhibitorLinkedUser } from '../../services/userService';
 import { subscribeToEvent } from '../../services/eventService';
 import { uploadImage } from '../../services/storageService';
+import { downloadImage } from '../../utils/downloadImage';
 import type { EventData, VisitAction } from '../../types';
 
 const MAX_PRODUCT_PHOTOS = 3;
@@ -930,6 +931,15 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
                   {uploadingLogo ? 'Enviando...' : 'Alterar logo'}
                   <input type="file" accept="image/*" className="sr-only" onChange={handleLogoUpload} disabled={uploadingLogo} />
                 </label>
+                {logo && (
+                  <button
+                    onClick={() => downloadImage(logo, `${exhibitor.name}-logo`)}
+                    title="Baixar o arquivo original (para ajustar e reenviar)"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Baixar
+                  </button>
+                )}
               </div>
             </div>
 
@@ -951,11 +961,22 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
                   </button>
                 </div>
               )}
-              <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold cursor-pointer transition-colors w-fit">
-                {uploadingPhoto ? <div className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-700 rounded-full animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-                {uploadingPhoto ? 'Enviando...' : photo ? 'Alterar foto' : 'Adicionar foto'}
-                <input type="file" accept="image/*" className="sr-only" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
-              </label>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold cursor-pointer transition-colors w-fit">
+                  {uploadingPhoto ? <div className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-700 rounded-full animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                  {uploadingPhoto ? 'Enviando...' : photo ? 'Alterar foto' : 'Adicionar foto'}
+                  <input type="file" accept="image/*" className="sr-only" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+                </label>
+                {photo && (
+                  <button
+                    onClick={() => downloadImage(photo, `${exhibitor.name}-stand`)}
+                    title="Baixar o arquivo original (para ajustar e reenviar)"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-600 text-xs font-bold transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Baixar
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Imagem no telão */}

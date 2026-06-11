@@ -9,6 +9,7 @@ import { getPrizes } from '../../../services/raffleService';
 import { getPartners } from '../../../services/partnerService';
 import { getMarketingPhotos, type MarketingPhoto } from '../../../services/marketingService';
 import { getActiveSpotlights, upsertTvConfig } from '../../../services/tvService';
+import { subscribeOnlineCounts } from '../../../services/presenceService';
 import { getTvTheme, ensureThemeFonts, type RotationModuleId } from './theme';
 import { useTvRotation } from './useTvRotation';
 import AnnouncementOverlay from '../AnnouncementOverlay';
@@ -35,6 +36,7 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
   const [marketingPhotos, setMarketingPhotos] = useState<MarketingPhoto[]>([]);
   const [spotlightIds, setSpotlightIds] = useState<string[]>([]);
   const [prizes, setPrizes] = useState<RafflePrize[]>([]);
+  const [onlineTotal, setOnlineTotal] = useState<number | null>(null);
 
   useEffect(() => { ensureThemeFonts(theme); }, [theme]);
 
@@ -65,6 +67,16 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
     fetchPosts(event.id).then((p) => active && setPhotos(p));
     return () => { active = false; };
   }, [event.id, config.updated_at]);
+
+  // Pessoas no app agora (heartbeat de presença) — exibido no header se o
+  // painel habilitar (show_online_count); null oculta o badge.
+  useEffect(() => {
+    if (!config.show_online_count) {
+      setOnlineTotal(null);
+      return;
+    }
+    return subscribeOnlineCounts(event.id, (c) => setOnlineTotal(c.total), 30_000);
+  }, [event.id, config.show_online_count]);
 
   // Destaques de expositor — poll periódico + ao pedir atualização do painel
   useEffect(() => {
@@ -218,8 +230,8 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
 
   return (
     <div className="w-screen h-screen overflow-hidden flex flex-col" style={{ ...bg, color: theme.ink }}>
-      {/* Header fixo: logo + nome do evento à esquerda, slug à direita */}
-      <Header event={event} theme={theme} />
+      {/* Header fixo: logo + nome do evento à esquerda, contador + slug à direita */}
+      <Header event={event} theme={theme} onlineTotal={onlineTotal} />
 
       {/* Palco do módulo ativo */}
       <div className="flex-1 min-h-0 relative">
@@ -253,7 +265,11 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
   );
 }
 
-function Header({ event, theme }: { event: EventData; theme: ReturnType<typeof getTvTheme> }) {
+function Header({ event, theme, onlineTotal }: {
+  event: EventData;
+  theme: ReturnType<typeof getTvTheme>;
+  onlineTotal: number | null;
+}) {
   return (
     <header
       className="shrink-0 h-[12vh] flex items-center justify-between px-12"
@@ -273,6 +289,25 @@ function Header({ event, theme }: { event: EventData; theme: ReturnType<typeof g
           {event.name}
         </h1>
       </div>
+
+      {/* Pessoas no app agora (habilitado no painel de controle) */}
+      {onlineTotal !== null && (
+        <div
+          className="shrink-0 flex items-center gap-3 rounded-2xl px-6 py-3 mx-6"
+          style={{ background: theme.paper, border: `3px solid ${theme.accent}` }}
+        >
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-60" style={{ background: theme.accent }} />
+            <span className="relative inline-flex rounded-full h-3 w-3" style={{ background: theme.accent }} />
+          </span>
+          <span style={{ fontFamily: theme.fontDisplay, color: theme.ink }} className="text-4xl leading-none">
+            {onlineTotal}
+          </span>
+          <span style={{ fontFamily: theme.fontBody, color: theme.inkSoft }} className="text-lg uppercase tracking-widest leading-tight">
+            no app<br />agora
+          </span>
+        </div>
+      )}
 
       {/* Slug do evento */}
       <div className="shrink-0 flex flex-col items-end">

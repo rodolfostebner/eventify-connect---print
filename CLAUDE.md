@@ -97,6 +97,7 @@ src/
     evaluationService.ts   # CRUD avaliacoes publico + jurados, categorias, ranking (view)
     raffleService.ts       # Criacao de ticket, listagem, sorteio aleatorio
     visitService.ts        # Registro silencioso de visitas/cliques, relatorios por expositor
+    presenceService.ts     # Heartbeat de sessoes do app (tabela app_sessions): contador de pessoas online (logados/anonimos) + base do relatorio pos-feira (picos, permanencia)
     auditService.ts        # Log de auditoria de alteracoes do evento (diff + autor)
     dashboardService.ts    # Agrega metricas do evento (expositores, produtos, visitas) p/ o dashboard
     announcementService.ts # CRUD avisos + disparo TV/popup/push (tabelas announcements, events, notifications)
@@ -239,6 +240,7 @@ src/
 
   utils/
     formatters.ts          # Formatadores de URL (Instagram, WhatsApp, Website)
+    downloadImage.ts       # Download forçado de imagem do R2 (fetch->blob; fallback nova aba) — botões "Baixar" nos paineis de expositor/parceiro
 
 supabase/
   config.toml              # Supabase CLI (PostgreSQL 17, porta 54322)
@@ -365,8 +367,9 @@ Canais ativos:
 | `juror_evaluations` | Notas dos jurados por categoria, UNIQUE(exhibitor_id, user_id, category_id) | Ativo |
 | `raffle_tickets` | Tickets de sorteio: 1 por participante por evento, UNIQUE(event_id, user_id) | Ativo |
 | `visits` | Analytics de visitas/cliques (event_status pre/live/post no momento da visita; relatorio pos-evento, nao afeta ranking) | Ativo |
+| `app_sessions` | Sessoes do app via heartbeat (~60s, iniciado no EventPage): id gerado no cliente (localStorage por navegador/evento), user_id null = anonimo, started_at/last_seen_at. Online agora = last_seen_at na janela de 2,5 min. Telao/paineis nao geram heartbeat | Ativo |
 | `view_exhibitor_rankings` | View SQL: ranking ponderado (publico × peso + jurado × peso) em tempo real | Ativo |
-| `tv_config` | Config do telão por evento: rotacao, modulo ativo/forcado, tema, duracoes/pausa por modulo (mod01-07), ticker, promover stand (mod07_exhibitor_id, mod07_text/tagline, mod07_max_shows/shows_done), UNIQUE(event_id) | Ativo |
+| `tv_config` | Config do telão por evento: rotacao, modulo ativo/forcado, tema, duracoes/pausa por modulo (mod01-07), ticker, promover stand (mod07_exhibitor_id, mod07_text/tagline, mod07_max_shows/shows_done), show_online_count (badge "no app agora" no header do telao), UNIQUE(event_id) | Ativo |
 | `tv_exhibitor_spotlight` | Historico de expositores em destaque no telão (MOD-03); ended_at null = em destaque agora | Ativo |
 | `tv_photo_history` | Historico de fotos exibidas no telão (mod01/mod02) p/ evitar repeticao | Ativo |
 | `event_marketing` | Contato do evento p/ o telão (instagram, phone, email), UNIQUE(event_id) | Ativo |
@@ -392,6 +395,7 @@ Canais ativos:
 | `evaluationService.ts` | `evaluations`, `juror_evaluations`, `evaluation_categories`, `view_exhibitor_rankings` | Ativo |
 | `raffleService.ts` | `raffle_tickets` | Ativo |
 | `visitService.ts` | `visits` | Ativo |
+| `presenceService.ts` | `app_sessions` | Ativo |
 | `auditService.ts` | `audit_logs` | Ativo |
 | `dashboardService.ts` | `exhibitors`, `products`, `visits` (agregacao client-side p/ o dashboard do EventAdmin) | Ativo |
 | `announcementService.ts`| `announcements`, `events`, `notifications`, `users` | Ativo |

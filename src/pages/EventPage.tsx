@@ -12,6 +12,7 @@ import { createPrintOrder } from '../services/printService';
 import { getExhibitors } from '../services/exhibitorService';
 import { getPartners } from '../services/partnerService';
 import { trackVisit } from '../services/visitService';
+import { startHeartbeat } from '../services/presenceService';
 import { formatWebsite } from '../utils/formatters';
 import { cn, rotateByTime, SPONSOR_ROTATION_MS } from '../lib/utils';
 import type { Exhibitor, Partner } from '../types';
@@ -380,6 +381,13 @@ export default function EventPage({ user }: { user: AppUser | null }) {
       setIsSubmittingPrint(false);
     }
   };
+
+  // Heartbeat de presença: marca esta sessão (logada ou anônima) como ativa.
+  // Alimenta o contador de pessoas online (telão/painel) e o relatório pós-feira.
+  useEffect(() => {
+    if (!event?.id) return;
+    return startHeartbeat(event.id, user?.id ?? null);
+  }, [event?.id, user?.id]);
 
   useEffect(() => {
     if (!slug) return;

@@ -19,6 +19,7 @@ import {
   type TvConfig, type TvExhibitorSpotlight, type ExhibitorRankingTV,
 } from '../../services/tvService';
 import { getExhibitors } from '../../services/exhibitorService';
+import { subscribeOnlineCounts, type OnlineCounts } from '../../services/presenceService';
 import type { Exhibitor } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -65,6 +66,7 @@ const DEFAULT_CONFIG: Omit<TvConfig, 'id' | 'event_id' | 'updated_at'> = {
   duration_mod07: 15, paused_mod07: false,
   mod07_exhibitor_id: null, mod07_text: null, mod07_tagline: null,
   mod07_max_shows: 3, mod07_shows_done: 0,
+  show_online_count: true,
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -125,6 +127,14 @@ export default function TVControlPanel() {
   // Curadoria
   const [photos, setPhotos] = useState<PhotoData[]>([]);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
+
+  // Pessoas no app (heartbeat de presença) — polling a cada 30s
+  const [online, setOnline] = useState<OnlineCounts>({ total: 0, logged: 0, anonymous: 0 });
+
+  useEffect(() => {
+    if (!event) return;
+    return subscribeOnlineCounts(event.id, setOnline);
+  }, [event?.id]);
 
   // ─── Carregamento inicial ───────────────────────────────────────────────────
 
@@ -600,6 +610,37 @@ export default function TVControlPanel() {
 
           {/* Coluna direita: Expositores + Ticker + Avisos + Sorteio */}
           <div className="space-y-4">
+
+            {/* ── Pessoas no App ── */}
+            <div className="bg-neutral-900 rounded-2xl p-4">
+              <SectionTitle color="bg-sky-900/40 text-sky-300" icon={Users} title="Pessoas no App" subtitle="Sessões ativas nos últimos minutos · atualiza a cada 30s" />
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="bg-sky-900/20 border border-sky-700/30 rounded-xl py-3">
+                  <p className="text-2xl font-black text-sky-300 leading-none">{online.total}</p>
+                  <p className="text-[10px] text-neutral-400 uppercase tracking-wide mt-1.5">Total</p>
+                </div>
+                <div className="bg-neutral-800 rounded-xl py-3">
+                  <p className="text-2xl font-black text-white leading-none">{online.logged}</p>
+                  <p className="text-[10px] text-neutral-400 uppercase tracking-wide mt-1.5">Logados</p>
+                </div>
+                <div className="bg-neutral-800 rounded-xl py-3">
+                  <p className="text-2xl font-black text-white leading-none">{online.anonymous}</p>
+                  <p className="text-[10px] text-neutral-400 uppercase tracking-wide mt-1.5">Anônimos</p>
+                </div>
+              </div>
+              <button
+                onClick={() => save({ show_online_count: !cfg.show_online_count })}
+                className={cn(
+                  'mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold border transition-colors',
+                  cfg.show_online_count
+                    ? 'bg-sky-900/30 border-sky-700/40 text-sky-300'
+                    : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white'
+                )}
+              >
+                {cfg.show_online_count ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                {cfg.show_online_count ? 'Exibindo total no telão' : 'Total oculto no telão'}
+              </button>
+            </div>
 
             {/* ── Expositores em Destaque ── */}
             <div className="bg-neutral-900 rounded-2xl p-4">

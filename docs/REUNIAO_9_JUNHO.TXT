@@ -16,53 +16,17 @@ O que precisamos definir sobre a feira:
 
 ---
 # itens a alterar no app:
-## Painel TV 
-* COLOCAR NO INICIO DE CADA LOOP DO PAINEL DE TV UMA MENSAGEM DE ABERTURA COM A FOTO DO EVENTO
-      "Sejam bem-vindos à Feira de Empreendedorismo do Colégio Journey — 2026
-      Obrigado pelo apoio aos nossos empreendedores!
-      Acesse o app do evento em www.memorieshub.com.br
-      Consulte expositores, produtos, avalie e poste suas fotos.
-      Suas fotos aparecerão nos telões do evento!
-      Avalie ao menos 1 expositor e concorra a prêmios.
-      Participe!"
 * ENCERRAR O LOOP DO PAINEL COM MARKETING DO APP (CRIAR TELA PARA ISSO)
 
-* alterar mensagem de agradecimento dos patrocinadores
- --- Um obrigado especial a quem torna tudo possível
 * ajustar o fotos dos estandes para caber dentro do frame;
-* ajustar telão para mostrar 3 fotos de cada vez;
 * ajustar tbm fotos para ter frame na horizontal e se for na vertical deve caber dentro do quadro e preencher as laterais com uma cor próxima a cor do tema.
-* no carrossel de expositores:
- - jogar a categoria do expositor para o lugar onde mostra o numero do stand;
- - adicionar o ano e a turma do lado direito da foto no canto superior
-* na parte de patrocinadores:
-  - mostrar duas fotos de cada fez e um quadro ao lado com a descrição informada no cadastro do patrocinador;
-  - um texto abaixo da descrição pedindo para acessar o app e ter mais informações do patrocinador;
-  - ao mostrar duas fotos, quando for mostrar a terceira foto, mover a segunda para primeira e esconder a primeira;
 
 ## Footer Ticker
 * quantidade máxima de produtos por expositor no ticker do footer;
+ 
 
- ## Tela de Gerenciamento de Painel TV
- Criar seção Promover Stand
- - permitir selecionar um expositor
- - permitir escrever um texto para ser exibido no telão
- - permitir informar quantas vezes sera exibido no carrosel e quantos segundos deve aparecer;
- - cria novo modulo PromoverExpositor no Painel TV para ser exibido junto com o carrosel o numero de vezes definido na tela de gerenciamento. apos termino do numero de vezes a ser exibido deve ficar automaticamente inativo;
- - este modulo deve mostrar a foto princial do expositor do lado esquerdo, com o mesmo template do modulo de expositores e do lado direito um quadro com a mensagem informada na tela 
-   na seção de promover stand.
-
-## Feed
-Alterações do Feed
---> * na parte que mostra os expositores com fotos pequenas, diminua para aparecer 3 por linha, como ele mostra apenas a logo, não a imagem maior do expositor não deve haver problema nesse sentido
---> * nos cards de expositores, onde aparece o ícone de telefone/whatsapp usar o ícone do whatsapp official, com cor verde e o icone do instagram pode mudar tbm para aquele colorido;
---> * implementar a ordem aleatória para patrocinadores como foi feita para expositores;
-
-## Upload de fotos
-* verificar se da pra considerar as fotos enviadas pro feed feitas por usuários com role admin geral e admin do evento como sendo foto oficial;
 
 ### se der tempo:
-* feature destacar um expositor
 * feature destaque em fotos com categorias pre definidas, exe:
  - momento fofura;
  - momento família;
