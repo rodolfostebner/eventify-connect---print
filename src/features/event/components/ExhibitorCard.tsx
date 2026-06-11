@@ -78,32 +78,30 @@ export function ExhibitorCard({ exhibitor, category, size, onSelect, event, user
             {exhibitor.description && (
               <p className="text-[11.5px] text-[#7A7A8E] mt-0.5 line-clamp-2 leading-snug">{exhibitor.description}</p>
             )}
-            {category && (
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <span className="w-[7px] h-[7px] rounded-full shrink-0" style={{ backgroundColor: color }} />
-                <span className="text-[10px] text-[#94949E] font-medium">{category.name}</span>
-              </div>
-            )}
           </div>
         </div>
 
-        <div
-          className="h-[140px] w-full relative overflow-hidden flex items-center justify-center"
-          style={{ background: exhibitor.photo_url ? undefined : `linear-gradient(135deg, ${color}22, ${color}66)` }}
-        >
-          {exhibitor.photo_url
-            ? <img src={exhibitor.photo_url} alt={exhibitor.name} className="w-full h-full object-cover" />
-            : <span className="text-[70px] leading-none select-none font-black text-white/50">{exhibitor.name.charAt(0).toUpperCase()}</span>
-          }
-          {category && (
-            <span
-              className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[9px] font-bold text-white uppercase tracking-wider"
-              style={{ backgroundColor: color }}
-            >
-              {category.icon} {category.name}
-            </span>
-          )}
-        </div>
+        {/* Área da imagem: foto do stand, ou logo expandida quando só há logo.
+            Sem foto e sem logo, a área não aparece (fica só a letra do header). */}
+        {(exhibitor.photo_url || exhibitor.logo_url) && (
+          <div
+            className="h-[210px] w-full relative overflow-hidden flex items-center justify-center"
+            style={{ background: exhibitor.photo_url ? undefined : '#fff' }}
+          >
+            {exhibitor.photo_url
+              ? <img src={exhibitor.photo_url} alt={exhibitor.name} className="w-full h-full object-cover" />
+              : <img src={exhibitor.logo_url!} alt={exhibitor.name} className="max-w-full max-h-full object-contain p-4" />
+            }
+            {category && (
+              <span
+                className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full text-[9px] font-bold text-white uppercase tracking-wider"
+                style={{ backgroundColor: color }}
+              >
+                {category.icon} {category.name}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="p-3 flex items-center gap-2">
           {exhibitor.instagram_url && (

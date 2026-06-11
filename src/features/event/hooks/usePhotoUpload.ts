@@ -75,13 +75,19 @@ export const usePhotoUpload = (event: EventData, user: AppUser | null) => {
       const publicUrl = await uploadImage(fileToUpload);
 
       // 3. Save to Database
+      // Foto de admin geral (ou admin deste evento) entra como oficial e
+      // dispensa moderação — admin não modera a si mesmo.
+      const isOfficial = user?.role === 'admin' ||
+        (user?.role === 'event_admin' && user.event_id === event.id);
+
       await createPost({
         eventId: event.id,
         url: publicUrl,
         user_id: user?.id,
-        status: event.comment_moderation_enabled
-          ? 'pending'
-          : 'approved'
+        is_official: isOfficial,
+        status: isOfficial || !event.comment_moderation_enabled
+          ? 'approved'
+          : 'pending'
       });
 
       toast.success('Foto enviada!', { id: toastId });

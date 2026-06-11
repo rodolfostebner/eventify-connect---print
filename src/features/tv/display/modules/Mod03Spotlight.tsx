@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Exhibitor } from '../../../../types';
-import type { TvTheme } from '../theme';
+import { tvImageFor, type TvTheme } from '../theme';
 
 /**
  * MOD-03 · Expositor Destaque — um expositor por slide.
@@ -34,7 +34,7 @@ export default function Mod03Spotlight({
   }
 
   const ex = exhibitors[idx % exhibitors.length];
-  const image = ex.photo_url || ex.logo_url || '';
+  const image = tvImageFor(ex);
 
   return (
     <div className="w-full h-full flex items-center justify-center px-16 py-10 overflow-hidden">

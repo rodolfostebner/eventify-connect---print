@@ -675,6 +675,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [logo, setLogo] = useState(exhibitor.logo_url || '');
   const [photo, setPhoto] = useState(exhibitor.photo_url || '');
+  const [tvUseLogo, setTvUseLogo] = useState(exhibitor.tv_use_logo ?? false);
 
   useEffect(() => {
     setForm({
@@ -691,6 +692,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
     setMembers(exhibitor.members ?? []);
     setLogo(exhibitor.logo_url || '');
     setPhoto(exhibitor.photo_url || '');
+    setTvUseLogo(exhibitor.tv_use_logo ?? false);
   }, [exhibitor.id]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -737,6 +739,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
         members,
         logo_url: logo || null,
         photo_url: photo || null,
+        tv_use_logo: tvUseLogo,
         instagram_url: form.instagram_url.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
         website_url: form.website_url.trim() || null,
@@ -952,6 +955,25 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
                 {uploadingPhoto ? <div className="w-3.5 h-3.5 border-2 border-neutral-400 border-t-neutral-700 rounded-full animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                 {uploadingPhoto ? 'Enviando...' : photo ? 'Alterar foto' : 'Adicionar foto'}
                 <input type="file" accept="image/*" className="sr-only" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+              </label>
+            </div>
+
+            {/* Imagem no telão */}
+            <div>
+              <label className="text-xs font-semibold text-neutral-600 uppercase tracking-wider block mb-1.5">Imagem no telão</label>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={tvUseLogo}
+                  onChange={e => setTvUseLogo(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded border-neutral-300 accent-neutral-900"
+                />
+                <span className="text-xs text-neutral-600">
+                  Usar a <strong>logo</strong> no telão em vez da foto do stand
+                  <span className="block text-[10px] text-neutral-400 mt-0.5">
+                    Padrão (desmarcado): foto do stand; se não tiver, usa a logo. Marcado: logo; se não tiver, usa a foto.
+                  </span>
+                </span>
               </label>
             </div>
           </div>

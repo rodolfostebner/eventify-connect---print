@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { Exhibitor } from '../../../../types';
-import type { TvTheme } from '../theme';
+import { tvImageFor, type TvTheme } from '../theme';
 
 /**
  * MOD-04 · Trio de Expositores — 3 expositores por slide (grid).
@@ -52,7 +52,7 @@ export default function Mod04Trio({
       <div className="flex-1 grid grid-cols-3 gap-10 min-h-0">
         <AnimatePresence mode="wait">
           {group.map((ex, i) => {
-            const image = ex.photo_url || ex.logo_url || '';
+            const image = tvImageFor(ex);
             return (
               <motion.div
                 key={`${idx}-${ex.id}`}

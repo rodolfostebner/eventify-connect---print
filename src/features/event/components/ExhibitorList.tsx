@@ -13,7 +13,7 @@ interface Props {
 
 export function ExhibitorList({ exhibitors, categories, onSelect, event, user }: Props) {
   const [selectedCat, setSelectedCat] = useState<string>('all');
-  const [cardSize, setCardSize] = useState<CardSize>('medium');
+  const [cardSize, setCardSize] = useState<CardSize>('small');
 
   // Se não há categorias cadastradas no DB, deriva do campo texto dos expositores
   const effectiveCategories = useMemo<ExhibitorCategory[]>(() => {

@@ -14,7 +14,7 @@ import { subscribeToEvent } from '../../services/eventService';
 import { uploadImage } from '../../services/storageService';
 import { cn } from '../../lib/utils';
 
-const MAX_PHOTOS = 3;
+const MAX_PHOTOS = 4;
 
 const TYPE_OPTIONS: { value: PartnerType; label: string }[] = [
   { value: 'patrocinador', label: 'Patrocinador' },

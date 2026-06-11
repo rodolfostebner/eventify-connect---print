@@ -1,7 +1,7 @@
 # PENDENCIAS MEMORIESHUB
 O que precisamos definir sobre a feira:
 
-* Stand
+# Stand
 * Papel de cada um na feira
 * Tv's e suporte
 * localização do stand
@@ -71,6 +71,14 @@ Alterações do Feed
 
 --> # BUGS
 --> * VERIFICAR PROBLEMA DOS SORTEIOS E AVISOS QUE NÃO ESTAO APARECENDO NO TELAO NOVO;
+
+
+# 10 de junho
+* possibilidade de colocar o nome do ganhador na tela de sorteio e o app se comporta como se estivesse fazendo o sorteio pelo app.
+- campo para informar o nome
+- campo para informar o premio
+
+o resto deve ser simulado com um sorteio normal, mas o ganhador vai ser informado devido a ter sido feito manualmente
 
 
 

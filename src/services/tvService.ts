@@ -27,6 +27,16 @@ export interface TvConfig {
   ticker_speed: number;
   // MOD-04: exibir apenas expositores com foto (false = todos)
   mod04_only_with_photo: boolean;
+  // MOD-07 (Promover Stand): stand escolhido + texto/frase customizados.
+  // O módulo roda mod07_max_shows vezes (mod07_shows_done conta no telão) e
+  // depois fica inativo até outro stand ser promovido.
+  duration_mod07: number;
+  paused_mod07: boolean;
+  mod07_exhibitor_id: string | null;
+  mod07_text: string | null;
+  mod07_tagline: string | null;
+  mod07_max_shows: number;
+  mod07_shows_done: number;
   updated_at: string;
 }
 
@@ -68,7 +78,7 @@ export async function upsertTvConfig(
   updates: Partial<Omit<TvConfig, 'id' | 'event_id' | 'updated_at'>>
 ): Promise<TvConfig | null> {
   if (!supabase) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('tv_config')
     .upsert(
       { event_id: eventId, ...updates, updated_at: new Date().toISOString() },
@@ -76,6 +86,9 @@ export async function upsertTvConfig(
     )
     .select()
     .single();
+  // Propaga o erro para o chamador (painel exibe toast) — sem isto, falhas de
+  // schema (ex: migration não aplicada) viram "sucesso" silencioso.
+  if (error) throw error;
   return data;
 }
 

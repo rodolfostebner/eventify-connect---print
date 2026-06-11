@@ -231,6 +231,7 @@ src/
           Mod04Trio.tsx         # MOD-04: trio de expositores (foto object-contain, categoria + ano/turma, tagline); flag mod04_only_with_photo
           Mod05Partners.tsx     # MOD-05: parceiros/patrocinadores (2 fotos + descricao por slide, CTA p/ o app)
           Mod06Marketing.tsx    # MOD-06: marketing — 1a pagina = boas-vindas do evento, demais = slides de event_marketing_photos
+          Mod07Promo.tsx        # MOD-07: promover stand com pouca visibilidade — 1 expositor escolhido no painel, texto/frase customizaveis, roda mod07_max_shows vezes e sai da rotacao (contador mod07_shows_done incrementado pelo telao ao fim de cada exibicao)
 
   components/
     ErrorBoundary.tsx          # Boundary global de erro
@@ -311,6 +312,8 @@ docs/
 
 O mesmo `storageService.uploadImage()` e usado para fotos de posts, logos de expositores e fotos de produtos.
 
+Foto enviada ao feed por `admin` (geral) ou `event_admin` do proprio evento entra automaticamente como **oficial** (`is_official=true`) e ja aprovada (pula moderacao). Fotos oficiais ficam fora dos rankings e aparecem nas secoes/slideshow de destaque com selo "oficial".
+
 ---
 
 ## Realtime (Supabase)
@@ -352,7 +355,7 @@ Canais ativos:
 | `print_orders` | Pedidos de impressao (option, photo_ids[] texto, status) | Legado parcial |
 | `print_order_items` | FK: print_order_id + post_id (normalizado) | Ativo |
 | `notifications` | Notificacoes por usuario (title, body, read, link) | Ativo |
-| `exhibitors` | Stand virtual: name, category (texto livre, opcoes vem de events.exhibitor_categories), description, logo_url, photo_url, contatos, status, number | Ativo |
+| `exhibitors` | Stand virtual: name, category (texto livre, opcoes vem de events.exhibitor_categories), description, logo_url, photo_url, tv_use_logo (true = telao usa logo em vez da foto; helper tvImageFor em tv/display/theme.ts), contatos, status, number | Ativo |
 | `products` | Produtos do expositor (name, description, price, photos[], active) | Ativo |
 | `leads` | Interesse de pre-venda (product_id, exhibitor_id, customer_name, customer_phone, status) | Ativo |
 | `partners` | Parceiros do evento (type patrocinador/apoiador/servico, name, description, photos[], contato interno, valor patrocinio, show_on_tv, show_on_feed, contatos, order_index, active) — ex-`sponsors` | Ativo |
@@ -363,7 +366,7 @@ Canais ativos:
 | `raffle_tickets` | Tickets de sorteio: 1 por participante por evento, UNIQUE(event_id, user_id) | Ativo |
 | `visits` | Analytics de visitas/cliques (event_status pre/live/post no momento da visita; relatorio pos-evento, nao afeta ranking) | Ativo |
 | `view_exhibitor_rankings` | View SQL: ranking ponderado (publico × peso + jurado × peso) em tempo real | Ativo |
-| `tv_config` | Config do telão por evento: rotacao, modulo ativo/forcado, tema, duracoes/pausa por modulo (mod01-06), ticker, UNIQUE(event_id) | Ativo |
+| `tv_config` | Config do telão por evento: rotacao, modulo ativo/forcado, tema, duracoes/pausa por modulo (mod01-07), ticker, promover stand (mod07_exhibitor_id, mod07_text/tagline, mod07_max_shows/shows_done), UNIQUE(event_id) | Ativo |
 | `tv_exhibitor_spotlight` | Historico de expositores em destaque no telão (MOD-03); ended_at null = em destaque agora | Ativo |
 | `tv_photo_history` | Historico de fotos exibidas no telão (mod01/mod02) p/ evitar repeticao | Ativo |
 | `event_marketing` | Contato do evento p/ o telão (instagram, phone, email), UNIQUE(event_id) | Ativo |

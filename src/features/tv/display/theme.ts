@@ -62,10 +62,20 @@ export function ensureThemeFonts(theme: TvTheme) {
   document.head.appendChild(link);
 }
 
+// ─── Imagem do expositor no telão ─────────────────────────────────────────────
+// Padrão: foto do stand com fallback para a logo. O cadastro do expositor pode
+// inverter (tv_use_logo) para stands cuja logo representa melhor que a foto.
+
+export function tvImageFor(ex: { photo_url?: string | null; logo_url?: string | null; tv_use_logo?: boolean }): string {
+  return (ex.tv_use_logo
+    ? ex.logo_url || ex.photo_url
+    : ex.photo_url || ex.logo_url) || '';
+}
+
 // ─── Módulos de rotação (ordem padrão) ────────────────────────────────────────
 
 export const ROTATION_MODULES = [
-  'mod01', 'mod02', 'mod03', 'mod04', 'mod05', 'mod06',
+  'mod01', 'mod02', 'mod03', 'mod04', 'mod05', 'mod07', 'mod06',
 ] as const;
 
 export type RotationModuleId = typeof ROTATION_MODULES[number];

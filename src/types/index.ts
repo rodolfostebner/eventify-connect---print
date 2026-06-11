@@ -193,6 +193,9 @@ export interface Exhibitor {
   members?: string[];
   logo_url?: string | null;
   photo_url?: string | null;
+  // Imagem nos módulos de expositor do telão: false = foto (fallback logo);
+  // true = logo (fallback foto)
+  tv_use_logo?: boolean;
   message?: string | null;
   final_message?: string | null;
   instagram_url?: string | null;

@@ -14,23 +14,18 @@ const TYPE_LABEL: Record<PartnerType, string> = {
 const WIDE_RATIO = 1.25;
 
 // Um slide = um parceiro com 1 ou 2 fotos (2 só quando ambas couberem).
-interface Slide {
+export interface PartnerSlide {
   partner: Partner;
   images: string[]; // 1 ou 2 imagens; vazio = só logo/nome
 }
 
 /**
- * MOD-05 · Patrocinadores / Parceiros.
- * Cabeçalho: logo ao lado do nome + tipo. Quadro central: fotos do parceiro,
- * duas de cada vez quando couberem (retrato/quadrada) ou uma quando a foto for
- * larga. À direita, a descrição do parceiro. Abaixo, chamada para o app.
- * Recebe os parceiros com show_on_tv = true (ordenados, resolvidos no TVDisplay).
+ * Monta as telas do MOD-05 a partir dos parceiros: duas fotos por tela quando
+ * couberem (retrato/quadrada), uma quando a foto for larga. Compartilhado com
+ * o TVDisplay, que usa slides.length para reservar o tempo do módulo na
+ * rotação (duração configurada × nº de telas reais).
  */
-export default function Mod05Partners({
-  partners, theme, perSlide,
-}: {
-  partners: Partner[]; theme: TvTheme; perSlide: number;
-}) {
+export function usePartnerSlides(partners: Partner[]): PartnerSlide[] {
   // Razão de aspecto (largura/altura) de cada foto, medida ao carregar.
   const [ratios, setRatios] = useState<Record<string, number>>({});
 
@@ -52,9 +47,9 @@ export default function Mod05Partners({
   }, [partners]);
 
   // Monta os slides: enquanto não souber a proporção, trata como "larga" (1 por slide).
-  const slides = useMemo<Slide[]>(() => {
+  return useMemo<PartnerSlide[]>(() => {
     const isWide = (url: string) => (ratios[url] ?? 99) >= WIDE_RATIO;
-    const out: Slide[] = [];
+    const out: PartnerSlide[] = [];
     partners.forEach((p) => {
       const photos = (p.photos ?? []).filter(Boolean);
       if (photos.length === 0) {
@@ -76,7 +71,20 @@ export default function Mod05Partners({
     });
     return out;
   }, [partners, ratios]);
+}
 
+/**
+ * MOD-05 · Patrocinadores / Parceiros.
+ * Cabeçalho: logo ao lado do nome + tipo. Quadro central: fotos do parceiro,
+ * duas de cada vez quando couberem (retrato/quadrada) ou uma quando a foto for
+ * larga. À direita, a descrição do parceiro. Abaixo, chamada para o app.
+ * Recebe os slides prontos (usePartnerSlides no TVDisplay).
+ */
+export default function Mod05Partners({
+  slides, theme, perSlide,
+}: {
+  slides: PartnerSlide[]; theme: TvTheme; perSlide: number;
+}) {
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {

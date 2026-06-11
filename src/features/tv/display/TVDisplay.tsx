@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { EventData, PhotoData, Product, Exhibitor, Partner, RafflePrize } from '../../../types';
 import type { TvConfig } from '../../../services/tvService';
@@ -18,8 +18,9 @@ import Mod01Rank from './modules/Mod01Rank';
 import Mod02Carousel from './modules/Mod02Carousel';
 import Mod03Spotlight from './modules/Mod03Spotlight';
 import Mod04Trio from './modules/Mod04Trio';
-import Mod05Partners from './modules/Mod05Partners';
+import Mod05Partners, { usePartnerSlides, type PartnerSlide } from './modules/Mod05Partners';
 import Mod06Marketing from './modules/Mod06Marketing';
+import Mod07Promo from './modules/Mod07Promo';
 
 // Recarrega os destaques de expositor periodicamente (admin controla em tempo real)
 const SPOTLIGHT_POLL_MS = 12000;
@@ -88,16 +89,31 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
     [exhibitors, config.mod04_only_with_photo],
   );
 
+  // MOD-07: stand promovido pelo painel — só roda enquanto não atingir o
+  // limite de exibições (mod07_shows_done < mod07_max_shows).
+  const promoExhibitor = useMemo(
+    () => exhibitors.find((e) => e.id === config.mod07_exhibitor_id) ?? null,
+    [exhibitors, config.mod07_exhibitor_id],
+  );
+  const promoActive = Boolean(
+    promoExhibitor && (config.mod07_shows_done ?? 0) < (config.mod07_max_shows ?? 0),
+  );
+
+  // Telas do MOD-05 (pareamento de fotos por proporção) — compartilhado com o
+  // módulo para que o tempo na rotação seja por tela exibida, não por foto.
+  const partnerSlides = usePartnerSlides(partners);
+
   // Só entram na rotação os módulos com conteúdo (além do controle de pausa do painel).
   const implemented = useMemo<RotationModuleId[]>(() => {
     const list: RotationModuleId[] = ['mod01', 'mod02'];
     if (spotlightExhibitors.length > 0) list.push('mod03');
     if (trioExhibitors.length > 0) list.push('mod04');
     if (partners.length > 0) list.push('mod05');
+    if (promoActive) list.push('mod07');
     // MOD-06 entra sempre: a 1ª página é a tela de boas-vindas do evento.
     list.push('mod06');
     return list;
-  }, [spotlightExhibitors.length, trioExhibitors.length, partners.length]);
+  }, [spotlightExhibitors.length, trioExhibitors.length, partners.length, promoActive]);
 
   // Nº de itens que cada módulo vai exibir — o motor usa isto para manter o
   // módulo ativo por (tempo por item × nº de itens), exibindo todos em sequência.
@@ -107,11 +123,27 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
 
     mod03: spotlightExhibitors.length,
     mod04: Math.ceil(trioExhibitors.length / 3), // grupos de 3
-    mod05: partners.reduce((s, p) => s + Math.max(1, (p.photos ?? []).filter(Boolean).length), 0),
+    mod05: partnerSlides.length, // telas reais (pareamento de fotos já resolvido)
     mod06: marketingPhotos.length + 1, // +1 = tela de boas-vindas
-  }), [photos, spotlightExhibitors.length, trioExhibitors.length, partners, marketingPhotos.length]);
+    mod07: 1, // um stand promovido por vez
+  }), [photos, spotlightExhibitors.length, trioExhibitors.length, partnerSlides.length, marketingPhotos.length]);
 
   const { activeModule } = useTvRotation(config, implemented, itemCounts);
+
+  // MOD-07: conta a exibição quando o módulo TERMINA (sai do palco). Contar no
+  // fim evita cortar a última exibição — se contasse no início, atingir o
+  // limite removeria o módulo da fila com ele ainda na tela.
+  const prevModuleRef = useRef<RotationModuleId | null>(null);
+  const configRef = useRef(config);
+  configRef.current = config;
+  useEffect(() => {
+    const prev = prevModuleRef.current;
+    prevModuleRef.current = activeModule;
+    if (prev === 'mod07' && activeModule !== 'mod07') {
+      const c = configRef.current;
+      upsertTvConfig(event.id, { mod07_shows_done: (c.mod07_shows_done ?? 0) + 1 }).catch(() => {});
+    }
+  }, [activeModule, event.id]);
 
   // Módulo forçado ("Ir direto para módulo"): mostra enquanto tiver conteúdo e
   // depois volta à rotação automática sozinho. Sem conteúdo, volta na hora.
@@ -201,7 +233,8 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
             className="absolute inset-0"
           >
             {renderModule(activeModule, {
-              photos, exhibitors: trioExhibitors, spotlightExhibitors, partners, marketingPhotos,
+              photos, exhibitors: trioExhibitors, spotlightExhibitors, partnerSlides, marketingPhotos,
+              promoExhibitor, products, config,
               theme, eventId: event.id, event, dur,
             })}
           </motion.div>
@@ -260,15 +293,18 @@ function renderModule(
     photos: PhotoData[];
     exhibitors: Exhibitor[];
     spotlightExhibitors: Exhibitor[];
-    partners: Partner[];
+    partnerSlides: PartnerSlide[];
     marketingPhotos: MarketingPhoto[];
+    promoExhibitor: Exhibitor | null;
+    products: Product[];
+    config: TvConfig;
     theme: ReturnType<typeof getTvTheme>;
     eventId: string;
     event: EventData;
     dur: (mod: RotationModuleId, fallback: number) => number;
   },
 ) {
-  const { photos, exhibitors, spotlightExhibitors, partners, marketingPhotos, theme, eventId, event, dur } = ctx;
+  const { photos, exhibitors, spotlightExhibitors, partnerSlides, marketingPhotos, promoExhibitor, products, config, theme, eventId, event, dur } = ctx;
   switch (mod) {
     case 'mod01':
       return <Mod01Rank photos={photos} theme={theme} />;
@@ -279,9 +315,19 @@ function renderModule(
     case 'mod04':
       return <Mod04Trio exhibitors={exhibitors} theme={theme} perSlide={dur('mod04', 12)} />;
     case 'mod05':
-      return <Mod05Partners partners={partners} theme={theme} perSlide={dur('mod05', 10)} />;
+      return <Mod05Partners slides={partnerSlides} theme={theme} perSlide={dur('mod05', 10)} />;
     case 'mod06':
       return <Mod06Marketing photos={marketingPhotos} theme={theme} perSlide={dur('mod06', 10)} event={event} />;
+    case 'mod07':
+      return promoExhibitor ? (
+        <Mod07Promo
+          exhibitor={promoExhibitor}
+          text={config.mod07_text}
+          tagline={config.mod07_tagline}
+          products={products}
+          theme={theme}
+        />
+      ) : null;
     case null:
       return (
         <div className="w-full h-full flex items-center justify-center">

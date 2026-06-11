@@ -48,6 +48,7 @@ function PerfilTab({ exhibitor, categories, onUpdated }: { exhibitor: import('..
   const [newMember, setNewMember] = useState('');
   const [logo, setLogo] = useState(exhibitor.logo_url || '');
   const [photo, setPhoto] = useState(exhibitor.photo_url || '');
+  const [tvUseLogo, setTvUseLogo] = useState(exhibitor.tv_use_logo ?? false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -96,6 +97,7 @@ function PerfilTab({ exhibitor, categories, onUpdated }: { exhibitor: import('..
         members,
         logo_url: logo || null,
         photo_url: photo || null,
+        tv_use_logo: tvUseLogo,
         instagram_url: form.instagram_url.trim() || null,
         whatsapp: form.whatsapp.trim() || null,
         website_url: form.website_url.trim() || null,
@@ -153,6 +155,25 @@ function PerfilTab({ exhibitor, categories, onUpdated }: { exhibitor: import('..
             : <Upload className="w-4 h-4" />}
           {uploadingPhoto ? 'Enviando...' : photo ? 'Alterar foto' : 'Adicionar foto'}
           <input type="file" accept="image/*" className="sr-only" onChange={handlePhotoUpload} disabled={uploadingPhoto} />
+        </label>
+      </div>
+
+      {/* Imagem no telão */}
+      <div>
+        <label className="text-xs font-bold text-neutral-500 uppercase tracking-wider block mb-1.5">Imagem no telão</label>
+        <label className="flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={tvUseLogo}
+            onChange={e => setTvUseLogo(e.target.checked)}
+            className="mt-0.5 w-4 h-4 rounded border-neutral-300 accent-neutral-900"
+          />
+          <span className="text-sm text-neutral-600">
+            Usar a <strong>logo</strong> no telão em vez da foto do stand
+            <span className="block text-[10px] text-neutral-400 mt-0.5">
+              Padrão (desmarcado): foto do stand; se não tiver, usa a logo. Marcado: logo; se não tiver, usa a foto.
+            </span>
+          </span>
         </label>
       </div>
 

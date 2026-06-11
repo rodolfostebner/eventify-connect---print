@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import {
   Play, Pause, SkipForward, Tv, Users, Image, Star, Megaphone,
   Trophy, Ticket, Zap, RotateCcw, ArrowLeft, Check, X, Clock,
-  Eye, EyeOff, ChevronUp, ChevronDown, RefreshCw, Loader2, Monitor,
+  Eye, EyeOff, ChevronUp, ChevronDown, RefreshCw, Loader2, Monitor, Rocket,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { EventData, PhotoData, Announcement, RafflePrize } from '../../types';
@@ -31,6 +31,7 @@ const MODULES = [
   { id: 'mod04', label: 'Trio de Expositores',  icon: Users,    color: 'orange' },
   { id: 'mod05', label: 'Parceiros',            icon: Tv,       color: 'purple' },
   { id: 'mod06', label: 'Marketing',            icon: Megaphone,color: 'pink'   },
+  { id: 'mod07', label: 'Promover Stand',       icon: Rocket,   color: 'teal'   },
 ] as const;
 
 type ModuleId = typeof MODULES[number]['id'];
@@ -61,6 +62,9 @@ const DEFAULT_CONFIG: Omit<TvConfig, 'id' | 'event_id' | 'updated_at'> = {
   ticker_show_products: true, ticker_show_no_photo: false,
   ticker_speed: 50,
   mod04_only_with_photo: false,
+  duration_mod07: 15, paused_mod07: false,
+  mod07_exhibitor_id: null, mod07_text: null, mod07_tagline: null,
+  mod07_max_shows: 3, mod07_shows_done: 0,
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -102,6 +106,13 @@ export default function TVControlPanel() {
   const [shownMod01, setShownMod01] = useState(0);
   const [shownMod02, setShownMod02] = useState(0);
   const [totalPhotos, setTotalPhotos] = useState(0);
+
+  // Promover Stand (MOD-07) — formulário local; só persiste ao clicar "Promover"
+  const [promoExId, setPromoExId] = useState('');
+  const [promoText, setPromoText] = useState('');
+  const [promoTagline, setPromoTagline] = useState('');
+  const [promoShows, setPromoShows] = useState(3);
+  const [promoSecs, setPromoSecs] = useState(15);
 
   // Avisos
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -247,6 +258,36 @@ export default function TVControlPanel() {
     setSpotlights([]);
     setSpotlightHistory(hist);
     toast.success('Todos os destaques encerrados');
+  }
+
+  // ─── Promover Stand (MOD-07) ───────────────────────────────────────────────
+
+  // Ao escolher o expositor, sugere descrição e frase de chamada do cadastro
+  // (campos seguem editáveis para sobrescrever).
+  function handlePromoSelect(id: string) {
+    setPromoExId(id);
+    const ex = exhibitors.find(e => e.id === id);
+    setPromoText(ex?.description ?? '');
+    setPromoTagline(ex?.tagline ?? '');
+  }
+
+  async function handlePromote() {
+    if (!promoExId) { toast.error('Escolha um expositor para promover'); return; }
+    await save({
+      mod07_exhibitor_id: promoExId,
+      mod07_text: promoText.trim() || null,
+      mod07_tagline: promoTagline.trim() || null,
+      mod07_max_shows: Math.max(1, promoShows),
+      duration_mod07: Math.max(5, promoSecs),
+      mod07_shows_done: 0,
+      paused_mod07: false,
+    });
+    toast.success('Stand promovido no telão');
+  }
+
+  async function handleStopPromo() {
+    await save({ mod07_exhibitor_id: null, mod07_shows_done: 0 });
+    toast.success('Promoção encerrada');
   }
 
   // ─── Histórico de fotos ────────────────────────────────────────────────────
@@ -502,6 +543,16 @@ export default function TVControlPanel() {
                       {cfg.mod04_only_with_photo ? 'Apenas com Foto' : 'Todos'}
                     </button>
                   );
+                  if (m.id === 'mod07') {
+                    const promoEx = exhibitors.find(e => e.id === cfg.mod07_exhibitor_id);
+                    stats = (
+                      <p className="text-[10px] text-neutral-500 truncate">
+                        {promoEx
+                          ? `${promoEx.name} · ${cfg.mod07_shows_done}/${cfg.mod07_max_shows} exibições`
+                          : 'Nenhum stand promovido'}
+                      </p>
+                    );
+                  }
 
                   return (
                     <div key={m.id} className={cn(
@@ -637,6 +688,106 @@ export default function TVControlPanel() {
                   ))}
                 </div>
               )}
+            </div>
+
+            {/* ── Promover Stand (MOD-07) ── */}
+            <div className="bg-neutral-900 rounded-2xl p-4">
+              <SectionTitle color="bg-teal-900/40 text-teal-300" icon={Rocket} title="Promover Stand" subtitle="MOD-07 · dê visibilidade a um stand com pouco movimento" />
+
+              {/* Promoção em andamento / concluída */}
+              {cfg.mod07_exhibitor_id && (() => {
+                const promoEx = exhibitors.find(e => e.id === cfg.mod07_exhibitor_id);
+                const promoDone = cfg.mod07_shows_done >= cfg.mod07_max_shows;
+                return (
+                  <div className={cn(
+                    'rounded-xl border px-3 py-2.5 mb-3',
+                    promoDone ? 'border-neutral-700 bg-neutral-800/40' : 'border-teal-500/40 bg-teal-900/20'
+                  )}>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold truncate">{promoEx?.name ?? 'Stand'}</p>
+                        <p className="text-[10px] text-neutral-500">
+                          {promoDone
+                            ? 'Concluído — aguardando novo stand'
+                            : `Exibições: ${cfg.mod07_shows_done}/${cfg.mod07_max_shows} · ${cfg.duration_mod07}s cada`}
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleStopPromo}
+                        className="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-neutral-700 hover:bg-red-600 text-neutral-300 hover:text-white transition-colors"
+                      >
+                        Encerrar
+                      </button>
+                    </div>
+                    <div className="w-full h-1 bg-neutral-800 rounded-full overflow-hidden">
+                      <div
+                        className={cn('h-full rounded-full transition-all', promoDone ? 'bg-neutral-600' : 'bg-teal-500')}
+                        style={{ width: `${Math.min(100, (cfg.mod07_shows_done / Math.max(1, cfg.mod07_max_shows)) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Formulário de nova promoção */}
+              <div className="space-y-2.5">
+                <select
+                  value={promoExId}
+                  onChange={(e) => handlePromoSelect(e.target.value)}
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white"
+                >
+                  <option value="">Escolha um expositor…</option>
+                  {exhibitors.map(e => (
+                    <option key={e.id} value={e.id}>{e.name}</option>
+                  ))}
+                </select>
+
+                <textarea
+                  value={promoText}
+                  onChange={(e) => setPromoText(e.target.value)}
+                  rows={3}
+                  placeholder="Texto exibido no telão (sugerido da descrição do expositor)"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-600 resize-none"
+                />
+
+                <input
+                  value={promoTagline}
+                  onChange={(e) => setPromoTagline(e.target.value)}
+                  placeholder="Frase de chamada (sugerida do cadastro)"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white placeholder:text-neutral-600"
+                />
+
+                <div className="flex gap-3">
+                  <label className="flex-1">
+                    <span className="text-[10px] text-neutral-500 uppercase tracking-wide block mb-1">Exibições</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={promoShows}
+                      onChange={(e) => setPromoShows(Number(e.target.value))}
+                      className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white"
+                    />
+                  </label>
+                  <label className="flex-1">
+                    <span className="text-[10px] text-neutral-500 uppercase tracking-wide block mb-1">Segundos</span>
+                    <input
+                      type="number"
+                      min={5}
+                      value={promoSecs}
+                      onChange={(e) => setPromoSecs(Number(e.target.value))}
+                      className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-xs text-white"
+                    />
+                  </label>
+                </div>
+
+                <button
+                  onClick={handlePromote}
+                  disabled={!promoExId || saving}
+                  className="w-full py-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-40 rounded-xl text-xs font-bold transition-colors"
+                >
+                  Promover no Telão
+                </button>
+              </div>
             </div>
 
             {/* ── Ticker ── */}

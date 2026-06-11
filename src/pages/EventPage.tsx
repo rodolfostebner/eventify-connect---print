@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type FormEvent } from 'react';
+import { useState, useEffect, useCallback, useMemo, type FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { loginWithGoogle, loginWithMagicLink } from '../services/authService';
 import { useAuth, BETA_MODE } from '../hooks/useAuth';
@@ -13,7 +13,7 @@ import { getExhibitors } from '../services/exhibitorService';
 import { getPartners } from '../services/partnerService';
 import { trackVisit } from '../services/visitService';
 import { formatWebsite } from '../utils/formatters';
-import { cn } from '../lib/utils';
+import { cn, rotateByTime, SPONSOR_ROTATION_MS } from '../lib/utils';
 import type { Exhibitor, Partner } from '../types';
 import { supabase } from '../lib/supabase/client';
 import { landingConfig } from '../features/landing/landingConfig';
@@ -571,7 +571,9 @@ export default function EventPage({ user }: { user: AppUser | null }) {
   };
 
 
-  const sponsorItems = dbSponsors.map(s => ({
+  // Rodízio justo dos patrocinadores no menu lateral — mesma regra do feed
+  // (rotateByTime): gira a ordem a cada 5 min para dar visibilidade igual a todos.
+  const sponsorItems = useMemo(() => rotateByTime(dbSponsors, SPONSOR_ROTATION_MS).map(s => ({
     id: s.id,
     logo: s.logo_url ?? undefined,
     name: s.name,
@@ -586,7 +588,7 @@ export default function EventPage({ user }: { user: AppUser | null }) {
       email: s.email ?? undefined,
       phone: s.phone ?? undefined,
     },
-  }));
+  })), [dbSponsors]);
 
   const handleLogin = () => setIsLoginViewOpen(true);
 
