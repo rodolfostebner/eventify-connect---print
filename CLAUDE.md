@@ -224,9 +224,13 @@ src/
         Ticker.tsx         # Faixa inferior (sorteio, avisos, produtos)
         useTvRotation.ts   # Hook de rotação entre modulos conforme tv_config
         theme.ts           # Tokens de tema do telão
-        modules/
-          Mod01Rank.tsx    # Modulo de ranking
-          Mod02Carousel.tsx # Modulo de carrossel de fotos
+        modules/                # Modulos plugaveis do telao (tema pop-yearbook); rotacao definida em tv_config
+          Mod01Rank.tsx         # MOD-01: ranking de fotos (vista unica)
+          Mod02Carousel.tsx     # MOD-02: carrossel de fotos aprovadas em trios (3 por slide), sem repetir (tv_photo_history)
+          Mod03Spotlight.tsx    # MOD-03: expositor em destaque (tv_exhibitor_spotlight)
+          Mod04Trio.tsx         # MOD-04: trio de expositores (foto object-contain, categoria + ano/turma, tagline); flag mod04_only_with_photo
+          Mod05Partners.tsx     # MOD-05: parceiros/patrocinadores (2 fotos + descricao por slide, CTA p/ o app)
+          Mod06Marketing.tsx    # MOD-06: marketing — 1a pagina = boas-vindas do evento, demais = slides de event_marketing_photos
 
   components/
     ErrorBoundary.tsx          # Boundary global de erro
