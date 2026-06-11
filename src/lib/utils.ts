@@ -65,3 +65,14 @@ export function parseEventDate(value?: string | null): Date | null {
   const [, y, mo, d, h = '0', mi = '0'] = m;
   return new Date(Number(y), Number(mo) - 1, Number(d), Number(h), Number(mi));
 }
+
+/**
+ * Seleciona deterministicamente 1 foto do array `photos[]` de um parceiro,
+ * baseada no `slotIndex` (posição de inserção no feed). Garante variedade
+ * entre posições diferentes sem aleatoriedade que causaria flicker ao re-render.
+ * Retorna `null` se o array estiver vazio.
+ */
+export function pickPartnerPhoto(photos: string[], slotIndex: number): string | null {
+  if (!photos || photos.length === 0) return null;
+  return photos[slotIndex % photos.length];
+}

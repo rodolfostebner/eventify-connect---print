@@ -1,9 +1,11 @@
 import React from 'react';
-import { Camera, Image as ImageIcon, Check } from 'lucide-react';
+import { Image as ImageIcon, Check } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import { cn } from '../../../../lib/utils';
-import type { EventData, PhotoData, AppUser } from '../../../../types';
+import type { EventData, PhotoData, AppUser, Partner } from '../../../../types';
 import { TimelinePostCard } from './TimelinePostCard';
+import { SponsorFeedCard } from './SponsorFeedCard';
+import { useInterleavedFeed } from '../../hooks/useInterleavedFeed';
 
 interface TimelineFeedProps {
   event: EventData;
@@ -11,10 +13,14 @@ interface TimelineFeedProps {
   onLogin: () => void;
   officialPhotos: PhotoData[];
   galleryPhotos: PhotoData[];
+  partners: Partner[];
   isSelectingForPrint: boolean;
   selectedPrintPhotos: string[];
   togglePhotoSelection: (id: string) => void;
 }
+
+/** Intervalo de fotos entre cada card de patrocinador no feed vertical */
+const TIMELINE_SPONSOR_INTERVAL = 6;
 
 export const TimelineFeed = ({
   event,
@@ -22,12 +28,12 @@ export const TimelineFeed = ({
   onLogin,
   officialPhotos,
   galleryPhotos,
+  partners,
   isSelectingForPrint,
   selectedPrintPhotos,
   togglePhotoSelection,
 }: TimelineFeedProps) => {
-  // Combina fotos oficiais e galeria se apropriado, ou foca principalmente nas fotos do feed.
-  // Em uma linha do tempo vertical clássica, colocamos todas em ordem cronológica de postagem.
+  // Combina fotos oficiais e galeria em ordem cronológica
   const allPhotos = React.useMemo(() => {
     const combined = [...galleryPhotos];
     if (event.has_official_photos) {
@@ -40,6 +46,9 @@ export const TimelineFeed = ({
       return dateB - dateA;
     });
   }, [galleryPhotos, officialPhotos, event.has_official_photos]);
+
+  // Feed intercalado com cards de parceiros
+  const feedItems = useInterleavedFeed(allPhotos, partners, TIMELINE_SPONSOR_INTERVAL);
 
   return (
     <div className="space-y-6 max-w-xl mx-auto px-1 mt-6">
@@ -54,10 +63,22 @@ export const TimelineFeed = ({
       ) : (
         <div className="flex flex-col gap-6">
           <AnimatePresence>
-            {allPhotos.map((photo) => {
+            {feedItems.map((item) => {
+              if (item.type === 'sponsor') {
+                return (
+                  <SponsorFeedCard
+                    key={item.key}
+                    partner={item.data}
+                    photoUrl={item.photoUrl}
+                    variant="timeline"
+                  />
+                );
+              }
+
+              const photo = item.data;
               const isSelected = selectedPrintPhotos.includes(photo.id);
               return (
-                <div key={photo.id} className="relative">
+                <div key={item.key} className="relative">
                   <TimelinePostCard
                     photo={photo}
                     user={user}
