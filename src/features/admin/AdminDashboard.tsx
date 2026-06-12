@@ -42,6 +42,8 @@ import {
 } from "../../services/eventService";
 import { useAuth } from "../../hooks/useAuth";
 import type { AppUser } from "../../types";
+import { subscribeToContactLeads, getContactLeads } from "../../services/contactLeadService";
+
 
 // ─── Accordion ────────────────────────────────────────────────────────────────
 
@@ -120,6 +122,7 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
     "events",
   );
   const [openSection, setOpenSection] = useState<string | null>("dados");
+  const [newLeadsCount, setNewLeadsCount] = useState(0);
 
   const toggleSection = (id: string) =>
     setOpenSection((s) => (s === id ? null : id));
@@ -182,6 +185,28 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
       (error) => console.error("Error fetching events:", error),
     );
   }, [user, navigate]);
+
+  const fetchNewContactLeadsCount = () => {
+    getContactLeads()
+      .then((leadsList) => {
+        const count = leadsList.filter((l) => l.status === "new").length;
+        setNewLeadsCount(count);
+      })
+      .catch((err) => console.error("Error fetching contact leads count:", err));
+  };
+
+  useEffect(() => {
+    if (!user || user.role !== "admin") return;
+    fetchNewContactLeadsCount();
+    const unsub = subscribeToContactLeads(
+      (leadsList) => {
+        const count = leadsList.filter((l) => l.status === "new").length;
+        setNewLeadsCount(count);
+      },
+      (err) => console.error("Error subscribing to contact leads:", err),
+    );
+    return unsub;
+  }, [user]);
 
   const updateStatus = async (
     eventId: string,
@@ -395,6 +420,11 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
             >
               <Icon className="w-4 h-4" />
               {label}
+              {id === "leads" && newLeadsCount > 0 && (
+                <span className="ml-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white ring-2 ring-white animate-pulse">
+                  {newLeadsCount}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -402,7 +432,7 @@ export default function AdminDashboard({ user }: { user: AppUser | null }) {
 
       <main className="p-6 space-y-6">
         {activeTab === "users" && <UsersPanel events={events} />}
-        {activeTab === "leads" && <ContactLeadsPanel />}
+        {activeTab === "leads" && <ContactLeadsPanel onLeadsChange={fetchNewContactLeadsCount} />}
 
         {activeTab === "events" && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

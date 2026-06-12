@@ -165,14 +165,19 @@ export default function Mod05Partners({
                   <div
                     key={src}
                     className="shadow-2xl flex items-center justify-center"
-                    style={{ background: theme.frame, padding: '20px', borderRadius: 18, maxHeight: '100%' }}
+                    style={{
+                      background: theme.frame,
+                      padding: '20px',
+                      borderRadius: 18,
+                      maxHeight: '100%',
+                    }}
                   >
                     <img
                       src={src}
                       alt={p.name}
                       className="object-contain"
                       style={{
-                        maxHeight: '60vh',
+                        maxHeight: '50vh',
                         maxWidth: single ? (p.description ? '40vw' : '60vw') : '28vw',
                       }}
                     />

@@ -7,7 +7,7 @@ import { getExhibitors } from '../../../services/exhibitorService';
 import { getProductsByExhibitorIds } from '../../../services/productService';
 import { getPrizes } from '../../../services/raffleService';
 import { getPartners } from '../../../services/partnerService';
-import { getMarketingPhotos, type MarketingPhoto } from '../../../services/marketingService';
+import { getMarketingPhotos, getMarketingContact, type MarketingPhoto, type MarketingContact } from '../../../services/marketingService';
 import { getActiveSpotlights, upsertTvConfig } from '../../../services/tvService';
 import { subscribeOnlineCounts } from '../../../services/presenceService';
 import { getTvTheme, ensureThemeFonts, type RotationModuleId } from './theme';
@@ -20,7 +20,7 @@ import Mod02Carousel from './modules/Mod02Carousel';
 import Mod03Spotlight from './modules/Mod03Spotlight';
 import Mod04Trio from './modules/Mod04Trio';
 import Mod05Partners, { usePartnerSlides, type PartnerSlide } from './modules/Mod05Partners';
-import Mod06Marketing from './modules/Mod06Marketing';
+import Mod06Marketing, { useMarketingSlides, type Slide as MarketingSlide } from './modules/Mod06Marketing';
 import Mod07Promo from './modules/Mod07Promo';
 
 // Recarrega os destaques de expositor periodicamente (admin controla em tempo real)
@@ -37,6 +37,8 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
   const [spotlightIds, setSpotlightIds] = useState<string[]>([]);
   const [prizes, setPrizes] = useState<RafflePrize[]>([]);
   const [onlineTotal, setOnlineTotal] = useState<number | null>(null);
+  const [tickerRound, setTickerRound] = useState(0);
+  const [marketingContact, setMarketingContact] = useState<MarketingContact | null>(null);
 
   useEffect(() => { ensureThemeFonts(theme); }, [theme]);
 
@@ -63,6 +65,7 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
     });
     getPartners(event.id).then((ps) => active && setPartners(ps.filter((p) => p.show_on_tv)));
     getMarketingPhotos(event.id).then((ms) => active && setMarketingPhotos(ms.filter((m) => m.active)));
+    getMarketingContact(event.id).then((mc) => active && setMarketingContact(mc));
     getPrizes(event.id).then((p) => active && setPrizes(p));
     fetchPosts(event.id).then((p) => active && setPhotos(p));
     return () => { active = false; };
@@ -115,6 +118,9 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
   // módulo para que o tempo na rotação seja por tela exibida, não por foto.
   const partnerSlides = usePartnerSlides(partners);
 
+  // Telas do MOD-06 (boas-vindas, pareamento de retratos e filtragem)
+  const marketingSlides = useMarketingSlides(marketingPhotos);
+
   // Só entram na rotação os módulos com conteúdo (além do controle de pausa do painel).
   const implemented = useMemo<RotationModuleId[]>(() => {
     const list: RotationModuleId[] = ['mod01', 'mod02'];
@@ -136,9 +142,9 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
     mod03: spotlightExhibitors.length,
     mod04: Math.ceil(trioExhibitors.length / 3), // grupos de 3
     mod05: partnerSlides.length, // telas reais (pareamento de fotos já resolvido)
-    mod06: marketingPhotos.length + 1, // +1 = tela de boas-vindas
+    mod06: marketingSlides.length, // telas reais (pareamento de retratos já resolvido)
     mod07: 1, // um stand promovido por vez
-  }), [photos, spotlightExhibitors.length, trioExhibitors.length, partnerSlides.length, marketingPhotos.length]);
+  }), [photos, spotlightExhibitors.length, trioExhibitors.length, partnerSlides.length, marketingSlides.length]);
 
   const { activeModule } = useTvRotation(config, implemented, itemCounts);
 
@@ -197,29 +203,37 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
         byStand.set(prod.exhibitor_id, arr);
       });
 
-      // Round-robin em blocos de 3 por stand: cada stand entra com até 3
-      // produtos por rodada; quem tiver mais volta ao fim da fila em novos blocos de 3.
-      const queues = [...byStand.values()].map((arr) => [...arr]);
-      let remaining = queues.reduce((s, q) => s + q.length, 0);
-      while (remaining > 0) {
-        queues.forEach((q) => {
-          for (let n = 0; n < 3 && q.length > 0; n++) {
-            const prod = q.shift()!;
-            remaining--;
-            const photo = prod.photos?.[0] ?? null;
-            const ex = exMap.get(prod.exhibitor_id);
-            const price = prod.price != null ? ` — R$ ${Number(prod.price).toFixed(2)}` : '';
-            const who = ex ? ` · ${ex.name}` : '';
-            // Com foto, a miniatura já indica o produto; sem foto, mantém o emoji.
-            const text = photo ? `${prod.name}${price}${who}` : `🛍️ ${prod.name}${price}${who}`;
-            items.push({ text, image: photo });
+      // Para cada stand, seleciona uma fatia de no máximo 3 produtos para o tickerRound atual.
+      const numToShow = 3;
+      byStand.forEach((exProducts) => {
+        const total = exProducts.length;
+        if (total === 0) return;
+
+        let slice: Product[] = [];
+        if (total <= numToShow) {
+          slice = exProducts;
+        } else {
+          const startIdx = (tickerRound * numToShow) % total;
+          for (let n = 0; n < numToShow; n++) {
+            const idx = (startIdx + n) % total;
+            slice.push(exProducts[idx]);
           }
+        }
+
+        slice.forEach((prod) => {
+          const photo = prod.photos?.[0] ?? null;
+          const ex = exMap.get(prod.exhibitor_id);
+          const price = prod.price != null ? ` — R$ ${Number(prod.price).toFixed(2)}` : '';
+          const who = ex ? ` · ${ex.name}` : '';
+          // Com foto, a miniatura já indica o produto; sem foto, mantém o emoji.
+          const text = photo ? `${prod.name}${price}${who}` : `🛍️ ${prod.name}${price}${who}`;
+          items.push({ text, image: photo });
         });
-      }
+      });
     }
 
     return items;
-  }, [config, prizes, products, exhibitors]);
+  }, [config, prizes, products, exhibitors, tickerRound]);
 
   // ─── Background ─────────────────────────────────────────────────────────────
   const bg: React.CSSProperties = {
@@ -245,8 +259,8 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
             className="absolute inset-0"
           >
             {renderModule(activeModule, {
-              photos, exhibitors: trioExhibitors, spotlightExhibitors, partnerSlides, marketingPhotos,
-              promoExhibitor, products, config,
+              photos, exhibitors: trioExhibitors, spotlightExhibitors, partnerSlides, marketingSlides,
+              marketingContact, promoExhibitor, products, config,
               theme, eventId: event.id, event, dur,
             })}
           </motion.div>
@@ -254,7 +268,7 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
       </div>
 
       {/* Rodapé sempre visível */}
-      <Ticker theme={theme} items={tickerItems} speed={config.ticker_speed} />
+      <Ticker theme={theme} items={tickerItems} speed={config.ticker_speed} onLoop={() => setTickerRound((r) => r + 1)} />
 
       {/* Sorteio disparado pelo painel (tela cheia) — compartilhado com o telão legado */}
       <RaffleOverlay event={event} />
@@ -329,7 +343,8 @@ function renderModule(
     exhibitors: Exhibitor[];
     spotlightExhibitors: Exhibitor[];
     partnerSlides: PartnerSlide[];
-    marketingPhotos: MarketingPhoto[];
+    marketingSlides: MarketingSlide[];
+    marketingContact: MarketingContact | null;
     promoExhibitor: Exhibitor | null;
     products: Product[];
     config: TvConfig;
@@ -339,7 +354,7 @@ function renderModule(
     dur: (mod: RotationModuleId, fallback: number) => number;
   },
 ) {
-  const { photos, exhibitors, spotlightExhibitors, partnerSlides, marketingPhotos, promoExhibitor, products, config, theme, eventId, event, dur } = ctx;
+  const { photos, exhibitors, spotlightExhibitors, partnerSlides, marketingSlides, marketingContact, promoExhibitor, products, config, theme, eventId, event, dur } = ctx;
   switch (mod) {
     case 'mod01':
       return <Mod01Rank photos={photos} theme={theme} />;
@@ -352,7 +367,7 @@ function renderModule(
     case 'mod05':
       return <Mod05Partners slides={partnerSlides} theme={theme} perSlide={dur('mod05', 10)} />;
     case 'mod06':
-      return <Mod06Marketing photos={marketingPhotos} theme={theme} perSlide={dur('mod06', 10)} event={event} />;
+      return <Mod06Marketing slides={marketingSlides} theme={theme} perSlide={dur('mod06', 10)} event={event} contact={marketingContact} />;
     case 'mod07':
       return promoExhibitor ? (
         <Mod07Promo

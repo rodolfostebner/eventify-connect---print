@@ -46,7 +46,7 @@ export function formatPhoneNumber(phone: string) {
   return phone;
 }
 
-export function ContactLeadsPanel() {
+export function ContactLeadsPanel({ onLeadsChange }: { onLeadsChange?: () => void }) {
   const [leads, setLeads] = useState<ContactLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -87,6 +87,7 @@ export function ContactLeadsPanel() {
         ),
       );
       toast.success("Status do lead atualizado!");
+      onLeadsChange?.();
     } catch (err) {
       console.error(err);
       toast.error("Erro ao atualizar status do lead.");
@@ -107,6 +108,7 @@ export function ContactLeadsPanel() {
       await deleteContactLead(id);
       setLeads((prev) => prev.filter((lead) => lead.id !== id));
       toast.success("Lead excluído com sucesso.");
+      onLeadsChange?.();
     } catch (err) {
       console.error(err);
       toast.error("Erro ao excluir lead.");

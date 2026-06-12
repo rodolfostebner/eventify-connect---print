@@ -15,7 +15,7 @@ import {
   getExhibitorUsers, removeExhibitorUser, getNextExhibitorNumber,
 } from '../../services/exhibitorService';
 import { getProducts, createProduct, updateProduct, deactivateProduct } from '../../services/productService';
-import { getLeads, updateLeadStatus } from '../../services/leadService';
+import { getLeads, updateLeadStatus, subscribeToLeads } from '../../services/leadService';
 import { getExhibitorVisitSummary, getTopProducts } from '../../services/visitService';
 import { addEmailRole, removeEmailRole, listEmailRoles, findUserByEmail, updateUserRole } from '../../services/userService';
 import type { ExhibitorLinkedUser } from '../../services/userService';
@@ -459,7 +459,7 @@ function exportLeadsCSV(leads: Lead[], exhibitorName: string) {
   URL.revokeObjectURL(url);
 }
 
-function LeadsTab({ exhibitorId, exhibitorName }: { exhibitorId: string; exhibitorName: string }) {
+function LeadsTab({ exhibitorId, exhibitorName, onLeadsChange }: { exhibitorId: string; exhibitorName: string; onLeadsChange?: () => void }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -473,6 +473,7 @@ function LeadsTab({ exhibitorId, exhibitorName }: { exhibitorId: string; exhibit
     try {
       await updateLeadStatus(lead.id, status);
       setLeads(ls => ls.map(l => l.id === lead.id ? { ...l, status } : l));
+      onLeadsChange?.();
     } catch {
       toast.error('Erro ao atualizar status');
     } finally {
@@ -658,6 +659,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
   exhibitor: Exhibitor; eventSlug: string; categories: ExhibitorCategory[]; onUpdated: () => void;
 }) {
   const [tab, setTab] = useState<Tab>('dados');
+  const [newLeadsCount, setNewLeadsCount] = useState(0);
   const [form, setForm] = useState({
     name: exhibitor.name,
     category: exhibitor.category || 'Outros',
@@ -677,6 +679,24 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
   const [logo, setLogo] = useState(exhibitor.logo_url || '');
   const [photo, setPhoto] = useState(exhibitor.photo_url || '');
   const [tvUseLogo, setTvUseLogo] = useState(exhibitor.tv_use_logo ?? false);
+
+  const fetchNewLeadsCount = () => {
+    getLeads(exhibitor.id)
+      .then((leadsList) => {
+        const count = leadsList.filter((l) => l.status === 'novo').length;
+        setNewLeadsCount(count);
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchNewLeadsCount();
+    const unsub = subscribeToLeads(exhibitor.id, (leadsList) => {
+      const count = leadsList.filter((l) => l.status === 'novo').length;
+      setNewLeadsCount(count);
+    });
+    return unsub;
+  }, [exhibitor.id]);
 
   useEffect(() => {
     setForm({
@@ -787,13 +807,18 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`px-3.5 py-2.5 text-[11px] font-bold whitespace-nowrap border-b-2 transition-all ${
+            className={`px-3.5 py-2.5 text-[11px] font-bold whitespace-nowrap border-b-2 transition-all flex items-center gap-1.5 ${
               tab === t.key
                 ? 'border-neutral-900 text-neutral-900'
                 : 'border-transparent text-neutral-400 hover:text-neutral-700'
             }`}
           >
             {t.label}
+            {t.key === 'leads' && newLeadsCount > 0 && (
+              <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white ring-2 ring-white animate-pulse">
+                {newLeadsCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -1053,7 +1078,7 @@ function ExhibitorDetail({ exhibitor, eventSlug, categories, onUpdated }: {
         {tab === 'usuarios' && (
           <UsersTab exhibitorId={exhibitor.id} eventId={exhibitor.event_id} />
         )}
-        {tab === 'leads' && <LeadsTab exhibitorId={exhibitor.id} exhibitorName={exhibitor.name} />}
+        {tab === 'leads' && <LeadsTab exhibitorId={exhibitor.id} exhibitorName={exhibitor.name} onLeadsChange={fetchNewLeadsCount} />}
         {tab === 'visualizacoes' && <VisualizacoesTab exhibitorId={exhibitor.id} />}
       </div>
     </div>

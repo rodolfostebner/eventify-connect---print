@@ -66,3 +66,37 @@ export async function deleteContactLead(id: string): Promise<void> {
     .eq('id', id);
   if (error) throw error;
 }
+
+/**
+ * Assina atualizações em tempo real para os leads de contato.
+ */
+export function subscribeToContactLeads(
+  onUpdate: (leads: ContactLead[]) => void,
+  onError?: (err: any) => void,
+): () => void {
+  if (!supabase) return () => {};
+
+  // Busca inicial
+  getContactLeads()
+    .then(onUpdate)
+    .catch(onError);
+
+  // Assinatura em tempo real
+  const channel = supabase
+    .channel(`public:contact_leads:${Math.random().toString(36).slice(2, 9)}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'contact_leads' },
+      () => {
+        getContactLeads()
+          .then(onUpdate)
+          .catch(onError);
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}
+

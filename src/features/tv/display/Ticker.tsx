@@ -13,9 +13,9 @@ export interface TickerItem {
  * Quando `alertText` está presente, vira faixa de aviso (vermelha).
  */
 export default function Ticker({
-  theme, items, speed, alertText,
+  theme, items, speed, alertText, onLoop,
 }: {
-  theme: TvTheme; items: TickerItem[]; speed: number; alertText?: string | null;
+  theme: TvTheme; items: TickerItem[]; speed: number; alertText?: string | null; onLoop?: () => void;
 }) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(0);
@@ -57,6 +57,7 @@ export default function Ticker({
         ref={trackRef}
         className="flex items-center whitespace-nowrap"
         style={{ animation: `tickerScroll ${duration}s linear infinite`, willChange: 'transform' }}
+        onAnimationIteration={onLoop}
       >
         {/* duas cópias para loop contínuo */}
         {[0, 1].map((copy) => (
