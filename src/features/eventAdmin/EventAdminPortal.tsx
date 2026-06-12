@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { MarketingTab } from './MarketingTab';
+import { ReportsTab } from './ReportsTab';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Eye, LayoutDashboard, ShieldCheck, Printer, Store, Star, Play, Pause, CheckCircle2,
-  ChevronDown, Palette, Save, X as CloseIcon, FileClock, Info, Loader2, Plus,
+  ChevronDown, Palette, Save, X as CloseIcon, FileClock, Loader2, Plus,
   Lock, Unlock, Trophy, AlertTriangle, Upload,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -2218,13 +2219,9 @@ export default function EventAdminPortal() {
               <MarketingTab eventId={event.id} />
             )}
 
-            {/* Aba Relatórios — placeholder */}
+            {/* Aba Relatórios */}
             {activeTab === 'relatorios' && (
-              <div className="flex flex-col items-center justify-center py-16 text-neutral-300">
-                <Info className="w-10 h-10 mb-3" />
-                <p className="text-sm font-bold text-neutral-400">Em definição</p>
-                <p className="text-xs mt-1">Esta seção será implementada em breve.</p>
-              </div>
+              <ReportsTab eventId={event.id} eventName={event.name} />
             )}
 
             {/* Aba 8 — Auditoria */}
