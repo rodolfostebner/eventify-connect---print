@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { EventData } from '../../../../types';
 import type { TvTheme } from '../theme';
-import type { MarketingPhoto } from '../../../../services/marketingService';
+import type { MarketingPhoto, MarketingContact } from '../../../../services/marketingService';
 
 // Linhas fixas da mensagem de boas-vindas (a 1ª linha usa o nome do evento).
 const WELCOME_LINES = [
@@ -18,30 +18,109 @@ function welcomeImageOf(event: EventData): string | null {
   return event.owner_photo || null;
 }
 
-type Slide =
+export type Slide =
   | { kind: 'welcome' }
-  | { kind: 'photo'; photo: MarketingPhoto };
+  | { kind: 'split'; photo: MarketingPhoto }
+  | { kind: 'single-photo'; photo: MarketingPhoto; isWide: boolean }
+  | { kind: 'double-photo'; photos: MarketingPhoto[] };
+
+/**
+ * Hook de medição e empacotamento dos slides de marketing.
+ * Agrupa duas fotos do formato Retrato consecutivas e sem frase na mesma tela.
+ */
+export function useMarketingSlides(photos: MarketingPhoto[]): Slide[] {
+  const [ratios, setRatios] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    let active = true;
+    const urls = photos.map((p) => p.image_url).filter(Boolean);
+    urls.forEach((url) => {
+      if (ratios[url]) return;
+      const img = new Image();
+      img.onload = () => {
+        if (!active) return;
+        setRatios((r) => (r[url] ? r : { ...r, [url]: img.naturalWidth / Math.max(1, img.naturalHeight) }));
+      };
+      img.src = url;
+    });
+    return () => { active = false; };
+  }, [photos]);
+
+  return useMemo<Slide[]>(() => {
+    const out: Slide[] = [{ kind: 'welcome' }];
+    const isWide = (url: string) => (ratios[url] ?? 1.3) >= 1.0;
+
+    let i = 0;
+    while (i < photos.length) {
+      const p = photos[i];
+      const hasText = Boolean(p.phrase || p.text);
+
+      if (hasText) {
+        out.push({ kind: 'split', photo: p });
+        i++;
+      } else {
+        const currentIsWide = isWide(p.image_url);
+        if (currentIsWide) {
+          out.push({ kind: 'single-photo', photo: p, isWide: true });
+          i++;
+        } else {
+          const next = photos[i + 1];
+          const nextHasText = next ? Boolean(next.phrase || next.text) : true;
+          const nextIsWide = next ? isWide(next.image_url) : true;
+
+          if (next && !nextHasText && !nextIsWide) {
+            out.push({ kind: 'double-photo', photos: [p, next] });
+            i += 2;
+          } else {
+            out.push({ kind: 'single-photo', photo: p, isWide: false });
+            i++;
+          }
+        }
+      }
+    }
+    return out;
+  }, [photos, ratios]);
+}
+
+/**
+ * Exibe os canais de contatos do marketing cadastrados no banco
+ */
+function MarketingContactRow({ theme, contact }: { theme: TvTheme; contact: MarketingContact | null }) {
+  if (!contact) return null;
+  const chips: { icon: string; label: string }[] = [];
+  if (contact.instagram) chips.push({ icon: '📷', label: contact.instagram });
+  if (contact.phone) chips.push({ icon: '💬', label: contact.phone });
+  if (contact.email) chips.push({ icon: '✉️', label: contact.email });
+  if (chips.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-4 mt-2">
+      {chips.map((c, i) => (
+        <span
+          key={i}
+          style={{ fontFamily: theme.fontBody, background: theme.frame, color: theme.ink }}
+          className="px-5 py-2 rounded-full text-2xl shadow flex items-center gap-2"
+        >
+          <span>{c.icon}</span> {c.label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 /**
  * MOD-06 · Marketing do Evento.
- * A primeira página é a tela de boas-vindas: imagem do evento à esquerda e a
- * mensagem de boas-vindas à direita. Em seguida, os slides de marketing do
- * organizador (foto, foto + frase, ou foto + frase + texto). Percorre a cada
- * `perSlide` segundos.
+ * Gerencia a renderização de acordo com a variante do slide:
+ * - welcome: boas-vindas com imagem na esquerda e texto fixo na direita (sem contatos).
+ * - split: slide de marketing com frase e texto de chamada (split layout + contatos no rodapé).
+ * - single-photo: foto individual centralizada (sem frase/texto, sem contatos).
+ * - double-photo: duas fotos retrato lado a lado (sem frase/texto, sem contatos).
  */
 export default function Mod06Marketing({
-  photos, theme, perSlide, event,
+  slides, theme, perSlide, event, contact,
 }: {
-  photos: MarketingPhoto[]; theme: TvTheme; perSlide: number; event: EventData;
+  slides: Slide[]; theme: TvTheme; perSlide: number; event: EventData; contact: MarketingContact | null;
 }) {
   const welcomeImage = welcomeImageOf(event);
-
-  const slides = useMemo<Slide[]>(() => {
-    const out: Slide[] = [{ kind: 'welcome' }];
-    photos.forEach((photo) => out.push({ kind: 'photo', photo }));
-    return out;
-  }, [photos]);
-
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
@@ -50,6 +129,7 @@ export default function Mod06Marketing({
     return () => clearInterval(t);
   }, [slides.length, perSlide]);
 
+  if (slides.length === 0) return null;
   const slide = slides[idx % slides.length];
 
   // ─── Slide de boas-vindas ─────────────────────────────────────────────────
@@ -91,62 +171,130 @@ export default function Mod06Marketing({
               </p>
             ))}
           </div>
-          <span style={{ fontFamily: theme.fontHand, color: theme.accent }} className="text-5xl mt-2">
-            Participe! ✦
-          </span>
+          <div className="flex flex-col gap-3 mt-1">
+            <span style={{ fontFamily: theme.fontHand, color: theme.accent }} className="text-5xl">
+              Participe! ✦
+            </span>
+          </div>
         </motion.div>
       </div>
     );
   }
 
-  // ─── Slides de marketing ──────────────────────────────────────────────────
-  const photo = slide.photo;
-  const hasText = Boolean(photo.phrase || photo.text);
-
-  return (
-    <div className="w-full h-full relative overflow-hidden">
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={photo.id}
-          initial={{ opacity: 0, scale: 1.04 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.6 }}
-          className="absolute inset-0"
-        >
-          <img src={photo.image_url} alt="" className="w-full h-full object-cover" />
-
-          {hasText && (
+  // ─── Slides customizados divididos com Frase (Split) ─────────────────────
+  if (slide.kind === 'split') {
+    const { photo } = slide;
+    return (
+      <div className="w-full h-full relative overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={photo.id}
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 flex items-center justify-center gap-12 px-16 py-10 overflow-hidden"
+          >
+            {/* Foto na esquerda */}
             <div
-              className="absolute inset-x-0 bottom-0 p-12 flex flex-col gap-3"
-              style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.35) 60%, transparent 100%)' }}
+              className="shrink-0 shadow-2xl flex items-center justify-center"
+              style={{ background: theme.frame, padding: '20px', borderRadius: 18, maxHeight: '100%' }}
             >
+              <img
+                src={photo.image_url}
+                alt=""
+                className="object-contain"
+                style={{ maxHeight: '74vh', maxWidth: '42vw' }}
+              />
+            </div>
+
+            {/* Chamada e contatos na direita */}
+            <div className="flex-1 min-w-0 flex flex-col gap-4">
               {photo.phrase && (
-                <motion.h2
-                  initial={{ y: 24, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  style={{ fontFamily: theme.fontDisplay, color: '#ffffff' }}
-                  className="text-7xl leading-[1.05] drop-shadow-lg"
-                >
+                <h2 style={{ fontFamily: theme.fontDisplay, color: theme.accent }} className="text-6xl leading-tight">
                   {photo.phrase}
-                </motion.h2>
+                </h2>
               )}
               {photo.text && (
-                <motion.p
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.35 }}
-                  style={{ fontFamily: theme.fontBody, color: 'rgba(255,255,255,0.92)' }}
-                  className="text-3xl leading-snug max-w-5xl drop-shadow"
-                >
+                <p style={{ fontFamily: theme.fontBody, color: theme.ink }} className="text-3xl leading-snug">
                   {photo.text}
-                </motion.p>
+                </p>
               )}
+              <MarketingContactRow theme={theme} contact={contact} />
             </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  // ─── Slide de foto única centralizada sem Frase (Paisagem ou Retrato único) ───
+  if (slide.kind === 'single-photo') {
+    const { photo, isWide } = slide;
+    return (
+      <div className="w-full h-full relative overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={photo.id}
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 flex items-center justify-center px-16 py-10 overflow-hidden"
+          >
+            <div
+              className="shadow-2xl flex items-center justify-center"
+              style={{ background: theme.frame, padding: '20px', borderRadius: 18, maxHeight: '100%' }}
+            >
+              <img
+                src={photo.image_url}
+                alt=""
+                className="object-contain"
+                style={{
+                  maxHeight: '74vh',
+                  maxWidth: isWide ? '75vw' : '42vw',
+                }}
+              />
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  // ─── Slide de duas fotos retrato sem Frase lado a lado ─────────────────────
+  if (slide.kind === 'double-photo') {
+    const { photos: list } = slide;
+    return (
+      <div className="w-full h-full relative overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={list.map((p) => p.id).join('|')}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 flex items-center justify-center gap-12 px-16 py-10 overflow-hidden"
+          >
+            {list.map((photo) => (
+              <div
+                key={photo.id}
+                className="shadow-2xl flex items-center justify-center"
+                style={{ background: theme.frame, padding: '20px', borderRadius: 18, maxHeight: '100%' }}
+              >
+                <img
+                  src={photo.image_url}
+                  alt=""
+                  className="object-contain"
+                  style={{ maxHeight: '74vh', maxWidth: '38vw' }}
+                />
+              </div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    );
+  }
+
+  return null;
 }
