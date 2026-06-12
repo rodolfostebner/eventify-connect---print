@@ -217,7 +217,7 @@ export function ExhibitorDetailModal({ exhibitor, categories, event, user, onClo
             {exhibitor.description && exhibitor.tagline && (
               <div className="mt-5">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.12em] text-[#94949E] mb-2">Sobre o estande</h3>
-                <p className="text-[12.5px] text-[#2D2D3F] leading-relaxed">{exhibitor.description}</p>
+                <p className="text-[12.5px] text-[#2D2D3F] leading-relaxed whitespace-pre-line">{exhibitor.description}</p>
               </div>
             )}
 
