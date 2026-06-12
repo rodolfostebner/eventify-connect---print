@@ -67,6 +67,7 @@ const DEFAULT_CONFIG: Omit<TvConfig, 'id' | 'event_id' | 'updated_at'> = {
   mod07_exhibitor_id: null, mod07_text: null, mod07_tagline: null,
   mod07_max_shows: 3, mod07_shows_done: 0,
   show_online_count: true,
+  text_scale: 100,
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -480,6 +481,29 @@ export default function TVControlPanel() {
                   >
                     <RotateCcw className="w-3 h-3" />
                     Retomar rotação automática
+                  </button>
+                )}
+              </div>
+
+              {/* Tamanho do texto — escala global dos textos de todas as seções */}
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <p className="text-[10px] text-neutral-500 uppercase tracking-wide">Tamanho do texto</p>
+                <input
+                  type="range"
+                  min={80}
+                  max={160}
+                  step={5}
+                  value={cfg.text_scale}
+                  onChange={(e) => save({ text_scale: Number(e.target.value) })}
+                  className="w-40 accent-slate-300"
+                />
+                <span className="text-xs font-bold text-neutral-200 w-10">{cfg.text_scale}%</span>
+                {cfg.text_scale !== 100 && (
+                  <button
+                    onClick={() => save({ text_scale: 100 })}
+                    className="px-2.5 py-1 bg-neutral-800 hover:bg-neutral-700 rounded-lg text-[11px] text-neutral-300 border border-neutral-700"
+                  >
+                    Restaurar padrão
                   </button>
                 )}
               </div>

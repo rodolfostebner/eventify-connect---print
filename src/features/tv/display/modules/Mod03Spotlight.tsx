@@ -90,7 +90,7 @@ export default function Mod03Spotlight({
               </p>
             )}
             {ex.description && (
-              <p style={{ fontFamily: theme.fontBody, color: theme.inkSoft }} className="text-2xl leading-snug line-clamp-3">
+              <p style={{ fontFamily: theme.fontBody, color: theme.inkSoft }} className="text-2xl leading-snug line-clamp-3 whitespace-pre-line">
                 {ex.description}
               </p>
             )}

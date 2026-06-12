@@ -102,7 +102,7 @@ export default function Mod07Promo({
           )}
 
           {body && (
-            <p style={{ fontFamily: theme.fontBody, color: theme.ink }} className="text-3xl leading-snug line-clamp-5">
+            <p style={{ fontFamily: theme.fontBody, color: theme.ink }} className="text-3xl leading-snug line-clamp-5 whitespace-pre-line">
               {body}
             </p>
           )}

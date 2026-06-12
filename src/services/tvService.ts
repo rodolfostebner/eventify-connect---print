@@ -39,6 +39,8 @@ export interface TvConfig {
   mod07_shows_done: number;
   // Header do telão: exibir o total de pessoas no app (contador de presença)
   show_online_count: boolean;
+  // Tamanho do texto do telão (%): escala global dos textos (100 = padrão)
+  text_scale: number;
   updated_at: string;
 }
 

@@ -195,7 +195,7 @@ export default function Mod05Partners({
           <div className="shrink-0 w-[26vw] flex items-center">
             <p
               style={{ fontFamily: theme.fontBody, color: theme.ink }}
-              className="text-3xl leading-snug"
+              className="text-3xl leading-snug whitespace-pre-line"
             >
               {p.description}
             </p>

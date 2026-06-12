@@ -42,6 +42,15 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
 
   useEffect(() => { ensureThemeFonts(theme); }, [theme]);
 
+  // Tamanho do texto (painel de controle): escala o font-size raiz da página.
+  // Todos os textos dos módulos usam classes rem, então acompanham a escala;
+  // os quadros de foto (vh/vw) ficam fixos. Restaura o padrão ao desmontar.
+  useEffect(() => {
+    const scale = config.text_scale ?? 100;
+    document.documentElement.style.fontSize = scale === 100 ? '' : `${scale}%`;
+    return () => { document.documentElement.style.fontSize = ''; };
+  }, [config.text_scale]);
+
   // Fotos + realtime
   useEffect(() => {
     let active = true;
