@@ -369,7 +369,7 @@ Canais ativos:
 | `visits` | Analytics de visitas/cliques (event_status pre/live/post no momento da visita; relatorio pos-evento, nao afeta ranking) | Ativo |
 | `app_sessions` | Sessoes do app via heartbeat (~60s, iniciado no EventPage): id gerado no cliente (localStorage por navegador/evento), user_id null = anonimo, started_at/last_seen_at. Online agora = last_seen_at na janela de 2,5 min. Telao/paineis nao geram heartbeat | Ativo |
 | `view_exhibitor_rankings` | View SQL: ranking ponderado (publico × peso + jurado × peso) em tempo real | Ativo |
-| `tv_config` | Config do telão por evento: rotacao, modulo ativo/forcado, tema, duracoes/pausa por modulo (mod01-07), ticker, promover stand (mod07_exhibitor_id, mod07_text/tagline, mod07_max_shows/shows_done), show_online_count (badge "no app agora" no header do telao), UNIQUE(event_id) | Ativo |
+| `tv_config` | Config do telão por evento: rotacao, modulo ativo/forcado, tema, duracoes/pausa por modulo (mod01-07), ticker, promover stand (mod07_exhibitor_id, mod07_text/tagline, mod07_max_shows/shows_done), show_online_count (badge "no app agora" no header do telao), text_scale (% do tamanho do texto de todo o telao, aplicado via font-size raiz no TVDisplay; textos rem escalam, quadros vh/vw nao), UNIQUE(event_id) | Ativo |
 | `tv_exhibitor_spotlight` | Historico de expositores em destaque no telão (MOD-03); ended_at null = em destaque agora | Ativo |
 | `tv_photo_history` | Historico de fotos exibidas no telão (mod01/mod02) p/ evitar repeticao | Ativo |
 | `event_marketing` | Contato do evento p/ o telão (instagram, phone, email), UNIQUE(event_id) | Ativo |
