@@ -149,8 +149,8 @@ export default function Mod05Partners({
 
       {/* Corpo: fotos (ampliadas) + descrição à direita */}
       <div className="flex-1 w-full min-h-0 flex items-stretch justify-center gap-8">
-        {/* Fotos */}
-        <div className="flex-1 min-h-0 flex items-center justify-center gap-6">
+        {/* Fotos — container query: as molduras se limitam ao espaço real deste quadro */}
+        <div className="flex-1 min-h-0 flex items-center justify-center gap-6" style={{ containerType: 'size' }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={`${p.id}-${slide.images.join('|') || 'logo'}-${idx}`}
@@ -165,15 +165,18 @@ export default function Mod05Partners({
                   <div
                     key={src}
                     className="shadow-2xl flex items-center justify-center"
-                    style={{ background: theme.frame, padding: '20px', borderRadius: 18, maxHeight: '100%' }}
+                    style={{ background: theme.frame, padding: '20px', borderRadius: 18 }}
                   >
                     <img
                       src={src}
                       alt={p.name}
                       className="object-contain"
                       style={{
-                        maxHeight: '60vh',
-                        maxWidth: single ? (p.description ? '40vw' : '60vw') : '28vw',
+                        // 40px = padding da moldura; 52px = padding + metade do gap entre as duas molduras
+                        maxHeight: 'min(60vh, 100cqh - 40px)',
+                        maxWidth: single
+                          ? (p.description ? 'min(40vw, 100cqw - 40px)' : 'min(60vw, 100cqw - 40px)')
+                          : 'calc(50cqw - 52px)',
                       }}
                     />
                   </div>
