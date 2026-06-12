@@ -103,6 +103,7 @@ src/
     announcementService.ts # CRUD avisos + disparo TV/popup/push (tabelas announcements, events, notifications)
     tvService.ts           # Config do telão + destaques + historico de fotos (tabelas tv_config, tv_exhibitor_spotlight, tv_photo_history)
     marketingService.ts    # Contato + slides de fotos do telão (tabelas event_marketing, event_marketing_photos)
+    reportService.ts       # Relatorio de expositores p/ a aba Relatorios (produtos, login, visitantes unicos sem staff)
 
   contexts/
     AuthContext.tsx         # AuthProvider + useAuth + BETA_MODE — re-exportado em hooks/useAuth.ts
@@ -195,6 +196,7 @@ src/
     eventAdmin/
       EventAdminPortal.tsx # Portal do EventAdmin: controles + dashboard + config (abas) + auditoria. Acesso admin e event_admin
       MarketingTab.tsx     # Aba Marketing: contato do evento + slides de fotos do telão
+      ReportsTab.tsx       # Aba Relatorios: relatorio de expositores + export PDF (jspdf/jspdf-autotable)
 
     avaliador/
       AvaliadorPage.tsx    # Painel do avaliador (stub — a implementar)
@@ -401,6 +403,7 @@ Canais ativos:
 | `announcementService.ts`| `announcements`, `events`, `notifications`, `users` | Ativo |
 | `tvService.ts` | `tv_config`, `tv_exhibitor_spotlight`, `tv_photo_history`, `view_exhibitor_rankings`, `evaluations` | Ativo |
 | `marketingService.ts` | `event_marketing`, `event_marketing_photos` | Ativo |
+| `reportService.ts` | `exhibitors`, `products`, `users`, `visits` (agregacao client-side p/ aba Relatorios) | Ativo |
 
 ---
 
