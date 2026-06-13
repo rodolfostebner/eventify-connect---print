@@ -342,32 +342,32 @@ export default function AnnouncementOverlay({ event }: { event: EventData }) {
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.9, y: -30, opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 120 }}
-              className="max-w-4xl w-full text-center space-y-8 flex flex-col items-center px-6 relative z-10"
+              className="max-w-5xl w-full h-[80vh] text-center flex flex-col items-center justify-center gap-[3vh] px-6 relative z-10"
             >
               <motion.div
                 animate={{ scale: [1, 1.1, 1] }}
                 transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
-                className="w-28 h-28 rounded-full bg-white/20 flex items-center justify-center border-4 border-white/30 shadow-2xl"
+                className="w-[14vh] h-[14vh] rounded-full bg-white/20 flex items-center justify-center border-4 border-white/30 shadow-2xl shrink-0"
               >
                 {activeAnnouncement.icon === 'bell' ? (
-                  <Bell className="w-14 h-14 animate-bounce text-white" />
+                  <Bell className="w-[7vh] h-[7vh] animate-bounce text-white" />
                 ) : (
-                  <Megaphone className="w-14 h-14 -rotate-12 text-white" />
+                  <Megaphone className="w-[7vh] h-[7vh] -rotate-12 text-white" />
                 )}
               </motion.div>
 
-              <h2 className="text-6xl font-black uppercase tracking-tight leading-tight filter drop-shadow-md">
+              <h2 className="text-[8vh] font-black uppercase tracking-tight leading-[1.05] filter drop-shadow-md">
                 {activeAnnouncement.title}
               </h2>
 
-              <div className="w-40 h-1 bg-white/30 rounded-full" />
+              <div className="w-40 h-1 bg-white/30 rounded-full shrink-0" />
 
-              <p className="text-2xl font-bold max-w-3xl leading-relaxed text-white/95 filter drop-shadow-sm">
+              <p className="text-[4.5vh] font-bold max-w-4xl leading-snug text-white/95 filter drop-shadow-sm whitespace-pre-line">
                 {activeAnnouncement.message}
               </p>
 
-              <div className="pt-6">
-                <div className="px-5 py-2 rounded-full bg-black/20 backdrop-blur-sm border border-white/10 text-[10px] font-black tracking-widest uppercase flex items-center gap-2">
+              <div className="pt-[2vh] shrink-0">
+                <div className="px-5 py-2 rounded-full bg-black/20 backdrop-blur-sm border border-white/10 text-[1.6vh] font-black tracking-widest uppercase flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-white animate-ping" />
                   Aviso em Destaque
                 </div>
