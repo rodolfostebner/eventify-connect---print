@@ -12,6 +12,7 @@ import { subscribeToEvent, updateEvent } from '../../services/eventService';
 import { fetchAllPosts, updatePostStatus } from '../../services/posts';
 import { getAnnouncements, triggerAnnouncement } from '../../services/announcementService';
 import { getPrizes, drawPrize, setTvRaffleState, getTicketCount } from '../../services/raffleService';
+import { createNotification } from '../../services/notificationService';
 import {
   getTvConfig, upsertTvConfig, subscribeToTvConfig,
   getActiveSpotlights, getSpotlightHistory, addSpotlight, removeSpotlight, clearAllSpotlights,
@@ -332,6 +333,9 @@ export default function TVControlPanel() {
   async function handleDraw(prize: RafflePrize) {
     if (!event) return;
     if (ticketCount === 0) { toast.error('Nenhum participante no sorteio'); return; }
+    // Só notifica na 1ª vez: re-sortear o mesmo prêmio é idempotente (devolve o
+    // mesmo ganhador) e não deve disparar a notificação de novo.
+    const alreadyDrawn = Boolean(prize.winner_ticket_id);
     setDrawing(prize.id);
     try {
       const winner = await drawPrize(prize.id, event.id);
@@ -339,6 +343,18 @@ export default function TVControlPanel() {
         setEvent(ev => ev ? { ...ev, tv_raffle_state: 'showing_winner', tv_raffle_prize_id: prize.id } : ev);
         toast.success(`Ganhador(a): ${winner.user?.display_name || winner.user?.email}`);
         setPrizes(await getPrizes(event.id));
+
+        // Avisa o ganhador no app (in-app realtime: sino + toast/push se ele
+        // tiver o app aberto e notificações ativas). O microfone segue como
+        // canal principal — isto é um complemento.
+        if (!alreadyDrawn && winner.user_id) {
+          createNotification({
+            userId: winner.user_id,
+            title: '🎉 Você foi sorteado(a)!',
+            body: `Parabéns! Você ganhou "${prize.name}". Procure a organização para retirar seu prêmio.`,
+            link: slug ? `/event/${slug}` : undefined,
+          }).catch((e) => console.error('[Sorteio] Falha ao notificar ganhador:', e));
+        }
       }
     } catch {
       toast.error('Erro ao realizar sorteio');
