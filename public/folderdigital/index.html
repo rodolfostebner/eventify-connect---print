@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memories Hub — Folder Digital</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      min-height: 100vh;
+      overflow-y: auto;
+      background-image: url('bambuzal_bg.jpg');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      font-family: 'Inter', sans-serif;
+      padding: 20px 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #3d312c;
+    }
+
+    /* Fundo para modo paisagem (telas horizontais) */
+    @media (orientation: landscape) {
+      body {
+        background-image: url('bambuzal_bg_landscape.jpg');
+      }
+    }
+    
+    .main-wrapper {
+      width: 100%;
+      max-width: 680px;
+      background: rgba(253, 245, 238, 0.90); /* Soft premium warm cream glass */
+      border: 2px solid rgba(240, 167, 149, 0.35);
+      border-radius: 40px;
+      padding: 30px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 30px 60px rgba(26, 22, 20, 0.15);
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    
+    .logo-img {
+      width: 50px;
+      height: 50px;
+      object-fit: contain;
+    }
+    
+    .brand-name {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #2d221e;
+      text-transform: uppercase;
+    }
+    
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1.25;
+      background: linear-gradient(90deg, #B24C34, #4A2B20);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-top: 10px;
+    }
+    
+    .duo-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+    
+    .section-box {
+      background: rgba(255, 255, 255, 0.45);
+      border: 1px solid rgba(26, 22, 20, 0.05);
+      border-radius: 24px;
+      padding: 24px;
+    }
+    
+    .section-box.challenge {
+      border-left: 6px solid #8c7870;
+    }
+    
+    .section-box.solution {
+      border-left: 6px solid #B24C34;
+      background: rgba(240, 167, 149, 0.05);
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #2d221e;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .section-box.challenge .section-title {
+      color: #5d4c46;
+    }
+    
+    .section-box.solution .section-title {
+      color: #B24C34;
+    }
+    
+    .section-text {
+      font-size: 15px;
+      line-height: 1.45;
+      color: #3d312c;
+    }
+    
+    .features-section-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #2d221e;
+      margin-bottom: 15px;
+      text-align: center;
+      border-bottom: 1px solid rgba(26, 22, 20, 0.1);
+      padding-bottom: 8px;
+    }
+    
+    .features-container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+    
+    .feature-card {
+      background: rgba(255, 255, 255, 0.65);
+      border: 1px solid rgba(26, 22, 20, 0.06);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-shadow: 0 4px 10px rgba(26, 22, 20, 0.02);
+    }
+    
+    .feature-card.participantes { border-left: 6px solid #16a34a; }
+    .feature-card.expositores { border-left: 6px solid #2563eb; }
+    .feature-card.organizadores { border-left: 6px solid #dc2626; }
+    
+    .feature-title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .feature-icon {
+      font-size: 22px;
+    }
+    
+    .feature-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1A1614;
+    }
+    
+    .feature-desc {
+      font-size: 15px;
+      color: #4c3c37;
+      line-height: 1.4;
+    }
+    
+    .cta-container {
+      text-align: center;
+      margin-top: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .cta-wrapper {
+      background: rgba(240, 167, 149, 0.12);
+      border: 1px solid rgba(240, 167, 149, 0.3);
+      border-radius: 24px;
+      padding: 20px;
+    }
+    
+    .cta-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: #2d221e;
+      line-height: 1.4;
+      margin-bottom: 12px;
+    }
+    
+    .cta-button {
+      display: inline-block;
+      width: 100%;
+      background: linear-gradient(135deg, #F0A795, #E5A899);
+      color: #1A1614;
+      text-decoration: none;
+      font-size: 20px;
+      font-weight: 700;
+      padding: 16px;
+      border-radius: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 8px 25px rgba(240, 167, 149, 0.35);
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+    
+    .footer {
+      font-size: 14px;
+      color: #7c6c66;
+      margin-top: 5px;
+    }
+
+    /* Media query for tablet and medium screens */
+    @media (min-width: 600px) {
+      body {
+        padding: 40px 30px;
+      }
+      .main-wrapper {
+        padding: 40px 35px;
+      }
+      .logo-img {
+        width: 60px;
+        height: 60px;
+      }
+      .brand-name {
+        font-size: 30px;
+      }
+      h1 {
+        font-size: 36px;
+      }
+      .section-title {
+        font-size: 22px;
+      }
+      .section-text {
+        font-size: 18px;
+      }
+      .features-section-title {
+        font-size: 24px;
+      }
+      .feature-title {
+        font-size: 22px;
+      }
+      .feature-desc {
+        font-size: 18px;
+      }
+      .feature-icon {
+        font-size: 26px;
+      }
+      .cta-text {
+        font-size: 20px;
+      }
+      .cta-button {
+        font-size: 24px;
+        padding: 20px;
+      }
+      .footer {
+        font-size: 16px;
+      }
+    }
+
+    /* Media query for desktop and larger screens */
+    @media (min-width: 1000px) {
+      body {
+        padding: 60px 40px;
+      }
+      .main-wrapper {
+        padding: 50px 60px;
+      }
+      .logo-img {
+        width: 80px;
+        height: 80px;
+      }
+      .brand-name {
+        font-size: 36px;
+      }
+      h1 {
+        font-size: 44px;
+      }
+      .section-title {
+        font-size: 24px;
+      }
+      .section-text {
+        font-size: 20px;
+      }
+      .features-section-title {
+        font-size: 26px;
+      }
+      .feature-title {
+        font-size: 24px;
+      }
+      .feature-desc {
+        font-size: 20px;
+      }
+      .feature-icon {
+        font-size: 28px;
+      }
+      .cta-text {
+        font-size: 22px;
+      }
+      .cta-button {
+        font-size: 28px;
+      }
+      .footer {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="main-wrapper">
+    <div>
+      <div class="header">
+        <div class="logo-container">
+          <img src="logo.png" class="logo-img" alt="Memories Hub Logo">
+          <span class="brand-name">Memories Hub</span>
+        </div>
+        <h1>Conectando pessoas e telas em tempo real</h1>
+      </div>
+      
+      <div class="duo-container">
+        <div class="section-box challenge">
+          <h2 class="section-title">O Desafio</h2>
+          <p class="section-text">Em qualquer evento — de confraternizações e mostras escolares a grandes feiras corporativas —, conectar participantes, dar visibilidade a patrocinadores e gerenciar contatos de negócios exige uma plataforma integrada e dinâmica.</p>
+        </div>
+        
+        <div class="section-box solution">
+          <h2 class="section-title">A Solução</h2>
+          <p class="section-text">O <strong>Memories Hub</strong> é um aplicativo phygital completo que integra o mundo físico ao digital. Ele conecta participantes, expositores e organizadores em tempo real para transformar a experiência de qualquer evento.</p>
+        </div>
+      </div>
+      
+      <h2 class="features-section-title">Recursos para Cada Perfil</h2>
+      <div class="features-container">
+        <div class="feature-card participantes">
+          <div class="feature-title-row">
+            <span class="feature-icon">👥</span>
+            <h3 class="feature-title">Para Participantes</h3>
+          </div>
+          <p class="feature-desc">Compartilhe fotos instantaneamente para o telão (TV Wall), avalie os stands com notas e concorra a sorteios interativos de forma integrada.</p>
+        </div>
+        
+        <div class="feature-card expositores">
+          <div class="feature-title-row">
+            <span class="feature-icon">🛍️</span>
+            <h3 class="feature-title">Para Expositores</h3>
+          </div>
+          <p class="feature-desc">Crie stands virtuais customizados, exiba catálogos de produtos e serviços e capture leads qualificados em tempo real.</p>
+        </div>
+        
+        <div class="feature-card organizadores">
+          <div class="feature-title-row">
+            <span class="feature-icon">📢</span>
+            <h3 class="feature-title">Para Promotores e Organizadores</h3>
+          </div>
+          <p class="feature-desc">Gerencie painéis interativos, realize sorteios automáticos e controle votações ponderadas (público e júri técnico) com exibição ao vivo no telão principal.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cta-container">
+      <div class="cta-wrapper">
+        <div class="cta-text">Acesse o Memories Hub e experimente o poder dessa conexão em tempo real!</div>
+        <a href="/" class="cta-button">Acesse o Memories Hub</a>
+      </div>
+      <div class="footer">
+        Memories Hub &copy; 2026
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

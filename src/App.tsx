@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { useAuth } from "./hooks/useAuth"
 import EventPage from "./pages/EventPage"
@@ -14,6 +15,13 @@ import LandingPage from "./pages/LandingPage"
 import TVControlPanelPage from "./pages/TVControlPanelPage"
 import { Toaster } from "sonner"
 import { NotificationsListener } from "./components/NotificationsListener"
+
+function FolderDigitalRedirect() {
+  useEffect(() => {
+    window.location.replace("/folderdigital/index.html");
+  }, []);
+  return null;
+}
 
 function App() {
   const { user, loading } = useAuth()
@@ -43,6 +51,7 @@ function App() {
         {/* Rotas públicas */}
         <Route path="/event/:slug" element={<EventPage user={user} />} />
         <Route path="/tv/:slug" element={<TVView />} />
+        <Route path="/folderdigital" element={<FolderDigitalRedirect />} />
 
         {/* Portal Expositor */}
         <Route path="/expositor" element={isExpositor ? <ExhibitorPortalPage /> : <Navigate to="/login" replace />} />
