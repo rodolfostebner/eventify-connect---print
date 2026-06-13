@@ -1,0 +1,15 @@
+{
+  "name": "Memories Hub — Folder Digital",
+  "short_name": "Folder Digital",
+  "start_url": "/folderdigital/index.html",
+  "display": "standalone",
+  "background_color": "#FDF5EE",
+  "theme_color": "#FAF6F0",
+  "icons": [
+    {
+      "src": "/folderdigital/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
