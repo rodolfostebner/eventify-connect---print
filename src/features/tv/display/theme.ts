@@ -73,9 +73,13 @@ export function tvImageFor(ex: { photo_url?: string | null; logo_url?: string | 
 }
 
 // ─── Módulos de rotação (ordem padrão) ────────────────────────────────────────
+// MOD-06 (boas-vindas/marketing) abre a rotação: é a "tela inicial" do telão e
+// reaparece no começo de cada ciclo. Sem isto, com muitos expositores (MOD-04)
+// e parceiros (MOD-05) o ciclo fica longo e o welcome — se ficasse por último —
+// só apareceria por poucos segundos a cada vários minutos.
 
 export const ROTATION_MODULES = [
-  'mod01', 'mod02', 'mod03', 'mod04', 'mod05', 'mod07', 'mod06',
+  'mod06', 'mod01', 'mod02', 'mod03', 'mod04', 'mod05', 'mod07',
 ] as const;
 
 export type RotationModuleId = typeof ROTATION_MODULES[number];
