@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Trophy, Plus, Trash2, Edit3, Tv, Gift, Users, Play, X, CheckCircle2,
-  Loader2, ImagePlus, Store, ChevronRight, ArrowLeft, Package,
+  Loader2, ImagePlus, Store, ChevronRight, ArrowLeft, Package, EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '../../../lib/utils';
@@ -11,6 +11,7 @@ import {
   drawPrize, setTvRaffleState, getTicketCount, subscribeToPrizes,
 } from '../../../services/raffleService';
 import { uploadImage } from '../../../services/storageService';
+import { createNotification } from '../../../services/notificationService';
 import { getExhibitors } from '../../../services/exhibitorService';
 import { getProducts } from '../../../services/productService';
 
@@ -241,6 +242,18 @@ export function SorteioTab({ event, onEventUpdate }: Props) {
     }
   }
 
+  // Esconde o overlay do telão mas mantém o prêmio "armado" (prize_id continua),
+  // para o sorteio seguir a um clique depois da contagem regressiva nos avisos.
+  async function handleHide(prize: RafflePrize) {
+    try {
+      await setTvRaffleState(event.id, 'idle', prize.id);
+      onEventUpdate({ ...event, tv_raffle_state: 'idle', tv_raffle_prize_id: prize.id });
+      toast.success('Telão ocultado — prêmio segue preparado para sortear');
+    } catch {
+      toast.error('Erro ao ocultar o telão');
+    }
+  }
+
   async function handleDraw(prize: RafflePrize) {
     if (prize.winner_ticket_id) { toast.error('Este prêmio já foi sorteado'); return; }
     if (ticketCount === 0) { toast.error('Nenhum participante cadastrado para sortear'); return; }
@@ -252,6 +265,15 @@ export function SorteioTab({ event, onEventUpdate }: Props) {
         const name = winner.user?.display_name || winner.user?.email || 'Participante';
         toast.success(`Ganhador(a): ${name}`);
         onEventUpdate({ ...event, tv_raffle_state: 'showing_winner', tv_raffle_prize_id: prize.id });
+        // Avisa o ganhador no app (in-app realtime: sino + toast/push se aberto).
+        if (winner.user_id) {
+          createNotification({
+            userId: winner.user_id,
+            title: '🎉 Você foi sorteado(a)!',
+            body: `Parabéns! Você ganhou "${prize.name}". Procure a organização para retirar seu prêmio.`,
+            link: event.slug ? `/event/${event.slug}` : undefined,
+          }).catch((e) => console.error('[Sorteio] Falha ao notificar ganhador:', e));
+        }
         load();
       } else {
         toast.error('Erro ao realizar sorteio');
@@ -276,6 +298,8 @@ export function SorteioTab({ event, onEventUpdate }: Props) {
   // ─── Render ───────────────────────────────────────────────────────────────
 
   const activePrize = prizes.find((p) => p.id === tvPrizeId);
+  // Prêmio preparado mas com o telão oculto (escondido entre o "Mostrar" e o "Sortear").
+  const hiddenArmed = tvState === 'idle' && !!tvPrizeId;
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -283,23 +307,24 @@ export function SorteioTab({ event, onEventUpdate }: Props) {
       {/* Status do telão */}
       <div className={cn(
         'rounded-2xl border p-4 flex items-center gap-4',
-        tvState === 'idle' ? 'bg-neutral-50 border-neutral-200' :
-        tvState === 'showing_prize' ? 'bg-blue-50 border-blue-200' :
-        'bg-green-50 border-green-200',
+        tvState === 'showing_winner' ? 'bg-green-50 border-green-200' :
+        (tvState === 'showing_prize' || hiddenArmed) ? 'bg-blue-50 border-blue-200' :
+        'bg-neutral-50 border-neutral-200',
       )}>
         <Tv className={cn('w-5 h-5 shrink-0',
-          tvState === 'idle' ? 'text-neutral-400' :
-          tvState === 'showing_prize' ? 'text-blue-500' : 'text-green-600',
+          tvState === 'showing_winner' ? 'text-green-600' :
+          (tvState === 'showing_prize' || hiddenArmed) ? 'text-blue-500' : 'text-neutral-400',
         )} />
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-400">Estado do Telão</p>
           <p className="text-sm font-bold text-neutral-800">
-            {tvState === 'idle' && 'Sorteio inativo'}
+            {tvState === 'idle' && !tvPrizeId && 'Sorteio inativo'}
+            {hiddenArmed && `Prêmio preparado (telão oculto): ${activePrize?.name ?? '—'}`}
             {tvState === 'showing_prize' && `Exibindo prêmio: ${activePrize?.name ?? '—'}`}
             {tvState === 'showing_winner' && `Ganhador revelado: ${activePrize?.name ?? '—'}`}
           </p>
         </div>
-        {tvState !== 'idle' && (
+        {(tvState !== 'idle' || tvPrizeId) && (
           <button
             onClick={handleClose}
             className="shrink-0 flex items-center gap-1.5 text-[11px] font-bold px-3 py-2 rounded-xl bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-700 transition-colors"
@@ -343,7 +368,8 @@ export function SorteioTab({ event, onEventUpdate }: Props) {
         ) : (
           <div className="space-y-3">
             {prizes.map((prize) => {
-              const isOnTv = tvPrizeId === prize.id;
+              const isOnTv = tvPrizeId === prize.id;        // prêmio armado (mostrando ou oculto)
+              const onScreen = isOnTv && tvState === 'showing_prize'; // visível no telão agora
               const drawn = !!prize.winner_ticket_id;
               const winnerName = prize.winner?.display_name || prize.winner?.email || null;
 
@@ -387,14 +413,22 @@ export function SorteioTab({ event, onEventUpdate }: Props) {
                   <div className="flex flex-col gap-1.5 shrink-0">
                     {!drawn && (
                       <>
-                        {!isOnTv ? (
+                        {onScreen ? (
+                          <button
+                            onClick={() => handleHide(prize)}
+                            className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-neutral-700 text-white hover:bg-neutral-800 transition-colors"
+                          >
+                            <EyeOff className="w-3 h-3" /> Esconder
+                          </button>
+                        ) : (
                           <button
                             onClick={() => handleShowPrize(prize)}
                             className="flex items-center gap-1 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
                           >
-                            <Tv className="w-3 h-3" /> Mostrar
+                            <Tv className="w-3 h-3" /> {isOnTv ? 'Reexibir' : 'Mostrar'}
                           </button>
-                        ) : (
+                        )}
+                        {isOnTv && (
                           <button
                             onClick={() => handleDraw(prize)}
                             disabled={drawing === prize.id}
