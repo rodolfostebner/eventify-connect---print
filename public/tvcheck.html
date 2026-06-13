@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnóstico do Telão — Memories Hub</title>
+<!--
+  Página de diagnóstico para o navegador da TV (webOS, Tizen, etc.).
+  Testa os recursos que o telão (/tv/:slug) exige — Tailwind 4 pede Chrome 111+,
+  as molduras do MOD-05 usam container queries (Chrome 105+) — e mede a
+  velocidade de download das fotos do R2. Escrita em ES5 puro de propósito:
+  precisa rodar (e reportar) mesmo em navegadores antigos.
+-->
+<style>
+  body { margin: 0; background: #111; color: #eee; font-family: Arial, Helvetica, sans-serif; padding: 3vh 4vw; }
+  h1 { font-size: 4vh; margin: 0 0 1vh; }
+  .sub { color: #999; font-size: 2.2vh; margin-bottom: 2.5vh; }
+  #verdict { font-size: 4.5vh; font-weight: bold; padding: 2vh 2vw; border-radius: 12px; margin-bottom: 2.5vh; background: #333; }
+  #verdict.ok { background: #14532d; color: #bbf7d0; }
+  #verdict.warn { background: #713f12; color: #fde68a; }
+  #verdict.bad { background: #7f1d1d; color: #fecaca; }
+  table { width: 100%; border-collapse: collapse; }
+  td { font-size: 2.6vh; padding: 0.9vh 1vw; border-bottom: 1px solid #2a2a2a; }
+  td.r { text-align: right; white-space: nowrap; font-weight: bold; }
+  .pass { color: #4ade80; }
+  .fail { color: #f87171; }
+  .info { color: #93c5fd; }
+  .crit { color: #777; font-size: 2vh; }
+  #ua { color: #777; font-size: 1.9vh; word-break: break-all; margin-top: 2.5vh; }
+</style>
+</head>
+<body>
+  <h1>Diagnóstico do Telão 🐨</h1>
+  <div class="sub">memorieshub.com.br &middot; testa se este navegador roda o telão (/tv/...)</div>
+  <div id="verdict">Testando...</div>
+  <table id="results"></table>
+  <div id="ua"></div>
+
+<script>
+(function () {
+  var rows = [];
+  var criticalFails = [];
+
+  function add(label, ok, critical, detail) {
+    rows.push({ label: label, ok: ok, critical: critical, detail: detail || '' });
+    if (!ok && critical) criticalFails.push(label);
+  }
+
+  function addInfo(label, value) {
+    rows.push({ label: label, info: true, detail: value });
+  }
+
+  function supports(prop, value) {
+    try {
+      return !!(window.CSS && CSS.supports && CSS.supports(prop, value));
+    } catch (e) { return false; }
+  }
+
+  function syntaxOk(code) {
+    try { new Function(code); return true; } catch (e) { return false; }
+  }
+
+  // ── Informações do dispositivo ──────────────────────────────────────────────
+  var chromeMatch = navigator.userAgent.match(/Chrom(?:e|ium)\/(\d+)/);
+  var chromeVer = chromeMatch ? parseInt(chromeMatch[1], 10) : null;
+  addInfo('Motor do navegador', chromeVer ? 'Chromium ' + chromeVer + ' (telão pede ~111+)' : 'não identificado');
+  addInfo('Janela (viewport)', window.innerWidth + ' × ' + window.innerHeight + ' px · zoom ' + (window.devicePixelRatio || 1) + 'x');
+  addInfo('Tela física', (screen.width || '?') + ' × ' + (screen.height || '?') + ' px');
+
+  // ── JavaScript (bundle Vite precisa de ~Chrome 87+) ────────────────────────
+  add('JavaScript moderno (ES2020: a?.b ?? c)', syntaxOk('var a={}; return a && (a.x == null ? 1 : a.x);') && syntaxOk('return ({}) ?. x ?? 1;'), true);
+  add('Campos de classe (class A { x = 1 })', syntaxOk('class A { x = 1 }'), true);
+  add('WebSocket (tempo real do Supabase)', typeof WebSocket !== 'undefined', true);
+  add('crypto.randomUUID', !!(window.crypto && crypto.randomUUID), false);
+
+  // ── CSS exigido pelo Tailwind 4 (Chrome 111+) ──────────────────────────────
+  add('CSS @layer (Tailwind 4)', typeof CSSLayerBlockRule !== 'undefined', true);
+  add('CSS @property (Tailwind 4)', typeof CSSPropertyRule !== 'undefined', true);
+  add('Cores oklch() (Tailwind 4)', supports('color', 'oklch(50% 0.1 200)'), true);
+  add('color-mix() (Tailwind 4)', supports('color', 'color-mix(in oklab, red, blue)'), true);
+  add('Seletor :where() (Tailwind preflight)', (function () {
+    try { return !!(window.CSS && CSS.supports && CSS.supports('selector(:where(a))')); } catch (e) { return false; }
+  })(), true);
+
+  // ── CSS dos módulos do telão ────────────────────────────────────────────────
+  add('Container queries (molduras MOD-05)', supports('container-type', 'size'), true);
+  add('Unidades cqw/cqh (molduras MOD-05)', supports('width', '1cqw'), true);
+  add('aspect-ratio', supports('aspect-ratio', '1'), false);
+  add('gap em flexbox', supports('gap', '1px'), false);
+  add('backdrop-filter (overlays)', supports('backdrop-filter', 'blur(2px)') || supports('-webkit-backdrop-filter', 'blur(2px)'), false);
+
+  // ── Renderiza a tabela ──────────────────────────────────────────────────────
+  function render() {
+    var html = '';
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (r.info) {
+        html += '<tr><td>' + r.label + '</td><td class="r info">' + r.detail + '</td></tr>';
+      } else {
+        html += '<tr><td>' + r.label + (r.critical ? '' : ' <span class="crit">(opcional)</span>') + '</td>'
+              + '<td class="r ' + (r.ok ? 'pass">✔ OK' : 'fail">✘ NÃO SUPORTA') + '</td></tr>';
+      }
+    }
+    document.getElementById('results').innerHTML = html;
+  }
+  render();
+  document.getElementById('ua').innerHTML = 'User agent: ' + navigator.userAgent;
+
+  // ── Veredito parcial (antes do teste de rede) ───────────────────────────────
+  var verdictEl = document.getElementById('verdict');
+  function setVerdict(cls, text) { verdictEl.className = cls; verdictEl.innerHTML = text; }
+
+  // ── Teste de velocidade: foto real do R2 + asset do site ───────────────────
+  // A foto de exemplo tem ~212 KB; mede o tempo p/ estimar a banda da TV.
+  var R2_TEST = { url: 'https://pub-1516365c685b4c02b3d5dd2f7726080b.r2.dev/1781063083685-j9ycvtj.jpg', kb: 212, label: 'Download de foto (R2, 212 KB)' };
+  var SITE_TEST = { url: '/landing/Logo0.png', kb: null, label: 'Download de asset do site' };
+
+  function timeImage(test, done) {
+    var img = new Image();
+    var t0 = new Date().getTime();
+    var finished = false;
+    function finish(ok) {
+      if (finished) return; finished = true;
+      var ms = new Date().getTime() - t0;
+      done(ok, ms);
+    }
+    img.onload = function () { finish(true); };
+    img.onerror = function () { finish(false); };
+    setTimeout(function () { finish(false); }, 30000);
+    img.src = test.url + (test.url.indexOf('?') >= 0 ? '&' : '?') + 'nocache=' + t0;
+  }
+
+  timeImage(R2_TEST, function (ok1, ms1) {
+    var speed = ok1 && ms1 > 0 ? Math.round(R2_TEST.kb / (ms1 / 1000)) : 0;
+    addInfo(R2_TEST.label, ok1 ? (ms1 + ' ms (~' + speed + ' KB/s)') : 'FALHOU/TIMEOUT');
+    timeImage(SITE_TEST, function (ok2, ms2) {
+      addInfo(SITE_TEST.label, ok2 ? (ms2 + ' ms') : 'FALHOU/TIMEOUT');
+      render();
+
+      // ── Veredito final ──────────────────────────────────────────────────────
+      var netSlow = !ok1 || ms1 > 4000;
+      if (criticalFails.length === 0 && !netSlow) {
+        setVerdict('ok', '✅ COMPATÍVEL — este navegador roda o telão');
+      } else if (criticalFails.length === 0 && netSlow) {
+        setVerdict('warn', '⚠️ Navegador OK, mas a REDE/Wi-Fi está lenta (' + (ok1 ? ms1 + ' ms p/ 212 KB' : 'download falhou') + ') — as fotos vão demorar');
+      } else {
+        setVerdict('bad', '❌ INCOMPATÍVEL — faltam ' + criticalFails.length + ' recursos essenciais. Use um Chromecast/Fire Stick ou PC via HDMI nesta TV.');
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>
