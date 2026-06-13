@@ -277,7 +277,7 @@ export default function TVDisplay({ event, config }: { event: EventData; config:
       </div>
 
       {/* Rodapé sempre visível */}
-      <Ticker theme={theme} items={tickerItems} speed={config.ticker_speed} onLoop={() => setTickerRound((r) => r + 1)} />
+      <Ticker theme={theme} items={tickerItems} speed={config.ticker_speed} scale={(config.ticker_scale ?? 100) / 100} onLoop={() => setTickerRound((r) => r + 1)} />
 
       {/* Sorteio disparado pelo painel (tela cheia) — compartilhado com o telão legado */}
       <RaffleOverlay event={event} />

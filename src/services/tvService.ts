@@ -25,6 +25,8 @@ export interface TvConfig {
   ticker_show_products: boolean;
   ticker_show_no_photo: boolean;
   ticker_speed: number;
+  // Tamanho do rodapé (%): escala altura/texto/miniaturas do ticker (100-200)
+  ticker_scale: number;
   // MOD-04: exibir apenas expositores com foto (false = todos)
   mod04_only_with_photo: boolean;
   // MOD-07 (Promover Stand): stand escolhido + texto/frase customizados.

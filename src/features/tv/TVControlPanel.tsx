@@ -62,6 +62,7 @@ const DEFAULT_CONFIG: Omit<TvConfig, 'id' | 'event_id' | 'updated_at'> = {
   ticker_show_raffle: true,  ticker_show_alerts: true,
   ticker_show_products: true, ticker_show_no_photo: false,
   ticker_speed: 50,
+  ticker_scale: 100,
   mod04_only_with_photo: false,
   duration_mod07: 15, paused_mod07: false,
   mod07_exhibitor_id: null, mod07_text: null, mod07_tagline: null,
@@ -896,6 +897,21 @@ export default function TVControlPanel() {
                     onChange={(e) => save({ ticker_speed: Number(e.target.value) })}
                     className="w-28 accent-emerald-400"
                   />
+                </div>
+                <div className="flex items-center justify-between px-3 pt-1">
+                  <span className="text-xs text-neutral-300">Tamanho do rodapé</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="range"
+                      min={100}
+                      max={200}
+                      step={5}
+                      value={cfg.ticker_scale}
+                      onChange={(e) => save({ ticker_scale: Number(e.target.value) })}
+                      className="w-28 accent-emerald-400"
+                    />
+                    <span className="text-xs font-bold text-neutral-200 w-9">{cfg.ticker_scale}%</span>
+                  </div>
                 </div>
               </div>
             </div>
