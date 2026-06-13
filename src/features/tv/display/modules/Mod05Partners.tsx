@@ -192,7 +192,7 @@ export default function Mod05Partners({
 
         {/* Descrição do parceiro */}
         {p.description && (
-          <div className="shrink-0 w-[26vw] flex items-center">
+          <div className="shrink-0 w-[36vw] flex items-center">
             <p
               style={{ fontFamily: theme.fontBody, color: theme.ink }}
               className="text-3xl leading-snug whitespace-pre-line"
