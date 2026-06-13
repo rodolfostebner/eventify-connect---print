@@ -60,7 +60,8 @@ export const landingConfig: LandingConfig = {
     "Patrocinador5.png",
     "Patrocinador6.jpeg",
     "Patrocinador7.png",
-    "Patrocinador8.png"
+    "Patrocinador8.png",
+    "Patrocinador9.png"
   ],
 
   // Legendas que aparecem abaixo de cada foto no carrossel:
