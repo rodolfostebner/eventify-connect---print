@@ -10,3 +10,6 @@ coverage/
 .vercel
 
 src/new_design/
+
+# Artefatos de teste do Playwright MCP
+.playwright-mcp/

@@ -58,6 +58,7 @@ interface PhotoModalProps {
   event: EventData;
   onReact: (emoji: string) => void;
   onDeletePhoto?: () => void;
+  locked?: boolean;
 }
 
 export const PhotoModal = ({
@@ -74,7 +75,8 @@ export const PhotoModal = ({
   approvedComments,
   event,
   onReact,
-  onDeletePhoto
+  onDeletePhoto,
+  locked = false
 }: PhotoModalProps) => {
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -176,9 +178,12 @@ export const PhotoModal = ({
                   return (
                     <button
                       key={emoji}
+                      disabled={locked}
                       onClick={() => onReact(emoji)}
                       className={cn(
-                        "flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all font-black cursor-pointer gap-1",
+                        "flex flex-col items-center justify-center py-2.5 rounded-xl border transition-all font-black gap-1",
+                        locked && "opacity-50 cursor-not-allowed",
+                        !locked && "cursor-pointer",
                         hasReacted
                           ? "bg-neutral-100 border-neutral-300 text-neutral-600 scale-105 shadow-sm"
                           : "bg-neutral-50 border-neutral-100 text-neutral-400 hover:bg-neutral-100"
@@ -205,7 +210,7 @@ export const PhotoModal = ({
                 </div>
                 
                 {/* Quick Comments */}
-                {user && event.custom_comments && event.custom_comments.length > 0 && (
+                {!locked && user && event.custom_comments && event.custom_comments.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {event.custom_comments.map((text, i) => (
                       <button
@@ -244,22 +249,28 @@ export const PhotoModal = ({
 
           {/* Input Area */}
           <div className="p-4 bg-neutral-50 border-t border-neutral-100">
-            <form onSubmit={onAddComment} className="relative">
-              <input
-                placeholder={user ? "Adicione um comentário..." : "Faça login para comentar"}
-                disabled={!user || isSubmitting}
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                className="w-full bg-white border border-neutral-200 rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/5 transition-all disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={!user || !newComment.trim() || isSubmitting}
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-neutral-400 hover:text-neutral-900 disabled:opacity-0 transition-all"
-              >
-                <Send className="w-5 h-5" />
-              </button>
-            </form>
+            {locked ? (
+              <p className="text-center text-xs font-bold text-neutral-400 py-2">
+                Evento encerrado — as interações foram desativadas.
+              </p>
+            ) : (
+              <form onSubmit={onAddComment} className="relative">
+                <input
+                  placeholder={user ? "Adicione um comentário..." : "Faça login para comentar"}
+                  disabled={!user || isSubmitting}
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  className="w-full bg-white border border-neutral-200 rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900/5 transition-all disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={!user || !newComment.trim() || isSubmitting}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-neutral-400 hover:text-neutral-900 disabled:opacity-0 transition-all"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </form>
+            )}
           </div>
         </motion.div>
       </div>

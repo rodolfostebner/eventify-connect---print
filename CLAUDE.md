@@ -94,7 +94,7 @@ src/
     leadService.ts         # Criar/listar leads de pre-venda (tabela leads)
     contactLeadService.ts  # Criar/listar leads de contato da landing page (tabela contact_leads)
     partnerService.ts      # CRUD parceiros - patrocinador/apoiador/servico (tabela partners)
-    evaluationService.ts   # CRUD avaliacoes publico + jurados, categorias, ranking (view)
+    evaluationService.ts   # CRUD avaliacoes publico + jurados, categorias, ranking (view); relatorios getEvaluationsReport/getJurorEvaluationsReport (avaliacoes + usuario + expositor p/ a aba Avaliacoes & Comentarios); getParticipantStarRanking (ranking do pos-evento por SOMA de estrelas de participantes na data do evento — score=soma de estrelas, voters=participantes unicos; nao usa a view ponderada)
     raffleService.ts       # Criacao de ticket, listagem, sorteio aleatorio
     visitService.ts        # Registro silencioso de visitas/cliques, relatorios por expositor
     presenceService.ts     # Heartbeat de sessoes do app (tabela app_sessions): contador de pessoas online (logados/anonimos) + base do relatorio pos-feira (picos, permanencia)
@@ -197,6 +197,7 @@ src/
       EventAdminPortal.tsx # Portal do EventAdmin: controles + dashboard + config (abas) + auditoria. Acesso admin e event_admin
       MarketingTab.tsx     # Aba Marketing: contato do evento + slides de fotos do telão
       ReportsTab.tsx       # Aba Relatorios: relatorio de expositores + export PDF (jspdf/jspdf-autotable)
+      AvaliacoesComentariosTab.tsx # Aba Avaliacoes & Comentarios: avaliacoes a expositores em 3 sub-abas (publico estrelas+comentario / resumo soma+media por expositor / jurados por categoria) com quem avaliou, role atual e data; ordenacao por cabecalho (tri-estado), filtro por role, busca e export PDF. Resumo valida o ranking do pos-evento: media = public_score da view_exhibitor_rankings
 
     avaliador/
       AvaliadorPage.tsx    # Painel do avaliador (stub — a implementar)

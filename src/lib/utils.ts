@@ -1,8 +1,36 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import type { EventData, AppUser } from '../types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/**
+ * Equipe do evento: admin geral, admin do evento (event_admin) ou e-mail que
+ * conste na lista de admins do evento. Só a equipe escapa dos bloqueios quando
+ * o evento é encerrado.
+ */
+export function isEventStaff(
+  event: Pick<EventData, 'admin_emails'>,
+  user: AppUser | null,
+): boolean {
+  if (!user) return false;
+  if (user.role === 'admin' || user.role === 'event_admin') return true;
+  return event.admin_emails?.includes(user.email || '') ?? false;
+}
+
+/**
+ * Interações (curtir, reagir, comentar, enviar foto) ficam bloqueadas quando o
+ * evento está encerrado (status 'post') ou com interações pausadas — exceto para
+ * a equipe do evento (admin geral / admin do evento).
+ */
+export function areInteractionsLocked(
+  event: Pick<EventData, 'status' | 'interactions_paused' | 'admin_emails'>,
+  user: AppUser | null,
+): boolean {
+  if (isEventStaff(event, user)) return false;
+  return event.status === 'post' || !!event.interactions_paused;
 }
 
 /**

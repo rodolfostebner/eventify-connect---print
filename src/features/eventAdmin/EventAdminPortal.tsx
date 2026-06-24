@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { MarketingTab } from './MarketingTab';
 import { ReportsTab } from './ReportsTab';
+import { AvaliacoesComentariosTab } from './AvaliacoesComentariosTab';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Eye, LayoutDashboard, ShieldCheck, Printer, Store, Star, Play, Pause, CheckCircle2,
@@ -158,6 +159,7 @@ const TABS = [
   { id: 'avisos',     label: 'Avisos' },
   { id: 'avaliacao',  label: 'Config. Avaliação' },
   { id: 'sorteio',    label: 'Config. Sorteio' },
+  { id: 'avaliacoes_comentarios', label: 'Avaliações & Comentários' },
   { id: 'relatorios', label: 'Relatórios' },
   { id: 'marketing',  label: 'Marketing' },
   { id: 'auditoria',  label: 'Auditoria' },
@@ -2220,6 +2222,10 @@ export default function EventAdminPortal() {
             )}
 
             {/* Aba Relatórios */}
+            {activeTab === 'avaliacoes_comentarios' && (
+              <AvaliacoesComentariosTab eventId={event.id} eventName={event.name} />
+            )}
+
             {activeTab === 'relatorios' && (
               <ReportsTab eventId={event.id} eventName={event.name} />
             )}

@@ -6,6 +6,7 @@ import { likePost, commentOnPost, reactToPost, deletePost, deleteComment, record
 import { viewTracker } from '../../../../services/viewTracker';
 import { InteractionBar } from './InteractionBar';
 import { PhotoModal } from './PhotoModal';
+import { areInteractionsLocked } from '../../../../lib/utils';
 
 interface PhotoCardProps {
   photo: PhotoData;
@@ -23,8 +24,15 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
   const isAdmin = (user as any)?.role === 'admin' || (event.admin_emails?.includes(user?.email || '') ?? false);
   const hasLiked = user ? photo.reacted_users?.includes(`${user.id}_🔥`) : false;
 
+  // Evento encerrado / interações pausadas: bloqueia curtidas, reações e comentários.
+  const locked = areInteractionsLocked(event, user);
+
   const handleLike = useCallback(async (e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (locked) {
+      toast.info('Evento encerrado. As interações foram desativadas.');
+      return;
+    }
     if (!user) {
       onLogin();
       return;
@@ -43,9 +51,13 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
       console.error(err);
       toast.error('Erro ao curtir foto.');
     }
-  }, [user, onLogin, photo.id, hasLiked, photo.reacted_users]);
+  }, [locked, user, onLogin, photo.id, hasLiked, photo.reacted_users]);
 
   const handleReact = useCallback(async (emoji: string) => {
+    if (locked) {
+      toast.info('Evento encerrado. As interações foram desativadas.');
+      return;
+    }
     if (!user) {
       onLogin();
       return;
@@ -67,10 +79,14 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
       console.error(err);
       toast.error('Erro ao reagir.');
     }
-  }, [user, onLogin, photo.id, photo.reacted_users]);
+  }, [locked, user, onLogin, photo.id, photo.reacted_users]);
 
   const handleAddComment = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    if (locked) {
+      toast.info('Evento encerrado. As interações foram desativadas.');
+      return;
+    }
     if (!user || !newComment.trim() || isSubmitting) return;
 
     // Limits check (dna.json: max_comments_per_photo = 2)
@@ -99,7 +115,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, newComment, isSubmitting, photo.id, photo.comments, event.comment_moderation_enabled, event.custom_comments]);
+  }, [locked, user, newComment, isSubmitting, photo.id, photo.comments, event.comment_moderation_enabled, event.custom_comments]);
 
   const handleDeleteComment = useCallback(async (commentId: string) => {
     const comment = photo.comments?.find(c => c.id === commentId);
@@ -165,13 +181,14 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
           </div>
         </div>
 
-        <InteractionBar 
+        <InteractionBar
           reactionCounts={photo.reaction_counts || {}}
           commentCount={approvedComments.length}
           viewsCount={photo.views_count || 0}
           onReact={handleReact}
           reactedUsers={photo.reacted_users || []}
           user={user}
+          locked={locked}
         />
       </motion.div>
 
@@ -190,6 +207,7 @@ export const PhotoCard = memo(function PhotoCard({ photo, user, event, onLogin }
         isSubmitting={isSubmitting}
         approvedComments={approvedComments}
         event={event}
+        locked={locked}
       />
     </>
   );

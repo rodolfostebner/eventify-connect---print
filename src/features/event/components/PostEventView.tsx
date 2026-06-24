@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Star, Briefcase, Trophy, ArrowLeft, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import type { EventData, AppUser, Exhibitor, Partner, ExhibitorCategory, ExhibitorRanking } from '../../../types';
+import type { EventData, AppUser, Exhibitor, Partner, ExhibitorCategory } from '../../../types';
 import { useEventPhotos } from '../hooks/useEventPhotos';
 import { PhotoCard } from './PhotoCard/PhotoCard';
 import { PartnerSection } from './PartnerSection';
@@ -10,7 +10,7 @@ import { ExhibitorDetailModal } from './ExhibitorDetailModal';
 import { getExhibitors } from '../../../services/exhibitorService';
 import { getPartners } from '../../../services/partnerService';
 import { getExhibitorCategories } from '../../../services/exhibitorCategoryService';
-import { getExhibitorRankings } from '../../../services/evaluationService';
+import { getParticipantStarRanking, type ParticipantStarRanking } from '../../../services/evaluationService';
 import { rotateByTime, SPONSOR_ROTATION_MS } from '../../../lib/utils';
 
 interface Props {
@@ -25,9 +25,10 @@ export const PostEventView = ({ event, user, onLogin }: Props) => {
   const [exhibitors, setExhibitors] = useState<Exhibitor[]>([]);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [categories, setCategories] = useState<ExhibitorCategory[]>([]);
-  const [rankings, setRankings] = useState<ExhibitorRanking[]>([]);
+  const [rankings, setRankings] = useState<ParticipantStarRanking[]>([]);
   const [selectedExhibitor, setSelectedExhibitor] = useState<Exhibitor | null>(null);
   const [momentIdx, setMomentIdx] = useState(0);
+  const [showAllRankings, setShowAllRankings] = useState(false);
 
   const { photos } = useEventPhotos(event.id);
 
@@ -35,7 +36,7 @@ export const PostEventView = ({ event, user, onLogin }: Props) => {
     getExhibitors(event.id).then(setExhibitors).catch(() => {});
     getPartners(event.id).then(setPartners).catch(() => {});
     getExhibitorCategories(event.id).then(setCategories).catch(() => {});
-    getExhibitorRankings(event.id).then(r => setRankings(r.sort((a, b) => b.final_score - a.final_score))).catch(() => {});
+    getParticipantStarRanking(event.id, event.date).then(setRankings).catch(() => {});
   }, [event.id]);
 
   // Rodízio justo dos patrocinadores/serviços (gira a cada 5 min — ver SPONSOR_ROTATION_MS)
@@ -113,22 +114,26 @@ export const PostEventView = ({ event, user, onLogin }: Props) => {
             <h3 className="text-[15px] font-black text-[#2D2D3F]">Ranking dos Expositores</h3>
           </div>
           <div className="space-y-2">
-            {rankings.slice(0, 5).map((r, i) => (
+            {(showAllRankings ? rankings : rankings.slice(0, 5)).map((r, i) => (
               <div key={r.exhibitor_id} className="flex items-center gap-3 py-2 border-b border-[#F0F0F4] last:border-0">
                 <span className="text-xl w-7 text-center shrink-0">{MEDALS[i] ?? `#${i + 1}`}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-bold text-[#2D2D3F] truncate">{r.exhibitor_name}</p>
-                  <p className="text-[10px] text-[#94949E]">Score: {r.final_score.toFixed(2)}</p>
+                  <p className="text-[10px] text-[#94949E]">{r.voters} {r.voters === 1 ? 'voto' : 'votos'}</p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-[11px] font-bold text-[#3FA790]">{r.public_votes_count} votos</p>
+                  <p className="text-[15px] font-black text-[#3FA790] tabular-nums leading-none">{r.score} ⭐</p>
+                  <p className="text-[9px] text-[#94949E] uppercase tracking-wider mt-1">estrelas</p>
                 </div>
               </div>
             ))}
           </div>
           {rankings.length > 5 && (
-            <button className="mt-3 w-full text-center text-[11px] font-bold text-[#3FA790]">
-              Ver ranking completo →
+            <button
+              onClick={() => setShowAllRankings(v => !v)}
+              className="mt-3 w-full text-center text-[11px] font-bold text-[#3FA790] hover:underline"
+            >
+              {showAllRankings ? 'Ver menos ↑' : 'Ver ranking completo →'}
             </button>
           )}
         </div>
@@ -167,21 +172,20 @@ export const PostEventView = ({ event, user, onLogin }: Props) => {
       {rankingPhotoHighlights.length > 0 && (
         <div className="mx-4 mt-4 bg-white rounded-2xl p-4 border border-[#ECECF1] shadow-sm">
           <h3 className="text-[15px] font-black text-[#2D2D3F] mb-4">Destaques do Feed</h3>
-          <div className="relative overflow-hidden rounded-xl bg-[#F5F5F7]">
+          <div className="relative overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.div
                 key={momentIdx}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="grid grid-cols-2 gap-3 p-3"
               >
-                <div className="flex flex-col justify-center">
-                  <span className="text-4xl mb-1">{rankingPhotoHighlights[momentIdx].emoji}</span>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-[#94949E]">{rankingPhotoHighlights[momentIdx].title}</p>
-                  <p className="text-2xl font-black text-[#2D2D3F]">{rankingPhotoHighlights[momentIdx].score}</p>
+                <div className="flex items-center gap-3 mb-3 px-1">
+                  <span className="text-3xl shrink-0">{rankingPhotoHighlights[momentIdx].emoji}</span>
+                  <p className="flex-1 min-w-0 text-[10px] font-black uppercase tracking-widest text-[#94949E]">{rankingPhotoHighlights[momentIdx].title}</p>
+                  <span className="text-2xl font-black text-[#2D2D3F] shrink-0">{rankingPhotoHighlights[momentIdx].score}</span>
                 </div>
-                <div className="rounded-xl overflow-hidden aspect-square bg-neutral-100 border-2 border-white shadow-md">
+                <div className="max-w-[300px] mx-auto">
                   <PhotoCard photo={rankingPhotoHighlights[momentIdx].photo!} user={user} event={event} onLogin={onLogin} />
                 </div>
               </motion.div>

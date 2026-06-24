@@ -14,7 +14,7 @@ import { getPartners } from '../services/partnerService';
 import { trackVisit } from '../services/visitService';
 import { startHeartbeat } from '../services/presenceService';
 import { formatWebsite } from '../utils/formatters';
-import { cn, rotateByTime, SPONSOR_ROTATION_MS } from '../lib/utils';
+import { cn, rotateByTime, SPONSOR_ROTATION_MS, isEventStaff } from '../lib/utils';
 import type { Exhibitor, Partner } from '../types';
 import { supabase } from '../lib/supabase/client';
 import { landingConfig } from '../features/landing/landingConfig';
@@ -460,6 +460,17 @@ export default function EventPage({ user }: { user: AppUser | null }) {
     }
   }, [event?.id]);
 
+  // Evento encerrado (pós-evento): só a organização (admin geral / admin do evento)
+  // pode permanecer logada. Qualquer outro perfil é deslogado automaticamente —
+  // assim ninguém fora da equipe consegue curtir, comentar ou alterar nada.
+  useEffect(() => {
+    if (event?.status !== 'post') return;
+    if (!user) return;
+    if (isEventStaff(event, user)) return;
+    logout();
+    toast.info('Evento encerrado. O acesso ficou disponível apenas para a organização.');
+  }, [event?.status, event?.admin_emails, user, logout]);
+
   // Link logged-in participant to this event so they are formally registered to receive push notifications
   useEffect(() => {
     if (!user || !event?.id) return;
@@ -598,7 +609,11 @@ export default function EventPage({ user }: { user: AppUser | null }) {
     },
   })), [dbSponsors]);
 
-  const handleLogin = () => setIsLoginViewOpen(true);
+  const handleLogin = () => {
+    // Evento encerrado: login disponível apenas para a organização (admin geral / admin do evento).
+    if (event?.status === 'post') return;
+    setIsLoginViewOpen(true);
+  };
 
   const getBackgroundStyle = () => {
     if (!event) return {};
@@ -728,14 +743,14 @@ export default function EventPage({ user }: { user: AppUser | null }) {
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
-          ) : (
+          ) : event.status !== 'post' ? (
             <button
               onClick={handleLogin}
               className="text-[10px] font-black uppercase tracking-widest px-6 py-2.5 bg-neutral-900 text-white rounded-full shadow-lg active:scale-95 transition-all"
             >
               Entrar
             </button>
-          )}
+          ) : null}
         </div>
       </header>
 

@@ -10,6 +10,7 @@ interface InteractionBarProps {
   onReact: (emoji: string) => void;
   reactedUsers: string[];
   user: AppUser | null;
+  locked?: boolean;
 }
 
 export const InteractionBar = React.memo(({
@@ -18,7 +19,8 @@ export const InteractionBar = React.memo(({
   viewsCount,
   onReact,
   reactedUsers,
-  user
+  user,
+  locked = false
 }: InteractionBarProps) => {
   const emojis = ['🔥', '😂', '❤️', '🎸'];
 
@@ -33,12 +35,15 @@ export const InteractionBar = React.memo(({
           return (
             <button
               key={emoji}
+              disabled={locked}
               onClick={(e) => {
                 e.stopPropagation();
                 onReact(emoji);
               }}
               className={cn(
-                "flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-black transition-all border cursor-pointer gap-0.5",
+                "flex flex-col items-center justify-center py-1.5 rounded-xl text-[10px] font-black transition-all border gap-0.5",
+                locked && "opacity-50 cursor-not-allowed",
+                !locked && "cursor-pointer",
                 hasReacted
                   ? "bg-neutral-100 border-neutral-200 text-neutral-600 scale-105 shadow-sm"
                   : "bg-neutral-50 border-neutral-100 text-neutral-400 hover:bg-neutral-100"
