@@ -1,0 +1,216 @@
+APPS DE FOTOS PARA CASAMENTOS E EVENTOS — PANORAMA DE MERCADO
+Compilado em junho/2026 | Para uso de análise competitiva (Memories Hub)
+==============================================================================
+
+
+1. FOTIFY
+   Site: https://fotify.app
+   Preços (por evento, pagamento único):
+     - Grátis:        50 fotos, 20 convites, 7 dias de acesso
+     - Photo Gallery: USD 29,99 — fotos ilimitadas, galeria por 90 dias
+     - Premium:       USD 49,99 — fotos ilimitadas, RSVP, galeria por 365 dias
+     - Partner Plan:  50% de desconto por evento (para fotógrafos/organizadores)
+   Features:
+     • Upload via QR code sem app e sem login
+     • Live slideshow para telão/projetor em tempo real
+     • Moderação de conteúdo por IA
+     • RSVP com rastreamento de convidados
+     • Convites digitais personalizados
+     • Frames de photo booth personalizáveis
+     • Rede de convidados (estilo Tinder para networking no evento)
+     • Download em alta resolução (até 50MB/100MP por foto)
+     • Galeria acessível até 1 ano após o evento
+   Observações:
+     Mais completo do mercado. Cobre desde festas pequenas até casamentos
+     corporativos. Concorrente mais forte no segmento geral.
+
+
+2. WEDSHOOTS
+   Site: https://wedshoots.com  /  https://casamentos.pt (versão BR/PT)
+   Preços: Gratuito (modelo freemium, vinculado ao ecossistema WeddingWire)
+   Features:
+     • Álbum privado compartilhado por código de evento
+     • Feed ao vivo de fotos (atualização automática)
+     • Curtidas e comentários nas fotos
+     • Filtros de foto no upload
+     • Exibição em projetor durante a celebração
+     • Download em alta resolução
+     • Requer download do app pelos convidados (ponto de atrito)
+   Observações:
+     Opção gratuita mais popular no Brasil via ecossistema Casamentos.pt.
+     Interface estilo rede social. Desvantagem: convidados precisam baixar o app.
+
+
+3. GUESTCAM
+   Site: https://guestcam.co
+   Preços (por evento):
+     - Básico: USD 49 — 6 meses de upload, 12 meses de armazenamento
+     - MagicFind AI: + USD 45 (processa até 10.000 imagens)
+     - Premium + MagicFind: ~USD 100 no total
+   Features:
+     • Upload via QR code sem app e sem login
+     • MagicFind: convidado tira selfie e encontra todas as fotos em que aparece
+     • Reconhecimento facial por IA
+     • Live slideshow
+     • Sub-galerias ilimitadas
+     • Livro de visitas em áudio (plano Premium)
+     • Suporte a múltiplos álbuns (ex: noivado → casamento → brunch)
+     • Sem moderação automática — revisão manual pelo host
+   Observações:
+     Diferencial forte: reconhecimento facial via selfie. Ideal quando há
+     fotógrafo profissional com muitas fotos. Preço sobe com add-ons.
+
+
+4. GUESTPIX
+   Site: https://guestpix.com
+   Preços (por evento):
+     - Básico:   USD 39 (festas) / EUR 49 (casamentos) — 3 meses de armazenamento
+     - Premium:  USD 89 — múltiplos álbuns, RSVP
+     - Superior: USD 177+ (casamentos grandes)
+   Features:
+     • Upload via QR code sem app e sem login
+     • Live slideshow
+     • Livro de visitas em áudio
+     • RSVP (planos superiores)
+     • Mais de 180 modelos editáveis de QR code no Canva
+     • Upload ilimitado de fotos e vídeos
+     • Jogos interativos de foto para engajamento de convidados
+   Observações:
+     Forte em personalização visual e engajamento. Álbuns múltiplos
+     somente a partir do plano de USD 89. Pode ficar caro para eventos maiores.
+
+
+5. WEDIBOX
+   Site: https://wedibox.com
+   Preços (por evento):
+     - Básico:  ~USD 54 — 1 ano de armazenamento
+     - Premium: ~USD 89
+   Features:
+     • Upload via QR code sem app e sem login
+     • Livro de visitas em áudio (mensagens de voz dos convidados)
+     • Playlist compartilhada (convidados sugerem músicas, como pedido ao DJ)
+     • RSVP com opção de refeição e restrições alimentares
+     • Site de casamento integrado
+     • Suporte a múltiplos idiomas
+     • Sem moderação automática — revisão manual
+   Observações:
+     Focado exclusivamente em casamentos. Mais completo em gestão do evento
+     (RSVP + playlist + áudio). Mas caro e sem IA para moderação.
+
+
+6. GUESTLENSE
+   Site: https://guestlense.com
+   Preços (por evento): A partir de USD 49 (todos os planos incluem IA)
+   Features:
+     • Upload via QR code sem app e sem login
+     • Moderação por IA em todos os planos
+     • Álbuns ilimitados em todos os planos
+     • Live slideshow
+     • Suporte a fotos, vídeos e texto
+     • Preços transparentes sem add-ons surpresa
+   Observações:
+     Melhor custo-benefício em moderação por IA. Sem livro de visitas em áudio.
+     Posicionamento claro de transparência de preços.
+
+
+7. KULULU
+   Site: https://kululu.com
+   Preços (por evento):
+     - Free:  USD 39 (limitado — janela de 24h para upload)
+     - Pro:   USD 99 — ilimitado, IA de moderação (adicionada em ago/2025)
+   Features:
+     • Upload via QR code sem app e sem login
+     • Interface "tão simples que até a vovó usa"
+     • Suporte a Chromecast e Apple TV para slideshow
+     • Moderação por IA (plano Pro, desde ago/2025)
+     • Consentimento de convidados (funcionalidade de privacidade)
+     • Mais de 52.000 eventos realizados (Netflix, Dior, Nike entre clientes)
+   Observações:
+     Forte em simplicidade de UX. Limite de 24h no plano gratuito é bastante
+     restritivo. Plano Pro a USD 99 é o mais caro da lista.
+
+
+8. JOINMYMOMENT
+   Site: https://joinmymoment.com  /  https://blog.joinmymoment.com
+   Preços: Não divulgados publicamente — considerado o mais acessível do mercado
+   Features:
+     • Upload via QR code sem app e sem login
+     • Integração nativa com Google Photos
+     • Álbuns em tempo real compartilhados
+     • Suporte a vídeos e mensagens de voz
+     • Suporte a múltiplos idiomas
+     • Considerado o mais completo em relação custo-benefício em 2026
+   Observações:
+     Eleito melhor app de fotos para casamentos por blog.joinmymoment.com em 2026.
+     Maior breadth de features pelo menor preço. Consultar site para preços atuais.
+
+
+9. AIRBUM
+   Site: https://airbum.app
+   Preços: Plano gratuito disponível; preços pagos no site
+   Features:
+     • Upload via QR code sem app e sem login
+     • Organização automática por momentos (cerimônia, recepção, pista, etc.)
+     • Live slideshow para projeção durante a recepção
+     • Interface moderna com foco em UX
+   Observações:
+     Foco forte em organização automática por momentos do evento.
+     Ideal para casamentos com muitos momentos distintos a registrar.
+
+
+10. SAM (SamSaidYes)
+    Site: https://samsaidyes.com
+    Preços: Freemium — consultar site para planos pagos
+    Features:
+      • Upload sem criar conta pelos convidados
+      • Galeria privada compartilhada
+      • Interface simples e rápida
+      • Elogios à estabilidade e facilidade de uso
+    Observações:
+      App mais simples da lista. Boa avaliação de usuários pela ausência de
+      fricção (sem login obrigatório). Menor conjunto de features.
+
+
+==============================================================================
+RESUMO DE PREÇOS — REFERÊNCIA RÁPIDA (valores em USD, por evento)
+
+  App               Entrada    Intermediário   Topo
+  -----------       -------    -------------   -------
+  Fotify            Grátis     $29,99          $49,99
+  WedShoots         Grátis     —               —
+  GuestCam          $49        $49 + $45 AI    ~$100
+  Guestpix          $39        $89             $177+
+  Wedibox           $54        $89             —
+  Guestlense        $49        —               —
+  Kululu            $39        $99             —
+  JoinMyMoment      Não divulgado (mais barato do mercado)
+  Airbum            Grátis (parcial)            —
+  Sam               Grátis (parcial)            —
+
+OBSERVAÇÃO: Todos os preços são em USD e podem variar. Confirmar nos sites
+antes de tomar decisões de produto ou precificação.
+
+
+==============================================================================
+ANÁLISE PARA O MEMORIES HUB
+
+Features que o mercado considera OBRIGATÓRIAS (commodities):
+  [x] Upload via QR code sem app e sem login
+  [x] Galeria com feed ao vivo
+  [x] Download em alta resolução
+  [x] Privacidade por padrão (galeria fechada)
+
+Features que DIFERENCIAM e geram percepção de valor:
+  [ ] Live slideshow para telão/projetor durante o evento
+  [ ] Curtidas e comentários nas fotos
+  [ ] Moderação por IA (conteúdo impróprio)
+  [ ] Livro de visitas em áudio (mensagens de voz)
+  [ ] Múltiplos álbuns por momento do evento
+  [ ] RSVP integrado
+  [ ] Reconhecimento facial (nível avançado — GuestCam)
+
+FAIXA DE PREÇO PRATICADA: USD 30–100 por evento (R$ 150–500 aprox.)
+  Estratégia de entrada sugerida: R$ 99–149 por evento com features básicas;
+  R$ 249–349 para pacote completo (live slideshow + áudio + moderação).
+
+==============================================================================
