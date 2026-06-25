@@ -370,10 +370,10 @@ function ControleAvaliacoesSection({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100">
-                    {ranking.map((r, i) => (
-                      <tr key={r.exhibitor_id} className={cn('hover:bg-neutral-50', i < 3 && 'font-semibold')}>
+                    {ranking.map((r) => (
+                      <tr key={r.exhibitor_id} className={cn('hover:bg-neutral-50', r.rank <= 3 && 'font-semibold')}>
                         <td className="px-3 py-2 tabular-nums text-neutral-400">
-                          {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                          {r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : r.rank}
                         </td>
                         <td className="px-3 py-2 text-neutral-900">
                           {r.exhibitor_name}

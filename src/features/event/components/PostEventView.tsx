@@ -114,9 +114,9 @@ export const PostEventView = ({ event, user, onLogin }: Props) => {
             <h3 className="text-[15px] font-black text-[#2D2D3F]">Ranking dos Expositores</h3>
           </div>
           <div className="space-y-2">
-            {(showAllRankings ? rankings : rankings.slice(0, 5)).map((r, i) => (
+            {(showAllRankings ? rankings : rankings.slice(0, 5)).map((r) => (
               <div key={r.exhibitor_id} className="flex items-center gap-3 py-2 border-b border-[#F0F0F4] last:border-0">
-                <span className="text-xl w-7 text-center shrink-0">{MEDALS[i] ?? `#${i + 1}`}</span>
+                <span className="text-xl w-7 text-center shrink-0">{MEDALS[r.rank - 1] ?? `#${r.rank}`}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-bold text-[#2D2D3F] truncate">{r.exhibitor_name}</p>
                   <p className="text-[10px] text-[#94949E]">{r.voters} {r.voters === 1 ? 'voto' : 'votos'}</p>

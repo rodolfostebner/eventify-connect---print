@@ -333,6 +333,7 @@ export interface ParticipantStarRanking {
   exhibitor_number: number | null;
   score: number;   // soma das estrelas dadas (o que decide o ranking)
   voters: number;  // participantes únicos que votaram no expositor
+  rank: number;    // posição no ranking; empate real (mesmo score E mesmos voters compartilham posição)
 }
 
 // Data local (YYYY-MM-DD) de um timestamp, do ponto de vista de quem visualiza.
@@ -381,7 +382,7 @@ export async function getParticipantStarRanking(
     map.set(r.exhibitor_id, cur);
   }
 
-  return [...map.entries()]
+  const sorted = [...map.entries()]
     .map(([exhibitor_id, v]) => ({
       exhibitor_id,
       exhibitor_name: v.name,
@@ -394,6 +395,21 @@ export async function getParticipantStarRanking(
       b.voters - a.voters ||
       (a.exhibitor_number ?? 1e9) - (b.exhibitor_number ?? 1e9),
     );
+
+  // Empate real: expositores com a MESMA soma de estrelas E o MESMO nº de
+  // avaliadores compartilham a mesma posição. Numeração densa (1, 2, 2, 3…):
+  // após um empate o próximo número NÃO é pulado. O nº de avaliadores é o único
+  // desempate; sem outro critério definido, quando ambos coincidem é empate —
+  // não se força ordem pelo número do expositor.
+  const ranked: ParticipantStarRanking[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const r = sorted[i];
+    const prev = ranked[i - 1];
+    const tied = prev && prev.score === r.score && prev.voters === r.voters;
+    const rank = !prev ? 1 : tied ? prev.rank : prev.rank + 1;
+    ranked.push({ ...r, rank });
+  }
+  return ranked;
 }
 
 // ─── Ranking (View) ──────────────────────────────────────────────────────────
