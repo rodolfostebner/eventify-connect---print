@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { AppHeader } from '../../components/AppHeader';
 import { useAuth } from '../../hooks/useAuth';
 import { cn, toDatetimeLocalValue } from '../../lib/utils';
-import type { AuditLog, EventData, EvaluationCategory, UserEmailRole, Announcement, ExhibitorRanking } from '../../types';
+import type { AuditLog, EventData, EvaluationCategory, UserEmailRole, Announcement } from '../../types';
 import { getEventById, getEventBySlug, updateEvent } from '../../services/eventService';
 import { diffObjects, getEventAuditLogs, logChange } from '../../services/auditService';
 import { getEventDashboard, type DashboardData } from '../../services/dashboardService';
@@ -22,7 +22,7 @@ import { HBarChart, PieChart } from './components/DashboardCharts';
 import { SorteioTab } from './components/SorteioTab';
 import {
   getEvaluationCategories, createEvaluationCategory, updateEvaluationCategory, deleteEvaluationCategory,
-  setEvaluationStatus, getExhibitorRankings,
+  setEvaluationStatus, getParticipantStarRanking, type ParticipantStarRanking,
 } from '../../services/evaluationService';
 import {
   getExhibitorCategories, createExhibitorCategory, updateExhibitorCategory, deleteExhibitorCategory,
@@ -196,7 +196,7 @@ function ControleAvaliacoesSection({
   const status = event.evaluation_status ?? 'open';
   const [acting, setActing] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
-  const [ranking, setRanking] = useState<ExhibitorRanking[]>([]);
+  const [ranking, setRanking] = useState<ParticipantStarRanking[]>([]);
   const [rankingLoading, setRankingLoading] = useState(false);
 
   // Pesos editáveis inline
@@ -245,8 +245,11 @@ function ControleAvaliacoesSection({
     setRankingLoading(true);
     setShowRanking(true);
     try {
-      const data = await getExhibitorRankings(event.id);
-      setRanking(data.sort((a, b) => b.final_score - a.final_score));
+      // Mesma regra do pós-evento: soma de estrelas de usuários 'participant'
+      // no dia do evento; jurados não entram. getParticipantStarRanking já
+      // retorna ordenado por soma de estrelas (desempate: nº de votantes, número).
+      const data = await getParticipantStarRanking(event.id, event.date);
+      setRanking(data);
     } catch {
       toast.error('Erro ao carregar ranking.');
       setShowRanking(false);
@@ -362,9 +365,8 @@ function ControleAvaliacoesSection({
                     <tr>
                       <th className="px-3 py-2 w-8">#</th>
                       <th className="px-3 py-2">Expositor</th>
-                      <th className="px-3 py-2 text-right">Jurados</th>
-                      <th className="px-3 py-2 text-right">Público</th>
-                      <th className="px-3 py-2 text-right font-black">Final</th>
+                      <th className="px-3 py-2 text-right">Avaliações</th>
+                      <th className="px-3 py-2 text-right font-black">Estrelas</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-100">
@@ -380,13 +382,10 @@ function ControleAvaliacoesSection({
                           </span>
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums text-neutral-600">
-                          {Number(r.juror_score).toFixed(2)}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-neutral-600">
-                          {Number(r.public_score).toFixed(2)}
+                          {r.voters}
                         </td>
                         <td className="px-3 py-2 text-right tabular-nums font-black text-neutral-900">
-                          {Number(r.final_score).toFixed(2)}
+                          ⭐ {r.score}
                         </td>
                       </tr>
                     ))}
